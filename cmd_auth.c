@@ -1,0 +1,107 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "strings.h"
+#include "mfshell.h"
+#include "private.h"
+#include "command.h"
+#include "console.h"
+
+static char*
+_get_login_from_user(void);
+
+static char*
+_get_passwd_from_user(void);
+
+int
+mfshell_cmd_auth(mfshell_t *mfshell)
+{
+    int retval;
+
+    if(mfshell == NULL) return -1;
+    if(mfshell->server == NULL) return -1;
+
+    // free and invalidate existing user name
+    if(mfshell->user != NULL)
+    {
+        free(mfshell->user);
+        mfshell->user = NULL;
+    }
+
+    // free and invalidate existing passwd
+    if(mfshell->passwd != NULL)
+    {
+        free(mfshell->passwd);
+        mfshell->passwd = NULL;
+    }
+
+    mfshell->user = _get_login_from_user();
+    mfshell->passwd = _get_passwd_from_user();
+
+    if(mfshell->user == NULL || mfshell->passwd == NULL) return -1;
+
+    retval = mfshell->get_session_token(mfshell);
+
+    if(retval == 0)
+        printf("\n\rAuthentication SUCCESS\n\r");
+    else
+        printf("\n\rAuthentication FAILURE\n\r");
+
+    return retval;
+}
+
+char*
+_get_login_from_user(void)
+{
+    char        *login = NULL;
+    size_t      len;
+    ssize_t     bytes_read;
+
+    printf("login: ");
+    bytes_read = getline(&login,&len,stdin);
+    string_chomp(login);
+
+    if(bytes_read < 3)
+    {
+        if(login != NULL)
+        {
+            free(login);
+            login = NULL;
+        }
+    }
+
+    return login;
+}
+
+char*
+_get_passwd_from_user(void)
+{
+    char        *passwd = NULL;
+    size_t      len;
+    ssize_t     bytes_read;
+
+    printf("passwd: ");
+
+    // disable screen echo
+    console_save_state();
+    console_echo_off();
+
+    bytes_read = getline(&passwd,&len,stdin);
+    string_chomp(passwd);
+
+    // re-enable screen echo
+    console_restore_state();
+
+    if(bytes_read < 3)
+    {
+        if(passwd != NULL)
+        {
+            free(passwd);
+            passwd = NULL;
+        }
+    }
+
+    return passwd;
+}
+
