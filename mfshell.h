@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2013 Bryan Christ <bryan.christ@mediafire.com>
+ *               2014 Johannes Schauer <j.schauer@email.de>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2, as published by
@@ -23,6 +24,7 @@
 typedef struct  _mfshell_s      mfshell_t;
 typedef struct  _folder_s       folder_t;
 typedef struct  _file_s         file_t;
+typedef struct  _cmd_s          cmd_t;
 
 mfshell_t*  mfshell_create(int app_id,char *app_key,char *server);
 

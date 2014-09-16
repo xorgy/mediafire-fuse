@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2013 Bryan Christ <bryan.christ@mediafire.com>
+ *               2014 Johannes Schauer <j.schauer@email.de>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2, as published by
@@ -124,99 +125,12 @@ _execute_shell_command(mfshell_t *mfshell,char *command)
 
     argc = stringv_len(argv);
 
-    if(strcmp(argv[0],"whoami") == 0)
-    {
-        retval = mfshell->user_get_info(mfshell);
-        mfshell->update_secret_key(mfshell);
-    }
-
-    if(strcmp(argv[0],"help") == 0)
-    {
-        mfshell->help();
-    }
-
-    if(strcmp(argv[0],"host") == 0)
-    {
-        if(argc > 1 && argv[1] != '\0')
-        {
-            retval = mfshell->host(mfshell,argv[1]);
-        }
-        else
-        {
-            retval = mfshell->host(mfshell,NULL);
-        }
-    }
-
-    if(strcmp(argv[0],"debug") == 0)
-    {
-        retval = mfshell->debug(mfshell);
-    }
-
-    if((strcmp(argv[0],"ls") == 0) || strcmp(argv[0],"list") == 0)
-    {
-        retval = mfshell->list(mfshell);
-    }
-
-    if((strcmp(argv[0],"cd") == 0) || strcmp(argv[0],"chdir") == 0)
-    {
-        if(argc > 1 && argv[1] != '\0')
-        {
-            retval = mfshell->chdir(mfshell,argv[1]);
-        }
-    }
-
-    if(strcmp(argv[0],"pwd") == 0)
-    {
-        retval = mfshell->pwd(mfshell);
-    }
-
-    if(strcmp(argv[0],"lpwd") == 0)
-    {
-        retval = mfshell->lpwd(mfshell);
-    }
-
-    if(strcmp(argv[0],"lcd") == 0)
-    {
-        if(argc > 1 && argv[1] != '\0')
-        {
-            retval = mfshell->lcd(mfshell,argv[1]);
-        }
-    }
-
-    if(strcmp(argv[0],"file") == 0)
-    {
-        if(argc > 1 && argv[1] != '\0')
-        {
-            retval = mfshell->file(mfshell,argv[1]);
-        }
-    }
-
-    if(strcmp(argv[0],"links") == 0)
-    {
-        if(argc > 1 && argv[1] != '\0')
-        {
-            retval = mfshell->links(mfshell,argv[1]);
-        }
-    }
-
-    if(strcmp(argv[0],"get") == 0)
-    {
-        if(argc > 1 && argv[1] != '\0')
-        {
-            retval = mfshell->get(mfshell,argv[1]);
-        }
-    }
-
-    if(strcmp(argv[0],"auth") == 0)
-    {
-        retval = mfshell->auth(mfshell);
-    }
-
-    if(strcmp(argv[0],"mkdir") == 0)
-    {
-        if(argc > 1 && argv[1] != '\0')
-        {
-            retval = mfshell->mkdir(mfshell,argv[1]);
+    _cmd_t* curr_cmd;
+    for (curr_cmd = mfshell->commands; curr_cmd->name != NULL; curr_cmd++) {
+        if (strcmp(argv[0], curr_cmd->name) == 0) {
+            // TODO: handle retval
+            retval = curr_cmd->handler(mfshell, argc, argv);
+            break;
         }
     }
 

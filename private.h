@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2013 Bryan Christ <bryan.christ@mediafire.com>
+ *               2014 Johannes Schauer <j.schauer@email.de>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2, as published by
@@ -25,6 +26,15 @@
 typedef struct _mfshell_s   _mfshell_t;
 typedef struct _folder_s    _folder_t;
 typedef struct _file_s      _file_t;
+typedef struct _cmd_s       _cmd_t;
+
+struct _cmd_s
+{
+    char *name;
+    char *argstring;
+    char *help;
+    int  (*handler) (_mfshell_t *mfshell, int argc, char **argv);
+};
 
 struct _folder_s
 {
@@ -76,22 +86,6 @@ struct _mfshell_s
 
     int         (*exec)                     (_mfshell_t*,char*);
 
-    /* console commands */
-    void        (*help)                     (void);
-    int         (*debug)                    (_mfshell_t*);
-    int         (*whoami)                   (_mfshell_t*);
-    int         (*list)                     (_mfshell_t*);
-    int         (*chdir)                    (_mfshell_t*,const char*);
-    int         (*pwd)                      (_mfshell_t*);
-    int         (*file)                     (_mfshell_t*,const char*);
-    int         (*links)                    (_mfshell_t*,const char*);
-    int         (*host)                     (_mfshell_t*,const char*);
-    int         (*auth)                     (_mfshell_t*);
-    int         (*get)                      (_mfshell_t*,const char*);
-    int         (*lpwd)                     (_mfshell_t*);
-    int         (*lcd)                      (_mfshell_t*,const char*);
-    int         (*mkdir)                    (_mfshell_t*,const char*);
-
     /* REST API calls */
     int         (*get_session_token)        (_mfshell_t*);
 
@@ -110,6 +104,8 @@ struct _mfshell_s
     /* Local tracking */
     char        *local_working_dir;
 
+    /* shell commands */
+    _cmd_t      *commands;
 };
 
 void

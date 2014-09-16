@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2013 Bryan Christ <bryan.christ@mediafire.com>
+ *               2014 Johannes Schauer <j.schauer@email.de>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2, as published by
@@ -27,11 +28,19 @@
 #include "mfshell.h"
 
 int
-mfshell_cmd_lcd(mfshell_t *mfshell,const char *dir)
+mfshell_cmd_lcd(mfshell_t *mfshell, int argc, char **argv)
 {
     int retval;
+    const char *dir;
 
     if(mfshell == NULL) return -1;
+
+    if (argc != 2) {
+        fprintf(stderr, "Invalid number of arguments\n");
+        return -1;
+    }
+
+    dir = argv[1];
     if(dir == NULL) return -1;
 
     if(strlen(dir) < 1) return -1;

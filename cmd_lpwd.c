@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2013 Bryan Christ <bryan.christ@mediafire.com>
+ *               2014 Johannes Schauer <j.schauer@email.de>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2, as published by
@@ -27,12 +28,17 @@
 #include "private.h"
 
 int
-mfshell_cmd_lpwd(mfshell_t *mfshell)
+mfshell_cmd_lpwd(mfshell_t *mfshell, int argc, char **argv)
 {
     extern int  term_width;
     int         trim_size;
 
     if(mfshell == NULL) return -1;
+
+    if (argc != 1) {
+        fprintf(stderr, "Invalid number of argumens\n");
+        return -1;
+    }
 
     if(mfshell->local_working_dir == NULL)
     {

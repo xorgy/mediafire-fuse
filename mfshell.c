@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2013 Bryan Christ <bryan.christ@mediafire.com>
+ *               2014 Johannes Schauer <j.schauer@email.de>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2, as published by
@@ -37,6 +38,28 @@
 #include "file_links.h"
 #include "folder_create.h"
 
+struct _cmd_s commands[] = {
+    {"help",   "",              "show this help", mfshell_cmd_help},
+    {"debug",  "",              "show debug information", mfshell_cmd_debug},
+    {"host",   "<server>",      "change target server", mfshell_cmd_host},
+    {"auth",   "",              "authenticate with active server",
+        mfshell_cmd_auth},
+    {"whoami", "",              "show basic user info", mfshell_cmd_whoami},
+    {"ls",     "",              "show contents of active folder",
+        mfshell_cmd_list},
+    {"cd",     "[folderkey]",   "change active folder", mfshell_cmd_chdir},
+    {"pwd",    "",              "show the active folder", mfshell_cmd_pwd},
+    {"lpwd",   "",              "show the local working directory",
+        mfshell_cmd_lpwd},
+    {"lcd",    "[dir]",         "change the local working directory",
+        mfshell_cmd_lcd},
+    {"mkdir",  "[folder name]", "create a new folder", mfshell_cmd_mkdir},
+    {"file",   "[quickkey]",    "show file information", mfshell_cmd_file},
+    {"links",  "[quickkey]",    "show access urls for the file",
+        mfshell_cmd_links},
+    {"get",    "[quickkey]",    "download a file", mfshell_cmd_get},
+    {NULL,     NULL,            NULL,              NULL}
+};
 
 mfshell_t*
 mfshell_create(int app_id,char *app_key,char *server)
@@ -68,21 +91,6 @@ mfshell_create(int app_id,char *app_key,char *server)
 
     mfshell->exec = _execute_shell_command;
 
-    // console commands
-    mfshell->debug = mfshell_cmd_debug;
-    mfshell->list = mfshell_cmd_list;
-    mfshell->chdir = mfshell_cmd_chdir;
-    mfshell->pwd = mfshell_cmd_pwd;
-    mfshell->help = mfshell_cmd_help;
-    mfshell->file = mfshell_cmd_file;
-    mfshell->links = mfshell_cmd_links;
-    mfshell->host = mfshell_cmd_host;
-    mfshell->auth = mfshell_cmd_auth;
-    mfshell->lpwd = mfshell_cmd_lpwd;
-    mfshell->lcd = mfshell_cmd_lcd;
-    mfshell->mkdir = mfshell_cmd_mkdir;
-    mfshell->get = mfshell_cmd_get;
-
     // configure REST API callbacks
     mfshell->get_session_token = _get_session_token;
     mfshell->user_get_info = _user_get_info;
@@ -96,6 +104,9 @@ mfshell_create(int app_id,char *app_key,char *server)
     // object to track folder location
     mfshell->folder_curr = folder_alloc();
     folder_set_key(mfshell->folder_curr,"myfiles");
+
+    // shell commands
+    mfshell->commands = commands;
 
     return mfshell;
 }

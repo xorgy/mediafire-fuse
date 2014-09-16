@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2013 Bryan Christ <bryan.christ@mediafire.com>
+ *               2014 Johannes Schauer <j.schauer@email.de>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2, as published by
@@ -34,12 +35,17 @@ static char*
 _get_passwd_from_user(void);
 
 int
-mfshell_cmd_auth(mfshell_t *mfshell)
+mfshell_cmd_auth(mfshell_t *mfshell, int argc, char **argv)
 {
     int retval;
 
     if(mfshell == NULL) return -1;
     if(mfshell->server == NULL) return -1;
+
+    if (argc != 1) {
+        fprintf(stderr, "Invalid number of arguments\n");
+        return -1;
+    }
 
     // free and invalidate existing user name
     if(mfshell->user != NULL)

@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2013 Bryan Christ <bryan.christ@mediafire.com>
+ *               2014 Johannes Schauer <j.schauer@email.de>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2, as published by
@@ -25,14 +26,22 @@
 #include "private.h"
 
 int
-mfshell_cmd_links(mfshell_t *mfshell,const char *quickkey)
+mfshell_cmd_links(mfshell_t *mfshell, int argc, char **argv)
 {
     extern int  term_width;
     file_t      *file;
     int         len;
     int         retval;
+    const char *quickkey;
 
     if(mfshell == NULL) return -1;
+
+    if (argc != 2) {
+        fprintf(stderr, "Invalid number of arguments\n");
+        return -1;
+    }
+
+    quickkey = argv[1];
     if(quickkey == NULL) return -1;
 
     len = strlen(quickkey);

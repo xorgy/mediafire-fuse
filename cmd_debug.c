@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2013 Bryan Christ <bryan.christ@mediafire.com>
+ *               2014 Johannes Schauer <j.schauer@email.de>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2, as published by
@@ -27,8 +28,13 @@
 #include "command.h"
 
 int
-mfshell_cmd_debug(mfshell_t *mfshell)
+mfshell_cmd_debug(mfshell_t *mfshell, int argc, char **argv)
 {
+    if (argc != 1) {
+        fprintf(stderr, "Invalid number of arguments\n");
+        return -1;
+    }
+
     printf("   %-15.15s   %s\n\r",
         "server:",
         mfshell->server);

@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2013 Bryan Christ <bryan.christ@mediafire.com>
+ *               2014 Johannes Schauer <j.schauer@email.de>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2, as published by
@@ -30,16 +31,22 @@ static char*
 _get_host_from_user(void);
 
 int
-mfshell_cmd_host(mfshell_t *mfshell,const char *host)
+mfshell_cmd_host(mfshell_t *mfshell, int argc, char **argv)
 {
     char    *alt_host = NULL;
+    char    *host;
 
-    if(mfshell == NULL) return -1;
-
-    if(host == NULL)
-    {
-        alt_host =  _get_host_from_user();
-        host = alt_host;
+    switch (argc) {
+        case 1:
+            alt_host =  _get_host_from_user();
+            host = alt_host;
+            break;
+        case 2:
+            host = argv[1];
+            break;
+        default:
+            fprintf(stderr, "Invalid number of arguments\n");
+            return -1;
     }
 
     if(mfshell->server != NULL)

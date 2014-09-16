@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2013 Bryan Christ <bryan.christ@mediafire.com>
+ *               2014 Johannes Schauer <j.schauer@email.de>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2, as published by
@@ -67,7 +68,7 @@ int main(int argc,char **argv)
         "2c6dq0gb2sr8rgsue5a347lzpjnaay46yjazjcjg",server);
 
     printf("\n\r");
-    mfshell->auth(mfshell);
+    mfshell->exec(mfshell, "auth");
 
     // begin shell mode
     mfshell_run(mfshell);

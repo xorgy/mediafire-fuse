@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2013 Bryan Christ <bryan.christ@mediafire.com>
+ *               2014 Johannes Schauer <j.schauer@email.de>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2, as published by
@@ -27,14 +28,22 @@
 #include "command.h"
 
 int
-mfshell_cmd_chdir(mfshell_t *mfshell,const char *folderkey)
+mfshell_cmd_chdir(mfshell_t *mfshell, int argc, char **argv)
 {
     folder_t    *folder_new;
     const char  *folder_curr;
     const char  *folder_parent;
+    const char  *folderkey;
     int         retval;
 
     if(mfshell == NULL) return -1;
+
+    if (argc != 2) {
+        fprintf(stderr, "Invalid number of arguments\n");
+        return -1;
+    }
+
+    folderkey = argv[1];
     if(folderkey == NULL) return -1;
 
     // change to root

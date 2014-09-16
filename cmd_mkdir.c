@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2013 Bryan Christ <bryan.christ@mediafire.com>
+ *               2014 Johannes Schauer <j.schauer@email.de>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2, as published by
@@ -27,12 +28,21 @@
 #include "command.h"
 
 int
-mfshell_cmd_mkdir(mfshell_t *mfshell,const char *name)
+mfshell_cmd_mkdir(mfshell_t *mfshell, int argc, char **argv)
 {
     int         retval;
     const char  *folder_curr;
+    const char *name;
 
     if(mfshell == NULL) return -1;
+
+    if (argc != 2) {
+        fprintf(stderr, "Invalid number of arguments\n");
+        return -1;
+    }
+
+    name = argv[1];
+    if (name == NULL) return -1;
 
     folder_curr = folder_get_key(mfshell->folder_curr);
 
