@@ -42,7 +42,7 @@ struct _cmd_s commands[] = {
     {"help",   "",              "show this help", mfshell_cmd_help},
     {"debug",  "",              "show debug information", mfshell_cmd_debug},
     {"host",   "<server>",      "change target server", mfshell_cmd_host},
-    {"auth",   "",              "authenticate with active server",
+    {"auth",   "<user <pass>>", "authenticate with active server",
         mfshell_cmd_auth},
     {"whoami", "",              "show basic user info", mfshell_cmd_whoami},
     {"ls",     "",              "show contents of active folder",

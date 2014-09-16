@@ -42,11 +42,6 @@ mfshell_cmd_auth(mfshell_t *mfshell, int argc, char **argv)
     if(mfshell == NULL) return -1;
     if(mfshell->server == NULL) return -1;
 
-    if (argc != 1) {
-        fprintf(stderr, "Invalid number of arguments\n");
-        return -1;
-    }
-
     // free and invalidate existing user name
     if(mfshell->user != NULL)
     {
@@ -61,8 +56,23 @@ mfshell_cmd_auth(mfshell_t *mfshell, int argc, char **argv)
         mfshell->passwd = NULL;
     }
 
-    mfshell->user = _get_login_from_user();
-    mfshell->passwd = _get_passwd_from_user();
+    switch (argc) {
+        case 1:
+            mfshell->user = _get_login_from_user();
+            mfshell->passwd = _get_passwd_from_user();
+            break;
+        case 2:
+            mfshell->user = argv[1];
+            mfshell->passwd = _get_passwd_from_user();
+            break;
+        case 3:
+            mfshell->user = argv[1];
+            mfshell->passwd = argv[2];
+            break;
+        default:
+            fprintf(stderr, "Invalid number of arguments\n");
+            return -1;
+    }
 
     if(mfshell->user == NULL || mfshell->passwd == NULL) return -1;
 
