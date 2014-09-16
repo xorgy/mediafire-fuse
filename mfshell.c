@@ -89,7 +89,8 @@ mfshell_create(int app_id,char *app_key,char *server)
     mfshell->create_call_signature = _create_call_signature;
     mfshell->create_signed_get = _create_signed_get;
 
-    mfshell->exec = _execute_shell_command;
+    mfshell->exec = _execute;
+    mfshell->exec_string = _execute_shell_command;
 
     // configure REST API callbacks
     mfshell->get_session_token = _get_session_token;

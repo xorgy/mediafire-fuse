@@ -84,7 +84,8 @@ struct _mfshell_s
     char*       (*create_signed_get)        (_mfshell_t*,int,char*,char*,...);
     char*       (*create_signed_post)       (_mfshell_t*,int,char*,char*,...);
 
-    int         (*exec)                     (_mfshell_t*,char*);
+    int         (*exec)                     (_mfshell_t*, int argc, char **argv);
+    int         (*exec_string)              (_mfshell_t*,char*);
 
     /* REST API calls */
     int         (*get_session_token)        (_mfshell_t*);
@@ -119,6 +120,9 @@ _create_call_signature(_mfshell_t *mfshell,char *url,char *args);
 
 char*
 _create_signed_get(_mfshell_t *mfshell,int ssl,char *api,char *fmt,...);
+
+int
+_execute(_mfshell_t *mfshell, int argc, char **argv);
 
 int
 _execute_shell_command(_mfshell_t *mfshell,char *command);

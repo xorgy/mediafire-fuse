@@ -92,6 +92,17 @@ console_get_metrics(int *height,int *width)
 }
 
 int
+_execute(mfshell_t *mfshell, int argc, char **argv)
+{
+    _cmd_t* curr_cmd;
+    for (curr_cmd = mfshell->commands; curr_cmd->name != NULL; curr_cmd++) {
+        if (strcmp(argv[0], curr_cmd->name) == 0) {
+            return curr_cmd->handler(mfshell, argc, argv);
+        }
+    }
+}
+
+int
 _execute_shell_command(mfshell_t *mfshell,char *command)
 {
     extern int      term_resized;
@@ -125,14 +136,8 @@ _execute_shell_command(mfshell_t *mfshell,char *command)
 
     argc = stringv_len(argv);
 
-    _cmd_t* curr_cmd;
-    for (curr_cmd = mfshell->commands; curr_cmd->name != NULL; curr_cmd++) {
-        if (strcmp(argv[0], curr_cmd->name) == 0) {
-            // TODO: handle retval
-            retval = curr_cmd->handler(mfshell, argc, argv);
-            break;
-        }
-    }
+    // TODO: handle retval
+    retval = _execute(mfshell, argc, argv);
 
     stringv_free(argv,STRINGV_FREE_ALL);
 
