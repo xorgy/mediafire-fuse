@@ -22,6 +22,7 @@
 #include <string.h>
 #include <termios.h>
 #include <unistd.h>
+#include <wordexp.h>
 
 #include <sys/ioctl.h>
 
@@ -109,8 +110,7 @@ _execute_shell_command(mfshell_t *mfshell,char *command)
     extern int      term_height;
     extern int      term_width;
 
-    char            **argv = NULL;
-    int             argc = 0;
+    wordexp_t       p;
     int             retval;
 
     if(mfshell == NULL) return -1;
@@ -131,15 +131,13 @@ _execute_shell_command(mfshell_t *mfshell,char *command)
         return -1;
     }
 
-    argv = stringv_split(command," ",5);
-    if(argv == NULL) return -1;
-
-    argc = stringv_len(argv);
+    // FIXME: handle non-zero return value of wordexp
+    retval = wordexp(command, &p, WRDE_SHOWERR | WRDE_UNDEF);
 
     // TODO: handle retval
-    retval = _execute(mfshell, argc, argv);
+    retval = _execute(mfshell, p.we_wordc, p.we_wordv);
 
-    stringv_free(argv,STRINGV_FREE_ALL);
+    wordfree(&p);
 
     return 0;
 }
