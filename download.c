@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2013 Bryan Christ <bryan.christ@mediafire.com>
+ *               2014 Johannes Schauer <j.schauer@email.de>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2, as published by
@@ -31,20 +32,13 @@
 #include "mfshell.h"
 #include "private.h"
 #include "account.h"
-#include "cfile.h"
 #include "strings.h"
 #include "download.h"
-
-void
-_download_direct_cbio(cfile_t *cfile);
-
-void
-_download_direct_cbprogress(cfile_t *cfile);
+#include "connection.h"
 
 ssize_t
-download_direct(file_t *file,char *local_dir)
+download_direct(mfshell_t *mfshell, file_t *file, char *local_dir)
 {
-    cfile_t         *cfile;
     const char      *url;
     const char      *file_name;
     char            *file_path;
@@ -62,32 +56,14 @@ download_direct(file_t *file,char *local_dir)
     if(file_name == NULL) return -1;
     if(strlen(file_name) < 1) return -1;
 
-    // create the object as a sender
-    cfile = cfile_create();
-
-    // take the defaults but switch to binary mode
-    cfile_set_defaults(cfile);
-    cfile_set_mode(cfile,CFILE_MODE_BINARY);
-
-    cfile_set_url(cfile,url);
-    cfile_set_io_func(cfile,_download_direct_cbio);
-    cfile_set_progress_func(cfile,_download_direct_cbprogress);
-
     if(local_dir[strlen(local_dir) - 1] == '/')
         file_path = strdup_printf("%s%s",local_dir,file_name);
     else
         file_path = strdup_printf("%s/%s",local_dir,file_name);
 
-    cfile_set_userptr(cfile,(void*)file_path);
-
-    retval = cfile_exec(cfile);
-    cfile_destroy(cfile);
-
-    if(retval != CURLE_OK)
-    {
-        free(file_path);
-        return -1;
-    }
+    conn_t *conn = conn_create();
+    retval = conn_get_file(conn, url, file_path);
+    conn_destroy(conn);
 
     /*
         it is preferable to have the vfs tell us how many bytes the
@@ -103,51 +79,4 @@ download_direct(file_t *file,char *local_dir)
     bytes_read = file_info.st_size;
 
     return bytes_read;
-}
-
-void
-_download_direct_cbio(cfile_t *cfile)
-{
-    FILE        *file;
-    char        *file_path;
-    size_t      bytes_ready = 0;
-    const char  *rx_buffer;
-
-    if(cfile == NULL) return;
-
-    file_path = (char*)cfile_get_userptr(cfile);
-    if(file_path == NULL) return;
-
-    bytes_ready = cfile_get_rx_buffer_size(cfile);
-    if(bytes_ready == 0) return;
-
-    file = fopen(file_path,"a+");
-
-    if(file != NULL)
-    {
-        rx_buffer = cfile_get_rx_buffer(cfile);
-        fwrite((const void*)rx_buffer,sizeof(char),bytes_ready,file);
-    }
-
-    fclose(file);
-
-    cfile_reset_rx_buffer(cfile);
-
-    return;
-}
-
-void
-_download_direct_cbprogress(cfile_t *cfile)
-{
-    double      total;
-    double      recv;
-
-    if(cfile == NULL) return;
-
-    total = cfile_get_rx_length(cfile);
-    recv = cfile_get_rx_count(cfile);
-
-    printf("\r   %.0f / %.0f",recv,total);
-
-    return;
 }

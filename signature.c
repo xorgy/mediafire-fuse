@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2013 Bryan Christ <bryan.christ@mediafire.com>
+ *               2014 Johannes Schauer <j.schauer@email.de>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2, as published by
@@ -24,7 +25,6 @@
 #include <openssl/sha.h>
 #include <openssl/md5.h>
 
-#include "cfile.h"
 #include "strings.h"
 #include "private.h"
 

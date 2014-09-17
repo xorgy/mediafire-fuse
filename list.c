@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2013 Bryan Christ <bryan.christ@mediafire.com>
+ *               2014 Johannes Schauer <j.schauer@email.de>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2, as published by
@@ -26,21 +27,20 @@
 
 #include "mfshell.h"
 #include "private.h"
-#include "cfile.h"
 #include "strings.h"
 #include "json.h"
 #include "list.h"
+#include "connection.h"
 
 static int
-_decode_folder_get_content_folders(mfshell_t *mfshell,cfile_t *cfile);
+_decode_folder_get_content_folders(conn_t *conn, void *data);
 
 static int
-_decode_folder_get_content_files(mfshell_t *mfshell,cfile_t *cfile);
+_decode_folder_get_content_files(conn_t *conn, void *data);
 
 long
 _folder_get_content(mfshell_t *mfshell,int mode)
 {
-    cfile_t     *cfile;
     char        *api_call;
     int         retval;
     char        *rx_buffer;
@@ -49,14 +49,6 @@ _folder_get_content(mfshell_t *mfshell,int mode)
     if(mfshell == NULL) return -1;
     if(mfshell->user_signature == NULL) return -1;
     if(mfshell->session_token == NULL) return -1;
-
-    // create the object as a sender
-    cfile = cfile_create();
-
-    // take the traditional defaults
-    cfile_set_defaults(cfile);
-
-    // cfile_set_opts(cfile,CFILE_OPT_ENABLE_SSL_LAX);
 
     if(mode == 0)
         content_type = "folders";
@@ -72,30 +64,19 @@ _folder_get_content(mfshell_t *mfshell,int mode)
         folder_get_key(mfshell->folder_curr),
         content_type);
 
-    cfile_set_url(cfile,api_call);
-
-    retval = cfile_exec(cfile);
-
-    // print an error code if something went wrong
-    if(retval != CURLE_OK) printf("error %d\n\r",retval);
-
-    // rx_buffer = cfile_get_rx_buffer(cfile);
-    // printf("\n\r%s\n\r",rx_buffer);
+    conn_t* conn = conn_create();
 
     if(mode == 0)
-        retval = _decode_folder_get_content_folders(mfshell,cfile);
+        retval = conn_get_buf(conn, api_call, _decode_folder_get_content_folders, NULL);
     else
-        retval = _decode_folder_get_content_files(mfshell,cfile);
-
-    cfile_destroy(cfile);
-
-
+        retval = conn_get_buf(conn, api_call, _decode_folder_get_content_files, NULL);
+    conn_destroy(conn);
 
     return retval;
 }
 
 static int
-_decode_folder_get_content_folders(mfshell_t *mfshell,cfile_t *cfile)
+_decode_folder_get_content_folders(conn_t *conn, void *user_ptr)
 {
     extern int      term_width;
 
@@ -112,10 +93,7 @@ _decode_folder_get_content_folders(mfshell_t *mfshell,cfile_t *cfile)
     int             array_sz;
     int             i = 0;
 
-    if(mfshell == NULL) return -1;
-    if(cfile == NULL) return -1;
-
-    root = json_loads(cfile_get_rx_buffer(cfile),0,&error);
+    root = json_loadb(conn->write_buf, conn->write_buf_len, 0, &error);
 
     node = json_object_by_path(root,"response/folder_content");
 
@@ -158,7 +136,7 @@ _decode_folder_get_content_folders(mfshell_t *mfshell,cfile_t *cfile)
 }
 
 static int
-_decode_folder_get_content_files(mfshell_t *mfshell,cfile_t *cfile)
+_decode_folder_get_content_files(conn_t *conn, void *user_ptr)
 {
     extern int      term_width;
 
@@ -173,10 +151,7 @@ _decode_folder_get_content_files(mfshell_t *mfshell,cfile_t *cfile)
     int             array_sz;
     int             i = 0;
 
-    if(mfshell == NULL) return -1;
-    if(cfile == NULL) return -1;
-
-    root = json_loads(cfile_get_rx_buffer(cfile),0,&error);
+    root = json_loadb(conn->write_buf, conn->write_buf_len, 0, &error);
 
     node = json_object_by_path(root,"response/folder_content");
 

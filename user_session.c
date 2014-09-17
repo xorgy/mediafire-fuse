@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2013 Bryan Christ <bryan.christ@mediafire.com>
+ *               2014 Johannes Schauer <j.schauer@email.de>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2, as published by
@@ -27,35 +28,25 @@
 #include "mfshell.h"
 #include "private.h"
 #include "user_session.h"
-#include "cfile.h"
+#include "connection.h"
 #include "strings.h"
 #include "json.h"
 
 static int
-_decode_get_session_token(mfshell_t *mfshell,cfile_t *cfile);
+_decode_get_session_token(conn_t *conn, void *data);
 
 int
 _get_session_token(mfshell_t *mfshell)
 {
-    cfile_t     *cfile;
     char        *login_url;
     char        *post_args;
     int         retval;
 
     if(mfshell == NULL) return -1;
 
-    // create the object as a sender
-    cfile = cfile_create();
-
-    cfile_set_defaults(cfile);
-
-    // cfile_set_opts(cfile,CFILE_OPT_ENABLE_SSL_LAX);
-
     // configure url for operation
     login_url = strdup_printf("https://%s/api/user/get_session_token.php",
         mfshell->server);
-    cfile_set_url(cfile,login_url);
-    free(login_url);
 
     // invalidate an existing user signature
     if(mfshell->user_signature != NULL)
@@ -77,24 +68,18 @@ _get_session_token(mfshell_t *mfshell)
         "&response_format=json",
         mfshell->user,mfshell->passwd,mfshell->user_signature);
 
-    cfile_set_args(cfile,CFILE_ARGS_POST,post_args);
+    conn_t *conn = conn_create();
+    retval = conn_post_buf(conn, login_url, post_args, _decode_get_session_token, (void *)mfshell);
+    conn_destroy(conn);
+
+    free(login_url);
     free(post_args);
-
-    retval = cfile_exec(cfile);
-
-    // print an error code if something went wrong
-    if(retval != CURLE_OK) printf("error %d\n\r",retval);
-
-    // printf("\n\r%s\n\r",cfile_get_rx_buffer(cfile));
-    retval = _decode_get_session_token(mfshell,cfile);
-
-    cfile_destroy(cfile);
 
     return retval;
 }
 
 static int
-_decode_get_session_token(mfshell_t *mfshell,cfile_t *cfile)
+_decode_get_session_token(conn_t *conn, void *user_ptr)
 {
     json_error_t    error;
     json_t          *root = NULL;
@@ -102,11 +87,13 @@ _decode_get_session_token(mfshell_t *mfshell,cfile_t *cfile)
     json_t          *session_token;
     json_t          *secret_key;
     json_t          *secret_time;
+    mfshell_t      *mfshell;
 
-    if(mfshell == NULL) return -1;
-    if(cfile == NULL) return -1;
+    if(user_ptr == NULL) return -1;
 
-    root = json_loads(cfile_get_rx_buffer(cfile),0,&error);
+    mfshell = (mfshell_t *)user_ptr;
+
+    root = json_loadb(conn->write_buf, conn->write_buf_len, 0, &error);
 
     data = json_object_by_path(root,"response");
     if(data == NULL) return -1;

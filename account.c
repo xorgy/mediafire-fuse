@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2013 Bryan Christ <bryan.christ@mediafire.com>
+ *               2014 Johannes Schauer <j.schauer@email.de>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2, as published by
@@ -27,17 +28,16 @@
 #include "mfshell.h"
 #include "private.h"
 #include "account.h"
-#include "cfile.h"
 #include "strings.h"
 #include "json.h"
+#include "connection.h"
 
 static int
-_decode_user_get_info(mfshell_t *mfshell,cfile_t *cfile);
+_decode_user_get_info(conn_t *conn, void *data);
 
 int
 _user_get_info(mfshell_t *mfshell)
 {
-    cfile_t     *cfile;
     char        *api_call;
     int         retval;
     // char        *rx_buffer;
@@ -45,33 +45,20 @@ _user_get_info(mfshell_t *mfshell)
     if(mfshell == NULL) return -1;
     if(mfshell->user_signature == NULL) return -1;
 
-    // create the object as a sender
-    cfile = cfile_create();
-
-    // take the traditional defaults
-    cfile_set_defaults(cfile);
-
     api_call = mfshell->create_signed_get(mfshell,0,"user/get_info.php",
         "?session_token=%s"
         "&response_format=json",
         mfshell->session_token);
 
-    cfile_set_url(cfile,api_call);
-
-    retval = cfile_exec(cfile);
-
-    // print an error code if something went wrong
-    if(retval != CURLE_OK) printf("error %d\n\r",retval);
-
-    retval = _decode_user_get_info(mfshell,cfile);
-
-    cfile_destroy(cfile);
+    conn_t* conn = conn_create();
+    retval = conn_get_buf(conn, api_call, _decode_user_get_info, NULL);
+    conn_destroy(conn);
 
     return retval;
 }
 
 static int
-_decode_user_get_info(mfshell_t *mfshell,cfile_t *cfile)
+_decode_user_get_info(conn_t *conn, void *data)
 {
     json_error_t    error;
     json_t          *root;
@@ -80,10 +67,7 @@ _decode_user_get_info(mfshell_t *mfshell,cfile_t *cfile)
     json_t          *first_name;
     json_t          *last_name;
 
-    if(mfshell == NULL) return -1;
-    if(cfile == NULL) return -1;
-
-    root = json_loads(cfile_get_rx_buffer(cfile),0,&error);
+    root = json_loadb(conn->write_buf, conn->write_buf_len, 0, &error);
 
     node = json_object_by_path(root,"response/user_info");
 

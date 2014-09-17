@@ -25,6 +25,7 @@ typedef struct  _mfshell_s      mfshell_t;
 typedef struct  _folder_s       folder_t;
 typedef struct  _file_s         file_t;
 typedef struct  _cmd_s          cmd_t;
+typedef struct  _conn_s         conn_t;
 
 mfshell_t*  mfshell_create(int app_id,char *app_key,char *server);
 

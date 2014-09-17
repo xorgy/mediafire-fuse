@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2013 Bryan Christ <bryan.christ@mediafire.com>
+ *               2014 Johannes Schauer <j.schauer@email.de>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2, as published by
@@ -27,17 +28,16 @@
 #include "mfshell.h"
 #include "private.h"
 #include "account.h"
-#include "cfile.h"
 #include "strings.h"
 #include "json.h"
+#include "connection.h"
 
 static int
-_decode_file_get_links(mfshell_t *mfshell,cfile_t *cfile,file_t *file);
+_decode_file_get_links(conn_t *conn, void *data);
 
 int
 _file_get_links(mfshell_t *mfshell,file_t *file,char *quickkey)
 {
-    cfile_t     *cfile;
     char        *api_call;
     int         retval;
     int         len;
@@ -54,35 +54,21 @@ _file_get_links(mfshell_t *mfshell,file_t *file,char *quickkey)
     // key must either be 11 or 15 chars
     if(len != 11 && len != 15) return -1;
 
-    // create the object as a sender
-    cfile = cfile_create();
-
-    // take the traditional defaults
-    cfile_set_defaults(cfile);
-
-    // cfile_set_opts(cfile,CFILE_OPT_ENABLE_SSL_LAX);
-
     api_call = mfshell->create_signed_get(mfshell,0,"file/get_links.php",
         "?quick_key=%s"
         "&session_token=%s"
         "&response_format=json",
         quickkey,mfshell->session_token);
 
-    cfile_set_url(cfile,api_call);
-
-    retval = cfile_exec(cfile);
-
-    if(retval != CURLE_OK) printf("error %d\n\r",retval);
-
-    retval = _decode_file_get_links(mfshell,cfile,file);
-
-    cfile_destroy(cfile);
+    conn_t *conn = conn_create();
+    retval = conn_get_buf(conn, api_call, _decode_file_get_links, file);
+    conn_destroy(conn);
 
     return retval;
 }
 
 static int
-_decode_file_get_links(mfshell_t *mfshell,cfile_t *cfile,file_t *file)
+_decode_file_get_links(conn_t *conn, void *data)
 {
     json_error_t    error;
     json_t          *root;
@@ -93,11 +79,13 @@ _decode_file_get_links(mfshell_t *mfshell,cfile_t *cfile,file_t *file)
     json_t          *onetime_link;
     json_t          *links_array;
     int             retval = 0;
+    file_t         *file;
 
-    if(mfshell == NULL) return -1;
-    if(cfile == NULL) return -1;
+    if(data == NULL) return -1;
 
-    root = json_loads(cfile_get_rx_buffer(cfile),0,&error);
+    file = (file_t *)data;
+
+    root = json_loadb(conn->write_buf, conn->write_buf_len, 0, &error);
 
     node = json_object_by_path(root,"response");
 

@@ -25,7 +25,6 @@
 
 #include <curl/curl.h>
 
-#include "cfile.h"
 #include "strings.h"
 #include "mfshell.h"
 #include "private.h"
@@ -37,6 +36,7 @@
 #include "file_info.h"
 #include "file_links.h"
 #include "folder_create.h"
+#include "connection.h"
 
 struct _cmd_s commands[] = {
     {"help",   "",              "show this help", mfshell_cmd_help},

@@ -29,7 +29,6 @@
 #include "mfshell.h"
 #include "console.h"
 #include "private.h"
-#include "cfile.h"
 #include "strings.h"
 #include "signals.h"
 

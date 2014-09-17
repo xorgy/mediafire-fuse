@@ -22,11 +22,14 @@
 #define _MFSHELL_PRIVATE_H_
 
 #include <inttypes.h>
+#include <stdbool.h>
+#include <curl/curl.h>
 
 typedef struct _mfshell_s   _mfshell_t;
 typedef struct _folder_s    _folder_t;
 typedef struct _file_s      _file_t;
 typedef struct _cmd_s       _cmd_t;
+typedef struct _conn_s      _conn_t;
 
 struct _cmd_s
 {
@@ -57,6 +60,20 @@ struct _file_s
     char        *share_link;
     char        *direct_link;
     char        *onetime_link;
+};
+
+struct _conn_s
+{
+    CURL       *curl_handle;
+    char       *write_buf;
+    size_t      write_buf_len;
+    double      ul_len;
+    double      ul_now;
+    double      dl_len;
+    double      dl_now;
+    bool        show_progress;
+    char        error_buf[CURL_ERROR_SIZE];
+    FILE       *stream;
 };
 
 struct _mfshell_s

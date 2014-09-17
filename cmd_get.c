@@ -82,7 +82,7 @@ mfshell_cmd_get(mfshell_t *mfshell, int argc, char **argv)
         getcwd(mfshell->local_working_dir,PATH_MAX);
     }
 
-    retval = download_direct(file,mfshell->local_working_dir);
+    retval = download_direct(mfshell, file, mfshell->local_working_dir);
 
     if(retval != -1)
         printf("\r   Downloaded %zd bytes OK!\n\r",bytes_read);

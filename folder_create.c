@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2013 Bryan Christ <bryan.christ@mediafire.com>
+ *               2014 Johannes Schauer <j.schauer@email.de>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2, as published by
@@ -26,13 +27,12 @@
 #include "mfshell.h"
 #include "private.h"
 #include "account.h"
-#include "cfile.h"
+#include "connection.h"
 #include "strings.h"
 
 int
 _folder_create(mfshell_t *mfshell,char *parent,char *name)
 {
-    cfile_t     *cfile;
     char        *api_call;
     int         retval;
 
@@ -53,12 +53,6 @@ _folder_create(mfshell_t *mfshell,char *parent,char *name)
         }
     }
 
-    // create the object as a sender
-    cfile = cfile_create();
-
-    // take the traditional defaults
-    cfile_set_defaults(cfile);
-
     if(parent != NULL)
     {
         api_call = mfshell->create_signed_get(mfshell,0,"folder/create.php",
@@ -77,13 +71,9 @@ _folder_create(mfshell_t *mfshell,char *parent,char *name)
             name,mfshell->session_token);
     }
 
-    cfile_set_url(cfile,api_call);
-
-    retval = cfile_exec(cfile);
-
-    if(retval != CURLE_OK) printf("error %d\n\r",retval);
-
-    cfile_destroy(cfile);
+    conn_t *conn = conn_create();
+    retval = conn_get_buf(conn, api_call, NULL, NULL);
+    conn_destroy(conn);
 
     return retval;
 }
