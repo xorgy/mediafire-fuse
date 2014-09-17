@@ -200,7 +200,9 @@ mfshell_run(mfshell_t *mfshell)
         if (retval == -1) {
             exit(1);
         }
-        string_chomp(cmd);
+
+        if (cmd[strlen(cmd)-1] == '\n')
+            cmd[strlen(cmd)-1] = '\0';
 
         printf("\n\r");
 

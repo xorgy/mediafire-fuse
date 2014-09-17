@@ -134,6 +134,12 @@ _execute_shell_command(mfshell_t *mfshell,char *command)
     // FIXME: handle non-zero return value of wordexp
     retval = wordexp(command, &p, WRDE_SHOWERR | WRDE_UNDEF);
 
+    if (p.we_wordc < 1)
+        return 0;
+
+    if (p.we_wordv[0] == NULL)
+        return 0;
+
     // TODO: handle retval
     retval = _execute(mfshell, p.we_wordc, p.we_wordv);
 
