@@ -1,0 +1,131 @@
+/*
+ * Copyright (C) 2013 Bryan Christ <bryan.christ@mediafire.com>
+ *               2014 Johannes Schauer <j.schauer@email.de>
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2, as published by
+ * the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * this program; if not, write to the Free Software Foundation, Inc., 51
+ * Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ *
+ */
+
+
+#include <stdio.h>
+#include <string.h>
+#include <inttypes.h>
+#include <stdlib.h>
+#include <termios.h>
+#include <unistd.h>
+#include <wordexp.h>
+
+#include <sys/ioctl.h>
+
+#include "mfshell.h"
+#include "../utils/stringv.h"
+
+
+#include <curl/curl.h>
+
+#include "mfshell.h"
+#include "commands.h"
+
+struct _cmd_s commands[] = {
+    {"help",   "",              "show this help", mfshell_cmd_help},
+    {"debug",  "",              "show debug information", mfshell_cmd_debug},
+    {"host",   "<server>",      "change target server", mfshell_cmd_host},
+    {"auth",   "<user <pass>>", "authenticate with active server",
+        mfshell_cmd_auth},
+    {"whoami", "",              "show basic user info", mfshell_cmd_whoami},
+    {"ls",     "",              "show contents of active folder",
+        mfshell_cmd_list},
+    {"cd",     "[folderkey]",   "change active folder", mfshell_cmd_chdir},
+    {"pwd",    "",              "show the active folder", mfshell_cmd_pwd},
+    {"lpwd",   "",              "show the local working directory",
+        mfshell_cmd_lpwd},
+    {"lcd",    "[dir]",         "change the local working directory",
+        mfshell_cmd_lcd},
+    {"mkdir",  "[folder name]", "create a new folder", mfshell_cmd_mkdir},
+    {"file",   "[quickkey]",    "show file information", mfshell_cmd_file},
+    {"links",  "[quickkey]",    "show access urls for the file",
+        mfshell_cmd_links},
+    {"get",    "[quickkey]",    "download a file", mfshell_cmd_get},
+    {NULL,     NULL,            NULL,              NULL}
+};
+
+mfshell_t*
+mfshell_create(int app_id,char *app_key,char *server)
+{
+    mfshell_t   *mfshell;
+
+    if(app_id <= 0) return NULL;
+    if(app_key == NULL) return NULL;
+    if(server == NULL) return NULL;
+
+    /*
+        check to see if the server contains a forward-slash.  if so,
+        the caller did not understand the API and passed in the wrong
+        type of server resource.
+    */
+    if(strchr(server,'/') != NULL) return NULL;
+
+    mfshell = (mfshell_t*)calloc(1,sizeof(mfshell_t));
+
+    mfshell->app_id = app_id;
+    mfshell->app_key = strdup(app_key);
+    mfshell->server = strdup(server);
+
+    // object to track folder location
+    mfshell->folder_curr = folder_alloc();
+    folder_set_key(mfshell->folder_curr,"myfiles");
+
+    // shell commands
+    mfshell->commands = commands;
+
+    return mfshell;
+}
+
+int
+mfshell_exec(mfshell_t *mfshell, int argc, char **argv)
+{
+    _cmd_t* curr_cmd;
+    for (curr_cmd = mfshell->commands; curr_cmd->name != NULL; curr_cmd++) {
+        if (strcmp(argv[0], curr_cmd->name) == 0) {
+            return curr_cmd->handler(mfshell, argc, argv);
+        }
+    }
+}
+
+int
+mfshell_exec_shell_command(mfshell_t *mfshell,char *command)
+{
+    wordexp_t       p;
+    int             retval;
+
+    if(mfshell == NULL) return -1;
+    if(command == NULL) return -1;
+
+    // FIXME: handle non-zero return value of wordexp
+    retval = wordexp(command, &p, WRDE_SHOWERR | WRDE_UNDEF);
+
+    if (p.we_wordc < 1)
+        return 0;
+
+    if (p.we_wordv[0] == NULL)
+        return 0;
+
+    // TODO: handle retval
+    retval = mfshell_exec(mfshell, p.we_wordc, p.we_wordv);
+
+    wordfree(&p);
+
+    return 0;
+}
+
