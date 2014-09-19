@@ -28,7 +28,7 @@
 #include "mfconn.h"
 #include "apicalls.h"
 
-struct mfconn_t
+struct mfconn
 {
     char        *server;
     uint32_t    secret_key;
@@ -36,51 +36,51 @@ struct mfconn_t
     char        *session_token;
 };
 
-mfconn_t*
+mfconn*
 mfconn_create(char *server, char *username, char *password, int app_id, char *app_key)
 {
-    mfconn_t *mfconn;
+    mfconn *conn;
     int retval;
 
-    mfconn = (mfconn_t *)calloc(1,sizeof(mfconn_t));
+    conn = (mfconn *)calloc(1,sizeof(mfconn));
 
-    mfconn->server = strdup(server);
-    retval = mfconn_api_user_get_session_token(mfconn, mfconn->server,
-            username, password, app_id, app_key, &(mfconn->secret_key),
-            &(mfconn->secret_time), &(mfconn->session_token));
+    conn->server = strdup(server);
+    retval = mfconn_api_user_get_session_token(conn, conn->server,
+            username, password, app_id, app_key, &(conn->secret_key),
+            &(conn->secret_time), &(conn->session_token));
 
     if (retval == 0)
-        return mfconn;
+        return conn;
     else
         return NULL;
 }
 
 void
-mfconn_destroy(mfconn_t *mfconn)
+mfconn_destroy(mfconn *conn)
 {
-    free(mfconn->server);
-    free(mfconn->secret_time);
-    free(mfconn->session_token);
-    free(mfconn);
+    free(conn->server);
+    free(conn->secret_time);
+    free(conn->session_token);
+    free(conn);
 }
 
 void
-mfconn_update_secret_key(mfconn_t *mfconn)
+mfconn_update_secret_key(mfconn *conn)
 {
     uint64_t    new_val;
 
-    if(mfconn == NULL) return;
+    if(conn == NULL) return;
 
-    new_val = ((uint64_t)mfconn->secret_key) * 16807;
+    new_val = ((uint64_t)conn->secret_key) * 16807;
     new_val %= 0x7FFFFFFF;
 
-    mfconn->secret_key = new_val;
+    conn->secret_key = new_val;
 
     return;
 }
 
 char*
-mfconn_create_user_signature(mfconn_t *mfconn, char *username, char *password,
+mfconn_create_user_signature(mfconn *conn, char *username, char *password,
         int app_id, char *app_key)
 {
     char            *signature_raw;
@@ -88,7 +88,7 @@ mfconn_create_user_signature(mfconn_t *mfconn, char *username, char *password,
     char            signature_hex[41];
     int             i;
 
-    if(mfconn == NULL) return NULL;
+    if(conn == NULL) return NULL;
 
     signature_raw = strdup_printf("%s%s%d%s",
         username, password, app_id, app_key);
@@ -108,7 +108,7 @@ mfconn_create_user_signature(mfconn_t *mfconn, char *username, char *password,
 }
 
 char*
-mfconn_create_call_signature(mfconn_t *mfconn,char *url,char *args)
+mfconn_create_call_signature(mfconn *conn,char *url,char *args)
 {
     char            *signature_raw;
     unsigned char   signature_enc[16];      // md5 is 128 bits
@@ -116,7 +116,7 @@ mfconn_create_call_signature(mfconn_t *mfconn,char *url,char *args)
     char            *api;
     int             i;
 
-    if(mfconn == NULL) return NULL;
+    if(conn == NULL) return NULL;
     if(url == NULL) return NULL;
     if(args == NULL) return NULL;
 
@@ -127,8 +127,8 @@ mfconn_create_call_signature(mfconn_t *mfconn,char *url,char *args)
     if(api == NULL) return NULL;
 
     signature_raw = strdup_printf("%d%s%s%s",
-        (mfconn->secret_key % 256),
-        mfconn->secret_time,
+        (conn->secret_key % 256),
+        conn->secret_time,
         api,args);
 
     MD5((const unsigned char *)signature_raw,
@@ -146,7 +146,7 @@ mfconn_create_call_signature(mfconn_t *mfconn,char *url,char *args)
 }
 
 char*
-mfconn_create_signed_get(mfconn_t *mfconn,int ssl,char *api,char *fmt,...)
+mfconn_create_signed_get(mfconn *conn,int ssl,char *api,char *fmt,...)
 {
     char        *api_request = NULL;
     char        *api_args = NULL;
@@ -158,10 +158,10 @@ mfconn_create_signed_get(mfconn_t *mfconn,int ssl,char *api,char *fmt,...)
     int         api_len;
     va_list     ap;
 
-    if(mfconn == NULL) return NULL;
-    if(mfconn->server == NULL) return NULL;
-    if(mfconn->secret_time == NULL) return NULL;
-    if(mfconn->session_token == NULL) return NULL;
+    if(conn == NULL) return NULL;
+    if(conn->server == NULL) return NULL;
+    if(conn->secret_time == NULL) return NULL;
+    if(conn->session_token == NULL) return NULL;
 
     // make sure the api (ex: user/get_info.php) is sane
     if(api == NULL) return NULL;
@@ -173,7 +173,7 @@ mfconn_create_signed_get(mfconn_t *mfconn,int ssl,char *api,char *fmt,...)
     api_args_len = (vsnprintf(NULL, 0, fmt, ap) + 1);    // + 1 for NULL
     va_end(ap);
 
-    session_token = strdup_printf("&session_token=%s", mfconn->session_token);
+    session_token = strdup_printf("&session_token=%s", conn->session_token);
 
     api_args_len += strlen(session_token);
 
@@ -193,9 +193,9 @@ mfconn_create_signed_get(mfconn_t *mfconn,int ssl,char *api,char *fmt,...)
     if(api[api_len - 1] == '/') api[api_len - 1] = '\0';
 
     api_request = strdup_printf("%s//%s/api/%s",
-        (ssl ? "https:" : "http:"), mfconn->server,api);
+        (ssl ? "https:" : "http:"), conn->server,api);
 
-    call_hash = mfconn_create_call_signature(mfconn,api_request,api_args);
+    call_hash = mfconn_create_call_signature(conn,api_request,api_args);
     signature = strdup_printf("&signature=%s",call_hash);
     free(call_hash);
 
@@ -217,19 +217,19 @@ mfconn_create_signed_get(mfconn_t *mfconn,int ssl,char *api,char *fmt,...)
 }
 
 const char*
-mfconn_get_session_token(mfconn_t *mfconn)
+mfconn_get_session_token(mfconn *conn)
 {
-    return mfconn->session_token;
+    return conn->session_token;
 }
 
 const char*
-mfconn_get_secret_time(mfconn_t *mfconn)
+mfconn_get_secret_time(mfconn *conn)
 {
-    return mfconn->secret_time;
+    return conn->secret_time;
 }
 
 uint32_t
-mfconn_get_secret_key(mfconn_t *mfconn)
+mfconn_get_secret_key(mfconn *conn)
 {
-    return mfconn->secret_key;
+    return conn->secret_key;
 }

@@ -29,7 +29,7 @@ static size_t http_read_buf_cb(char *data, size_t size, size_t nmemb, void *user
 static size_t http_write_buf_cb(char *data, size_t size, size_t nmemb, void *user_ptr);
 static size_t http_write_file_cb(char *data, size_t size, size_t nmemb, void *user_ptr);
 
-struct http_t
+struct mfhttp
 {
     CURL       *curl_handle;
     char       *write_buf;
@@ -44,22 +44,22 @@ struct http_t
 };
 
 /*
- * This set of functions is made such that the http_t struct and the curl
+ * This set of functions is made such that the mfhttp struct and the curl
  * handle it stores can be reused for multiple operations
  *
  * We do not use a single global instance because mediafire does not support
  * keep-alive anyways.
  */
 
-http_t*
+mfhttp*
 http_create(void)
 {
-    http_t *conn;
+    mfhttp *conn;
     CURL        *curl_handle;
     curl_handle = curl_easy_init();
     if(curl_handle == NULL) return NULL;
 
-    conn = (http_t*)calloc(1,sizeof(http_t));
+    conn = (mfhttp*)calloc(1,sizeof(mfhttp));
     conn->curl_handle = curl_handle;
 
     conn->show_progress = false;
@@ -78,13 +78,13 @@ http_create(void)
 }
 
 json_t *
-http_parse_buf_json(http_t* conn, size_t flags, json_error_t *error)
+http_parse_buf_json(mfhttp* conn, size_t flags, json_error_t *error)
 {
     return json_loadb(conn->write_buf, conn->write_buf_len, flags, error);
 }
 
 void
-http_destroy(http_t* conn)
+http_destroy(mfhttp* conn)
 {
     curl_easy_cleanup(conn->curl_handle);
     free(conn->write_buf);
@@ -94,11 +94,11 @@ http_destroy(http_t* conn)
 static int http_progress_cb(void *user_ptr, double dltotal, double dlnow,
             double ultotal, double ulnow)
 {
-    http_t *conn;
+    mfhttp *conn;
 
     if (user_ptr == NULL) return 0;
 
-    conn = (http_t *)user_ptr;
+    conn = (mfhttp *)user_ptr;
 
     conn->ul_len = ultotal;
     conn->ul_now = ulnow;
@@ -110,7 +110,7 @@ static int http_progress_cb(void *user_ptr, double dltotal, double dlnow,
 }
 
 int
-http_get_buf(http_t *conn, const char *url, int (*data_handler)(http_t *conn, void *data), void *data)
+http_get_buf(mfhttp *conn, const char *url, int (*data_handler)(mfhttp *conn, void *data), void *data)
 {
     int retval;
     curl_easy_reset(conn->curl_handle);
@@ -152,12 +152,12 @@ http_read_buf_cb(char *data, size_t size, size_t nmemb, void *user_ptr)
 static size_t
 http_write_buf_cb(char *data, size_t size, size_t nmemb, void *user_ptr)
 {
-    http_t *conn;
+    mfhttp *conn;
     size_t data_len;
 
     if (user_ptr == NULL) return 0;
 
-    conn = (http_t*)user_ptr;
+    conn = (mfhttp*)user_ptr;
     data_len = size*nmemb;
 
     if (data_len > 0) {
@@ -172,7 +172,7 @@ http_write_buf_cb(char *data, size_t size, size_t nmemb, void *user_ptr)
 }
 
 int
-http_post_buf(http_t *conn, const char *url, const char *post_args, int (*data_handler)(http_t *conn, void *data), void *data)
+http_post_buf(mfhttp *conn, const char *url, const char *post_args, int (*data_handler)(mfhttp *conn, void *data), void *data)
 {
     int retval;
     curl_easy_reset(conn->curl_handle);
@@ -194,7 +194,7 @@ http_post_buf(http_t *conn, const char *url, const char *post_args, int (*data_h
 }
 
 int
-http_get_file(http_t *conn, const char *url, const char *path)
+http_get_file(mfhttp *conn, const char *url, const char *path)
 {
     int retval;
     curl_easy_reset(conn->curl_handle);
@@ -217,10 +217,10 @@ http_get_file(http_t *conn, const char *url, const char *path)
 static size_t
 http_write_file_cb(char *data, size_t size, size_t nmemb, void *user_ptr)
 {
-    http_t *conn;
+    mfhttp *conn;
 
     if (user_ptr == NULL) return 0;
-    conn = (http_t*)user_ptr;
+    conn = (mfhttp*)user_ptr;
 
     fwrite(data, size, nmemb, conn->stream);
 
@@ -230,6 +230,6 @@ http_write_file_cb(char *data, size_t size, size_t nmemb, void *user_ptr)
 }
 
 /*int
-http_post_file(http_t *conn, const char *url, const char *post_args, FILE *fd)
+http_post_file(mfhttp *conn, const char *url, const char *post_args, FILE *fd)
 {
 }*/

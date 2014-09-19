@@ -20,38 +20,38 @@
 #ifndef __MFAPI_FILE_H__
 #define __MFAPI_FILE_H__
 
-typedef struct  _file_s         file_t;
+typedef struct  _file_s         mffile;
 
 struct _file_s;
 
-file_t*     file_alloc(void);
+mffile*     file_alloc(void);
 
-void        file_free(file_t *file);
+void        file_free(mffile *file);
 
-int         file_set_key(file_t *file,const char *quickkey);
+int         file_set_key(mffile *file,const char *quickkey);
 
-const char* file_get_key(file_t *file);
+const char* file_get_key(mffile *file);
 
-int         file_set_hash(file_t *file,const char *hash);
+int         file_set_hash(mffile *file,const char *hash);
 
-const char* file_get_hash(file_t *file);
+const char* file_get_hash(mffile *file);
 
-int         file_set_name(file_t *file,const char *name);
+int         file_set_name(mffile *file,const char *name);
 
-const char* file_get_name(file_t *file);
+const char* file_get_name(mffile *file);
 
-int         file_set_share_link(file_t *file,const char *share_link);
+int         file_set_share_link(mffile *file,const char *share_link);
 
-const char* file_get_share_link(file_t *file);
+const char* file_get_share_link(mffile *file);
 
-int         file_set_direct_link(file_t *file,const char *direct_link);
+int         file_set_direct_link(mffile *file,const char *direct_link);
 
-const char* file_get_direct_link(file_t *file);
+const char* file_get_direct_link(mffile *file);
 
-int         file_set_onetime_link(file_t *file,const char *onetime_link);
+int         file_set_onetime_link(mffile *file,const char *onetime_link);
 
-const char* file_get_onetime_link(file_t *file);
+const char* file_get_onetime_link(mffile *file);
 
-ssize_t     file_download_direct(file_t *file, char *local_dir);
+ssize_t     file_download_direct(mffile *file, char *local_dir);
 
 #endif

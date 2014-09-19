@@ -32,29 +32,29 @@
 #include "../../utils/http.h"
 
 static int
-_decode_user_get_info(http_t *conn, void *data);
+_decode_user_get_info(mfhttp *conn, void *data);
 
 int
-mfconn_api_user_get_info(mfconn_t *mfconn)
+mfconn_api_user_get_info(mfconn *conn)
 {
     char        *api_call;
     int         retval;
     // char        *rx_buffer;
 
-    if(mfconn == NULL) return -1;
+    if(conn == NULL) return -1;
 
-    api_call = mfconn_create_signed_get(mfconn,0,"user/get_info.php",
+    api_call = mfconn_create_signed_get(conn,0,"user/get_info.php",
         "&response_format=json");
 
-    http_t* conn = http_create();
-    retval = http_get_buf(conn, api_call, _decode_user_get_info, NULL);
-    http_destroy(conn);
+    mfhttp* http = http_create();
+    retval = http_get_buf(http, api_call, _decode_user_get_info, NULL);
+    http_destroy(http);
 
     return retval;
 }
 
 static int
-_decode_user_get_info(http_t *conn, void *data)
+_decode_user_get_info(mfhttp *conn, void *data)
 {
     json_error_t    error;
     json_t          *root;
@@ -92,7 +92,7 @@ _decode_user_get_info(http_t *conn, void *data)
 // sample user callback
 /*
 static void
-_mycallback(char *data,size_t sz,cfile_t *cfile)
+_mycallback(char *data,size_t sz,cmffile *cfile)
 {
     double  bytes_read;
     double  bytes_total;

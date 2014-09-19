@@ -33,15 +33,15 @@
 #include "../../utils/http.h"
 
 static int
-_decode_folder_get_info(http_t *conn, void *data);
+_decode_folder_get_info(mfhttp *conn, void *data);
 
 int
-mfconn_api_folder_get_info(mfconn_t *mfconn,folder_t *folder,char *folderkey)
+mfconn_api_folder_get_info(mfconn *conn,mffolder *folder,char *folderkey)
 {
     char        *api_call;
     int         retval;
 
-    if(mfconn == NULL) return -1;
+    if(conn == NULL) return -1;
 
     if(folder == NULL) return -1;
     if(folderkey == NULL) return -1;
@@ -52,18 +52,18 @@ mfconn_api_folder_get_info(mfconn_t *mfconn,folder_t *folder,char *folderkey)
         if(strcmp(folderkey,"myfiles") == 0) return -1;
     }
 
-    api_call = mfconn_create_signed_get(mfconn,0,"folder/get_info.php",
+    api_call = mfconn_create_signed_get(conn,0,"folder/get_info.php",
         "?folder_key=%s&response_format=json", folderkey);
 
-    http_t *conn = http_create();
-    retval = http_get_buf(conn, api_call, _decode_folder_get_info, folder);
-    http_destroy(conn);
+    mfhttp *http = http_create();
+    retval = http_get_buf(http, api_call, _decode_folder_get_info, folder);
+    http_destroy(http);
 
     return retval;
 }
 
 static int
-_decode_folder_get_info(http_t *conn, void *data)
+_decode_folder_get_info(mfhttp *conn, void *data)
 {
     json_error_t    error;
     json_t          *root;
@@ -72,11 +72,11 @@ _decode_folder_get_info(http_t *conn, void *data)
     json_t          *folder_name;
     json_t          *parent_folder;
     int             retval = 0;
-    folder_t       *folder;
+    mffolder       *folder;
 
     if(data == NULL) return -1;
 
-    folder = (folder_t *)data;
+    folder = (mffolder *)data;
 
     root = http_parse_buf_json(conn, 0, &error);
 
@@ -110,7 +110,7 @@ _decode_folder_get_info(http_t *conn, void *data)
 // sample user callback
 /*
 static void
-_mycallback(char *data,size_t sz,cfile_t *cfile)
+_mycallback(char *data,size_t sz,cmffile *cfile)
 {
     double  bytes_read;
     double  bytes_total;

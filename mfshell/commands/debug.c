@@ -28,7 +28,7 @@
 #include "../commands.h"
 
 int
-mfshell_cmd_debug(mfshell_t *mfshell, int argc, char **argv)
+mfshell_cmd_debug(mfshell *mfshell, int argc, char **argv)
 {
     (void)argv;
     if (argc != 1) {
@@ -40,9 +40,9 @@ mfshell_cmd_debug(mfshell_t *mfshell, int argc, char **argv)
         "server:",
         mfshell->server);
 
-    const char *session_token = mfconn_get_session_token(mfshell->mfconn);
-    const char *secret_time = mfconn_get_secret_time(mfshell->mfconn);
-    uint32_t secret_key = mfconn_get_secret_key(mfshell->mfconn);
+    const char *session_token = mfconn_get_session_token(mfshell->conn);
+    const char *secret_time = mfconn_get_secret_time(mfshell->conn);
+    uint32_t secret_key = mfconn_get_secret_key(mfshell->conn);
     if(session_token != NULL && secret_time != NULL)
     {
         printf("   %-15.15s   %"PRIu32"\n\r",

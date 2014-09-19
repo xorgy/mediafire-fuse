@@ -34,18 +34,18 @@ struct _folder_s
     uint32_t    file_count;
 };
 
-folder_t*
+mffolder*
 folder_alloc(void)
 {
-    folder_t    *folder;
+    mffolder    *folder;
 
-    folder = (folder_t*)calloc(1,sizeof(folder_t));
+    folder = (mffolder*)calloc(1,sizeof(mffolder));
 
     return folder;
 }
 
 void
-folder_free(folder_t *folder)
+folder_free(mffolder *folder)
 {
     if(folder == NULL) return;
 
@@ -55,7 +55,7 @@ folder_free(folder_t *folder)
 }
 
 int
-folder_set_key(folder_t *folder,const char *key)
+folder_set_key(mffolder *folder,const char *key)
 {
     if(folder == NULL) return -1;
     if(key == NULL) return -1;
@@ -69,7 +69,7 @@ folder_set_key(folder_t *folder,const char *key)
 }
 
 const char*
-folder_get_key(folder_t *folder)
+folder_get_key(mffolder *folder)
 {
     if(folder == NULL) return NULL;
 
@@ -77,7 +77,7 @@ folder_get_key(folder_t *folder)
 }
 
 int
-folder_set_parent(folder_t *folder,const char *parent_key)
+folder_set_parent(mffolder *folder,const char *parent_key)
 {
     if(folder == NULL) return -1;
     if(parent_key == NULL) return -1;
@@ -94,7 +94,7 @@ folder_set_parent(folder_t *folder,const char *parent_key)
 }
 
 const char*
-folder_get_parent(folder_t *folder)
+folder_get_parent(mffolder *folder)
 {
     if(folder == NULL) return NULL;
 
@@ -102,7 +102,7 @@ folder_get_parent(folder_t *folder)
 }
 
 int
-folder_set_name(folder_t *folder,const char *name)
+folder_set_name(mffolder *folder,const char *name)
 {
     if(folder == NULL) return -1;
     if(name == NULL) return -1;
@@ -116,7 +116,7 @@ folder_set_name(folder_t *folder,const char *name)
 }
 
 const char*
-folder_get_name(folder_t *folder)
+folder_get_name(mffolder *folder)
 {
     if(folder == NULL) return NULL;
 

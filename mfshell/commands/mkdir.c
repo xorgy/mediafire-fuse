@@ -27,7 +27,7 @@
 #include "../../mfapi/apicalls.h"
 
 int
-mfshell_cmd_mkdir(mfshell_t *mfshell, int argc, char **argv)
+mfshell_cmd_mkdir(mfshell *mfshell, int argc, char **argv)
 {
     int         retval;
     const char  *folder_curr;
@@ -55,8 +55,8 @@ mfshell_cmd_mkdir(mfshell_t *mfshell, int argc, char **argv)
 
     folder_curr = folder_get_key(mfshell->folder_curr);
 
-    retval = mfconn_api_folder_create(mfshell->mfconn,(char*)folder_curr,(char*)name);
-    mfconn_update_secret_key(mfshell->mfconn);
+    retval = mfconn_api_folder_create(mfshell->conn,(char*)folder_curr,(char*)name);
+    mfconn_update_secret_key(mfshell->conn);
 
     return retval;
 }

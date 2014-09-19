@@ -33,19 +33,19 @@
 #include "../../utils/http.h"
 
 static int
-_decode_folder_get_content_folders(http_t *conn, void *data);
+_decode_folder_get_content_folders(mfhttp *conn, void *data);
 
 static int
-_decode_folder_get_content_files(http_t *conn, void *data);
+_decode_folder_get_content_files(mfhttp *conn, void *data);
 
 long
-mfconn_api_folder_get_content(mfconn_t *mfconn, int mode, folder_t *folder_curr)
+mfconn_api_folder_get_content(mfconn *conn, int mode, mffolder *folder_curr)
 {
     char        *api_call;
     int         retval;
     char        *content_type;
 
-    if(mfconn == NULL) return -1;
+    if(conn == NULL) return -1;
 
     if(mode == 0)
         content_type = "folders";
@@ -61,26 +61,26 @@ mfconn_api_folder_get_content(mfconn_t *mfconn, int mode, folder_t *folder_curr)
         fprintf(stderr, "folder_get_key '\\0'\n");
         return 0;
     }*/
-    api_call = mfconn_create_signed_get(mfconn,0,"folder/get_content.php",
+    api_call = mfconn_create_signed_get(conn,0,"folder/get_content.php",
         "?folder_key=%s"
         "&content_type=%s"
         "&response_format=json",
         folderkey,
         content_type);
 
-    http_t* conn = http_create();
+    mfhttp* http = http_create();
 
     if(mode == 0)
-        retval = http_get_buf(conn, api_call, _decode_folder_get_content_folders, NULL);
+        retval = http_get_buf(http, api_call, _decode_folder_get_content_folders, NULL);
     else
-        retval = http_get_buf(conn, api_call, _decode_folder_get_content_files, NULL);
-    http_destroy(conn);
+        retval = http_get_buf(http, api_call, _decode_folder_get_content_files, NULL);
+    http_destroy(http);
 
     return retval;
 }
 
 static int
-_decode_folder_get_content_folders(http_t *conn, void *user_ptr)
+_decode_folder_get_content_folders(mfhttp *conn, void *user_ptr)
 {
     json_error_t    error;
     json_t          *root;
@@ -143,7 +143,7 @@ _decode_folder_get_content_folders(http_t *conn, void *user_ptr)
 }
 
 static int
-_decode_folder_get_content_files(http_t *conn, void *user_ptr)
+_decode_folder_get_content_files(mfhttp *conn, void *user_ptr)
 {
     json_error_t    error;
     json_t          *root;

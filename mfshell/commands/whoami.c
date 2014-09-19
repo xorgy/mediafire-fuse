@@ -27,7 +27,7 @@
 #include "../../mfapi/apicalls.h"
 
 int
-mfshell_cmd_whoami(mfshell_t *mfshell, int argc, char **argv)
+mfshell_cmd_whoami(mfshell *mfshell, int argc, char **argv)
 {
     (void)argv;
     int retval;
@@ -37,8 +37,8 @@ mfshell_cmd_whoami(mfshell_t *mfshell, int argc, char **argv)
         return -1;
     }
 
-    retval = mfconn_api_user_get_info(mfshell->mfconn);
-    mfconn_update_secret_key(mfshell->mfconn);
+    retval = mfconn_api_user_get_info(mfshell->conn);
+    mfconn_update_secret_key(mfshell->conn);
 
     return retval;
 }

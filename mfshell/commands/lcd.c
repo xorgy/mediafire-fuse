@@ -27,7 +27,7 @@
 #include "../commands.h"
 
 int
-mfshell_cmd_lcd(mfshell_t *mfshell, int argc, char **argv)
+mfshell_cmd_lcd(mfshell *mfshell, int argc, char **argv)
 {
     int retval;
     const char *dir;

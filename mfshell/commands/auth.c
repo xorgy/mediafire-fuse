@@ -34,7 +34,7 @@ static char*
 _get_passwd_from_user(void);
 
 int
-mfshell_cmd_auth(mfshell_t *mfshell, int argc, char **argv)
+mfshell_cmd_auth(mfshell *mfshell, int argc, char **argv)
 {
     char *username;
     char *password;
@@ -62,15 +62,15 @@ mfshell_cmd_auth(mfshell_t *mfshell, int argc, char **argv)
 
     if(username == NULL || password == NULL) return -1;
 
-    mfshell->mfconn = mfconn_create(mfshell->server, username, password,
+    mfshell->conn = mfconn_create(mfshell->server, username, password,
             mfshell->app_id, mfshell->app_key);
 
-    if (mfshell->mfconn != NULL)
+    if (mfshell->conn != NULL)
         printf("\n\rAuthentication SUCCESS\n\r");
     else
         printf("\n\rAuthentication FAILURE\n\r");
 
-    return (mfshell->mfconn != NULL);
+    return (mfshell->conn != NULL);
 }
 
 char*

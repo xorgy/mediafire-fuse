@@ -37,7 +37,7 @@
 #include "mfshell.h"
 #include "commands.h"
 
-struct cmd_t commands[] = {
+struct mfcmd commands[] = {
     {"help",   "",              "show this help", mfshell_cmd_help},
     {"debug",  "",              "show debug information", mfshell_cmd_debug},
     {"host",   "<server>",      "change target server", mfshell_cmd_host},
@@ -60,10 +60,10 @@ struct cmd_t commands[] = {
     {NULL,     NULL,            NULL,              NULL}
 };
 
-mfshell_t*
+mfshell*
 mfshell_create(int app_id,char *app_key,char *server)
 {
-    mfshell_t   *mfshell;
+    mfshell   *shell;
 
     if(app_id <= 0) return NULL;
     if(app_key == NULL) return NULL;
@@ -76,41 +76,41 @@ mfshell_create(int app_id,char *app_key,char *server)
     */
     if(strchr(server,'/') != NULL) return NULL;
 
-    mfshell = (mfshell_t*)calloc(1,sizeof(mfshell_t));
+    shell = (mfshell*)calloc(1,sizeof(mfshell));
 
-    mfshell->app_id = app_id;
-    mfshell->app_key = strdup(app_key);
-    mfshell->server = strdup(server);
+    shell->app_id = app_id;
+    shell->app_key = strdup(app_key);
+    shell->server = strdup(server);
 
     // object to track folder location
-    mfshell->folder_curr = folder_alloc();
-    folder_set_key(mfshell->folder_curr,"myfiles");
+    shell->folder_curr = folder_alloc();
+    folder_set_key(shell->folder_curr,"myfiles");
 
     // shell commands
-    mfshell->commands = commands;
+    shell->commands = commands;
 
-    return mfshell;
+    return shell;
 }
 
 int
-mfshell_exec(mfshell_t *mfshell, int argc, char **argv)
+mfshell_exec(mfshell *shell, int argc, char **argv)
 {
-    cmd_t* curr_cmd;
-    for (curr_cmd = mfshell->commands; curr_cmd->name != NULL; curr_cmd++) {
+    mfcmd* curr_cmd;
+    for (curr_cmd = shell->commands; curr_cmd->name != NULL; curr_cmd++) {
         if (strcmp(argv[0], curr_cmd->name) == 0) {
-            return curr_cmd->handler(mfshell, argc, argv);
+            return curr_cmd->handler(shell, argc, argv);
         }
     }
     return -1;
 }
 
 int
-mfshell_exec_shell_command(mfshell_t *mfshell,char *command)
+mfshell_exec_shell_command(mfshell *shell,char *command)
 {
     wordexp_t       p;
     int             retval;
 
-    if(mfshell == NULL) return -1;
+    if(shell == NULL) return -1;
     if(command == NULL) return -1;
 
     // FIXME: handle non-zero return value of wordexp
@@ -132,7 +132,7 @@ mfshell_exec_shell_command(mfshell_t *mfshell,char *command)
         return 0;
 
     // TODO: handle retval
-    retval = mfshell_exec(mfshell, p.we_wordc, p.we_wordv);
+    retval = mfshell_exec(shell, p.we_wordc, p.we_wordv);
 
     wordfree(&p);
 

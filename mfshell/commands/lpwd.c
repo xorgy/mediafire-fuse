@@ -27,7 +27,7 @@
 #include "../commands.h"
 
 int
-mfshell_cmd_lpwd(mfshell_t *mfshell, int argc, char **argv)
+mfshell_cmd_lpwd(mfshell *mfshell, int argc, char **argv)
 {
     (void)argv;
     if(mfshell == NULL) return -1;

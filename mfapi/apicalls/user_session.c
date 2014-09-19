@@ -32,7 +32,7 @@
 #include "../../utils/json.h"
 
 static int
-_decode_get_session_token(http_t *conn, void *data);
+_decode_get_session_token(mfhttp *conn, void *data);
 
 struct user_get_session_token_response
 {
@@ -42,7 +42,7 @@ struct user_get_session_token_response
 };
 
 int
-mfconn_api_user_get_session_token(mfconn_t *mfconn, char *server,
+mfconn_api_user_get_session_token(mfconn *conn, char *server,
         char *username, char *password, int app_id, char *app_key,
         uint32_t *secret_key, char **secret_time, char **session_token)
 {
@@ -52,14 +52,14 @@ mfconn_api_user_get_session_token(mfconn_t *mfconn, char *server,
     int         retval;
     struct user_get_session_token_response response;
 
-    if(mfconn == NULL) return -1;
+    if(conn == NULL) return -1;
 
     // configure url for operation
     login_url = strdup_printf("https://%s/api/user/get_session_token.php",
         server);
 
     // create user signature
-    user_signature = mfconn_create_user_signature(mfconn, username, password, app_id, app_key);
+    user_signature = mfconn_create_user_signature(conn, username, password, app_id, app_key);
 
     post_args = strdup_printf(
         "email=%s"
@@ -70,9 +70,9 @@ mfconn_api_user_get_session_token(mfconn_t *mfconn, char *server,
         "&response_format=json",
         username, password, user_signature);
 
-    http_t *conn = http_create();
-    retval = http_post_buf(conn, login_url, post_args, _decode_get_session_token, (void *)(&response));
-    http_destroy(conn);
+    mfhttp *http = http_create();
+    retval = http_post_buf(http, login_url, post_args, _decode_get_session_token, (void *)(&response));
+    http_destroy(http);
 
     free(login_url);
     free(post_args);
@@ -85,7 +85,7 @@ mfconn_api_user_get_session_token(mfconn_t *mfconn, char *server,
 }
 
 static int
-_decode_get_session_token(http_t *conn, void *user_ptr)
+_decode_get_session_token(mfhttp *conn, void *user_ptr)
 {
     json_error_t    error;
     json_t          *root = NULL;
@@ -133,7 +133,7 @@ _decode_get_session_token(http_t *conn, void *user_ptr)
 // sample user callback
 /*
 static void
-_mycallback(char *data,size_t sz,cfile_t *cfile)
+_mycallback(char *data,size_t sz,cmffile *cfile)
 {
     double  bytes_read;
     double  bytes_total;

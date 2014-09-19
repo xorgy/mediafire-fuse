@@ -27,9 +27,9 @@
 #include "../../mfapi/apicalls.h"
 
 int
-mfshell_cmd_chdir(mfshell_t *mfshell, int argc, char **argv)
+mfshell_cmd_chdir(mfshell *mfshell, int argc, char **argv)
 {
-    folder_t    *folder_new;
+    mffolder    *folder_new;
     const char  *folder_curr;
     const char  *folder_parent;
     const char  *folderkey;
@@ -83,9 +83,9 @@ mfshell_cmd_chdir(mfshell_t *mfshell, int argc, char **argv)
     }
     else
     {
-        retval = mfconn_api_folder_get_info(mfshell->mfconn,
+        retval = mfconn_api_folder_get_info(mfshell->conn,
             folder_new,(char*)folderkey);
-        mfconn_update_secret_key(mfshell->mfconn);
+        mfconn_update_secret_key(mfshell->conn);
     }
 
     if(retval == 0)

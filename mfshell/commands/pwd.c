@@ -27,7 +27,7 @@
 #include "../../utils/strings.h"
 
 int
-mfshell_cmd_pwd(mfshell_t *mfshell, int argc, char **argv)
+mfshell_cmd_pwd(mfshell *mfshell, int argc, char **argv)
 {
     (void)argv;
     const char  *folder_name;

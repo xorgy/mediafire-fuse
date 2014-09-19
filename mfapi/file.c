@@ -37,18 +37,18 @@ struct _file_s
     char        *onetime_link;
 };
 
-file_t*
+mffile*
 file_alloc(void)
 {
-    file_t    *file;
+    mffile    *file;
 
-    file = (file_t*)calloc(1,sizeof(file_t));
+    file = (mffile*)calloc(1,sizeof(mffile));
 
     return file;
 }
 
 void
-file_free(file_t *file)
+file_free(mffile *file)
 {
     if(file == NULL) return;
 
@@ -62,7 +62,7 @@ file_free(file_t *file)
 }
 
 int
-file_set_key(file_t *file,const char *key)
+file_set_key(mffile *file,const char *key)
 {
     int len;
 
@@ -79,7 +79,7 @@ file_set_key(file_t *file,const char *key)
 }
 
 const char*
-file_get_key(file_t *file)
+file_get_key(mffile *file)
 {
     if(file == NULL) return NULL;
 
@@ -87,7 +87,7 @@ file_get_key(file_t *file)
 }
 
 int
-file_set_hash(file_t *file,const char *hash)
+file_set_hash(mffile *file,const char *hash)
 {
     if(file == NULL) return -1;
     if(hash == NULL) return -1;
@@ -102,7 +102,7 @@ file_set_hash(file_t *file,const char *hash)
 }
 
 const char*
-file_get_hash(file_t *file)
+file_get_hash(mffile *file)
 {
     if(file == NULL) return NULL;
 
@@ -110,7 +110,7 @@ file_get_hash(file_t *file)
 }
 
 int
-file_set_name(file_t *file,const char *name)
+file_set_name(mffile *file,const char *name)
 {
     if(file == NULL) return -1;
     if(name == NULL) return -1;
@@ -124,7 +124,7 @@ file_set_name(file_t *file,const char *name)
 }
 
 const char*
-file_get_name(file_t *file)
+file_get_name(mffile *file)
 {
     if(file == NULL) return NULL;
 
@@ -132,7 +132,7 @@ file_get_name(file_t *file)
 }
 
 int
-file_set_share_link(file_t *file,const char *share_link)
+file_set_share_link(mffile *file,const char *share_link)
 {
     if(file == NULL) return -1;
     if(share_link == NULL) return -1;
@@ -149,7 +149,7 @@ file_set_share_link(file_t *file,const char *share_link)
 }
 
 const char*
-file_get_share_link(file_t *file)
+file_get_share_link(mffile *file)
 {
     if(file == NULL) return NULL;
 
@@ -157,7 +157,7 @@ file_get_share_link(file_t *file)
 }
 
 int
-file_set_direct_link(file_t *file,const char *direct_link)
+file_set_direct_link(mffile *file,const char *direct_link)
 {
     if(file == NULL) return -1;
     if(direct_link == NULL) return -1;
@@ -174,7 +174,7 @@ file_set_direct_link(file_t *file,const char *direct_link)
 }
 
 const char*
-file_get_direct_link(file_t *file)
+file_get_direct_link(mffile *file)
 {
     if(file == NULL) return NULL;
 
@@ -182,7 +182,7 @@ file_get_direct_link(file_t *file)
 }
 
 int
-file_set_onetime_link(file_t *file,const char *onetime_link)
+file_set_onetime_link(mffile *file,const char *onetime_link)
 {
     if(file == NULL) return -1;
     if(onetime_link == NULL) return -1;
@@ -199,7 +199,7 @@ file_set_onetime_link(file_t *file,const char *onetime_link)
 }
 
 const char*
-file_get_onetime_link(file_t *file)
+file_get_onetime_link(mffile *file)
 {
     if(file == NULL) return NULL;
 
@@ -222,7 +222,7 @@ file_get_onetime_link(file_t *file)
 #include "../utils/strings.h"
 
 ssize_t
-file_download_direct(file_t *file, char *local_dir)
+file_download_direct(mffile *file, char *local_dir)
 {
     const char      *url;
     const char      *file_name;
@@ -246,7 +246,7 @@ file_download_direct(file_t *file, char *local_dir)
     else
         file_path = strdup_printf("%s/%s",local_dir,file_name);
 
-    http_t *conn = http_create();
+    mfhttp *conn = http_create();
     retval = http_get_file(conn, url, file_path);
     http_destroy(conn);
 

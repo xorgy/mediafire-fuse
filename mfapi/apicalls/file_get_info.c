@@ -32,16 +32,16 @@
 #include "../../utils/http.h"
 
 static int
-_decode_file_get_info(http_t *conn, void *data);
+_decode_file_get_info(mfhttp *conn, void *data);
 
 int
-mfconn_api_file_get_info(mfconn_t *mfconn,file_t *file,char *quickkey)
+mfconn_api_file_get_info(mfconn *conn,mffile *file,char *quickkey)
 {
     char        *api_call;
     int         retval;
     int         len;
 
-    if(mfconn == NULL) return -1;
+    if(conn == NULL) return -1;
 
     if(file == NULL) return -1;
     if(quickkey == NULL) return -1;
@@ -51,18 +51,18 @@ mfconn_api_file_get_info(mfconn_t *mfconn,file_t *file,char *quickkey)
     // key must either be 11 or 15 chars
     if(len != 11 && len != 15) return -1;
 
-    api_call = mfconn_create_signed_get(mfconn, 1, "file/get_info.php",
+    api_call = mfconn_create_signed_get(conn, 1, "file/get_info.php",
         "?quick_key=%s&response_format=json", quickkey);
 
-    http_t *conn = http_create();
-    retval = http_get_buf(conn, api_call, _decode_file_get_info, file);
-    http_destroy(conn);
+    mfhttp *http = http_create();
+    retval = http_get_buf(http, api_call, _decode_file_get_info, file);
+    http_destroy(http);
 
     return retval;
 }
 
 static int
-_decode_file_get_info(http_t *conn, void *data)
+_decode_file_get_info(mfhttp *conn, void *data)
 {
     json_error_t    error;
     json_t          *root;
@@ -71,11 +71,11 @@ _decode_file_get_info(http_t *conn, void *data)
     json_t          *file_hash;
     json_t          *file_name;
     int             retval = 0;
-    file_t         *file;
+    mffile         *file;
 
     if(data == NULL) return -1;
 
-    file = (file_t *)data;
+    file = (mffile *)data;
 
     root = http_parse_buf_json(conn, 0, &error);
 

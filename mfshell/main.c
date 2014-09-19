@@ -30,10 +30,10 @@
 #include "../utils/strings.h"
 
 static void
-mfshell_run(mfshell_t *mfshell);
+mfshell_run(mfshell *mfshell);
 
 static void
-mfshell_parse_commands(mfshell_t *mfshell, char *command);
+mfshell_parse_commands(mfshell *mfshell, char *command);
 
 void print_help(char *cmd)
 {
@@ -120,7 +120,7 @@ void parse_argv(int argc, char **argv, char **username,
 
 int main(int argc,char **argv)
 {
-    mfshell_t           *mfshell;
+    mfshell           *mfshell;
     char                *server = "www.mediafire.com";
     char                *username = NULL;
     char                *password = NULL;
@@ -145,7 +145,7 @@ int main(int argc,char **argv)
 }
 
 static void
-mfshell_parse_commands(mfshell_t *mfshell, char *command)
+mfshell_parse_commands(mfshell *mfshell, char *command)
 {
     char *next;
     int ret;
@@ -173,7 +173,7 @@ mfshell_parse_commands(mfshell_t *mfshell, char *command)
 }
 
 static void
-mfshell_run(mfshell_t *mfshell)
+mfshell_run(mfshell *mfshell)
 {
     char    *cmd = NULL;
     size_t  len;

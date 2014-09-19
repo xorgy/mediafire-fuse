@@ -30,12 +30,12 @@
 #include "../../utils/strings.h"
 
 int
-mfconn_api_folder_create(mfconn_t *mfconn,char *parent,char *name)
+mfconn_api_folder_create(mfconn *conn,char *parent,char *name)
 {
     char        *api_call;
     int         retval;
 
-    if(mfconn == NULL) return -1;
+    if(conn == NULL) return -1;
 
     if(name == NULL) return -1;
     if(strlen(name) < 1) return -1;
@@ -52,7 +52,7 @@ mfconn_api_folder_create(mfconn_t *mfconn,char *parent,char *name)
 
     if(parent != NULL)
     {
-        api_call = mfconn_create_signed_get(mfconn,0,"folder/create.php",
+        api_call = mfconn_create_signed_get(conn,0,"folder/create.php",
             "?parent_key=%s"
             "&foldername=%s"
             "&response_format=json",
@@ -60,13 +60,13 @@ mfconn_api_folder_create(mfconn_t *mfconn,char *parent,char *name)
     }
     else
     {
-        api_call = mfconn_create_signed_get(mfconn,0,"folder/create.php",
+        api_call = mfconn_create_signed_get(conn,0,"folder/create.php",
             "?foldername=%s&response_format=json", name);
     }
 
-    http_t *conn = http_create();
-    retval = http_get_buf(conn, api_call, NULL, NULL);
-    http_destroy(conn);
+    mfhttp *http = http_create();
+    retval = http_get_buf(http, api_call, NULL, NULL);
+    http_destroy(http);
 
     return retval;
 }

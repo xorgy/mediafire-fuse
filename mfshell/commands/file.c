@@ -26,9 +26,9 @@
 #include "../../mfapi/apicalls.h"
 
 int
-mfshell_cmd_file(mfshell_t *mfshell, int argc, char **argv)
+mfshell_cmd_file(mfshell *mfshell, int argc, char **argv)
 {
-    file_t      *file;
+    mffile      *file;
     int         len;
     int         retval;
     const char *quickkey;
@@ -51,11 +51,11 @@ mfshell_cmd_file(mfshell_t *mfshell, int argc, char **argv)
 
     file = file_alloc();
 
-    retval = mfconn_api_file_get_info(mfshell->mfconn,file,(char*)quickkey);
+    retval = mfconn_api_file_get_info(mfshell->conn,file,(char*)quickkey);
     if (retval != 0) {
         fprintf(stderr, "api call unsuccessful\n");
     }
-    mfconn_update_secret_key(mfshell->mfconn);
+    mfconn_update_secret_key(mfshell->conn);
 
     quickkey = file_get_key(file);
     name = file_get_name(file);

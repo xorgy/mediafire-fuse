@@ -20,24 +20,24 @@
 #ifndef __MFAPI_FOLDER_H__
 #define __MFAPI_FOLDER_H__
 
-typedef struct _folder_s    folder_t;
+typedef struct _folder_s    mffolder;
 
 struct _folder_s;
 
-folder_t*   folder_alloc(void);
+mffolder*   folder_alloc(void);
 
-void        folder_free(folder_t *folder);
+void        folder_free(mffolder *folder);
 
-int         folder_set_key(folder_t *folder,const char *folderkey);
+int         folder_set_key(mffolder *folder,const char *folderkey);
 
-const char* folder_get_key(folder_t *folder);
+const char* folder_get_key(mffolder *folder);
 
-int         folder_set_parent(folder_t *folder,const char *folderkey);
+int         folder_set_parent(mffolder *folder,const char *folderkey);
 
-const char* folder_get_parent(folder_t *folder);
+const char* folder_get_parent(mffolder *folder);
 
-int         folder_set_name(folder_t *folder,const char *name);
+int         folder_set_name(mffolder *folder,const char *name);
 
-const char* folder_get_name(folder_t *folder);
+const char* folder_get_name(mffolder *folder);
 
 #endif

@@ -29,7 +29,7 @@ static char*
 _get_host_from_user(void);
 
 int
-mfshell_cmd_host(mfshell_t *mfshell, int argc, char **argv)
+mfshell_cmd_host(mfshell *mfshell, int argc, char **argv)
 {
     char    *alt_host = NULL;
     char    *host;
@@ -65,7 +65,7 @@ mfshell_cmd_host(mfshell_t *mfshell, int argc, char **argv)
 
     mfshell->server = strdup(host);
 
-    mfconn_destroy(mfshell->mfconn);
+    mfconn_destroy(mfshell->conn);
 
     if(alt_host != NULL) free(alt_host);
 

@@ -21,15 +21,15 @@
 
 #include <jansson.h>
 
-typedef struct http_t http_t;
+typedef struct mfhttp mfhttp;
 
-http_t* http_create(void);
-void http_destroy(http_t* conn);
-int http_get_buf(http_t *conn, const char *url, int (*data_handler)(http_t *conn, void *data), void *data);
-int http_post_buf(http_t *conn, const char *url, const char *post_args, int (*data_handler)(http_t *conn, void *data), void *data);
-int http_get_file(http_t *conn, const char *url, const char *path);
-int http_post_file(http_t *conn, const char *url, const char *post_args, FILE *fd);
-json_t *http_parse_buf_json(http_t* conn, size_t flags, json_error_t *error);
+mfhttp* http_create(void);
+void http_destroy(mfhttp* conn);
+int http_get_buf(mfhttp *conn, const char *url, int (*data_handler)(mfhttp *conn, void *data), void *data);
+int http_post_buf(mfhttp *conn, const char *url, const char *post_args, int (*data_handler)(mfhttp *conn, void *data), void *data);
+int http_get_file(mfhttp *conn, const char *url, const char *path);
+int http_post_file(mfhttp *conn, const char *url, const char *post_args, FILE *fd);
+json_t *http_parse_buf_json(mfhttp* conn, size_t flags, json_error_t *error);
 
 
 #endif
