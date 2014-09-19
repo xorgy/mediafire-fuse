@@ -44,7 +44,7 @@ mfshell_cmd_help(mfshell_t *mfshell, int argc, char **argv)
     unsigned int column1_width = 0;
     unsigned int column2_width = 0;
 
-    _cmd_t* curr_cmd;
+    cmd_t* curr_cmd;
     for (curr_cmd = mfshell->commands; curr_cmd->name != NULL; curr_cmd++) {
         if (strlen(curr_cmd->name) > column1_width)
             column1_width = strlen(curr_cmd->name);

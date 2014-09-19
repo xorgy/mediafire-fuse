@@ -24,10 +24,10 @@
 #include "../mfapi/folder.h"
 #include "../mfapi/mfconn.h"
 
-typedef struct _cmd_s       _cmd_t;
-typedef struct _mfshell_s   mfshell_t;
+typedef struct cmd_t       cmd_t;
+typedef struct mfshell_t   mfshell_t;
 
-struct _cmd_s
+struct cmd_t
 {
     char *name;
     char *argstring;
@@ -35,7 +35,7 @@ struct _cmd_s
     int  (*handler) (mfshell_t *mfshell, int argc, char **argv);
 };
 
-struct _mfshell_s
+struct mfshell_t
 {
     int         app_id;
     char        *app_key;
@@ -48,14 +48,10 @@ struct _mfshell_s
     char        *local_working_dir;
 
     /* shell commands */
-    _cmd_t      *commands;
+    cmd_t      *commands;
 
     mfconn_t    *mfconn;
 };
-
-typedef struct  _mfshell_s      mfshell_t;
-typedef struct  _folder_s       folder_t;
-typedef struct  _cmd_s          cmd_t;
 
 mfshell_t*  mfshell_create(int app_id,char *app_key,char *server);
 

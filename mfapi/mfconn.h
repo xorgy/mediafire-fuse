@@ -23,9 +23,7 @@
 
 #include "file.h"
 
-typedef struct _mfconn_s mfconn_t;
-
-struct _mfconn_s;
+typedef struct mfconn_t mfconn_t;
 
 mfconn_t* mfconn_create(char *server, char *username, char *password, int app_id, char *app_key);
 

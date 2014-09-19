@@ -19,6 +19,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <curl/curl.h>
+#include <curl/easy.h>
 #include <stdbool.h>
 
 #include "http.h"
@@ -28,7 +29,7 @@ static size_t http_read_buf_cb(char *data, size_t size, size_t nmemb, void *user
 static size_t http_write_buf_cb(char *data, size_t size, size_t nmemb, void *user_ptr);
 static size_t http_write_file_cb(char *data, size_t size, size_t nmemb, void *user_ptr);
 
-struct _http_s
+struct http_t
 {
     CURL       *curl_handle;
     char       *write_buf;

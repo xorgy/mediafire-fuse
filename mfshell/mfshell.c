@@ -37,7 +37,7 @@
 #include "mfshell.h"
 #include "commands.h"
 
-struct _cmd_s commands[] = {
+struct cmd_t commands[] = {
     {"help",   "",              "show this help", mfshell_cmd_help},
     {"debug",  "",              "show debug information", mfshell_cmd_debug},
     {"host",   "<server>",      "change target server", mfshell_cmd_host},
@@ -95,7 +95,7 @@ mfshell_create(int app_id,char *app_key,char *server)
 int
 mfshell_exec(mfshell_t *mfshell, int argc, char **argv)
 {
-    _cmd_t* curr_cmd;
+    cmd_t* curr_cmd;
     for (curr_cmd = mfshell->commands; curr_cmd->name != NULL; curr_cmd++) {
         if (strcmp(argv[0], curr_cmd->name) == 0) {
             return curr_cmd->handler(mfshell, argc, argv);

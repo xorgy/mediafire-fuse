@@ -21,9 +21,7 @@
 
 #include <jansson.h>
 
-typedef struct _http_s http_t;
-
-struct _http_s;
+typedef struct http_t http_t;
 
 http_t* http_create(void);
 void http_destroy(http_t* conn);

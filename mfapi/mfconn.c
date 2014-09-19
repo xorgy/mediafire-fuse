@@ -28,9 +28,7 @@
 #include "mfconn.h"
 #include "apicalls.h"
 
-typedef struct _mfconn_s mfconn_t;
-
-struct _mfconn_s
+struct mfconn_t
 {
     char        *server;
     uint32_t    secret_key;
