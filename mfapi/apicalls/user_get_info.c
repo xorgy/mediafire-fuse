@@ -63,6 +63,9 @@ _decode_user_get_info(http_t *conn, void *data)
     json_t          *first_name;
     json_t          *last_name;
 
+    if (data != NULL)
+        return -1;
+
     root = http_parse_buf_json(conn, 0, &error);
 
     node = json_object_by_path(root,"response/user_info");

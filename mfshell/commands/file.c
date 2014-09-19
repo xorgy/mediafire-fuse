@@ -52,6 +52,9 @@ mfshell_cmd_file(mfshell_t *mfshell, int argc, char **argv)
     file = file_alloc();
 
     retval = mfconn_api_file_get_info(mfshell->mfconn,file,(char*)quickkey);
+    if (retval != 0) {
+        fprintf(stderr, "api call unsuccessful\n");
+    }
     mfconn_update_secret_key(mfshell->mfconn);
 
     quickkey = file_get_key(file);

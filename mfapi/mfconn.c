@@ -87,7 +87,7 @@ mfconn_create_user_signature(mfconn_t *mfconn, char *username, char *password,
 {
     char            *signature_raw;
     unsigned char   signature_enc[20];      // sha1 is 160 bits
-    unsigned char   signature_hex[41];
+    char            signature_hex[41];
     int             i;
 
     if(mfconn == NULL) return NULL;
@@ -114,7 +114,7 @@ mfconn_create_call_signature(mfconn_t *mfconn,char *url,char *args)
 {
     char            *signature_raw;
     unsigned char   signature_enc[16];      // md5 is 128 bits
-    unsigned char   signature_hex[33];
+    char            signature_hex[33];
     char            *api;
     int             i;
 
@@ -156,7 +156,6 @@ mfconn_create_signed_get(mfconn_t *mfconn,int ssl,char *api,char *fmt,...)
     char        *call_hash;
     char        *session_token;
     int         bytes_to_alloc;
-    int         api_request_len;
     int         api_args_len;
     int         api_len;
     va_list     ap;

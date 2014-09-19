@@ -35,7 +35,7 @@ mfshell_run(mfshell_t *mfshell);
 static void
 mfshell_parse_commands(mfshell_t *mfshell, char *command);
 
-void print_help(mfshell_t *mfshell, char *cmd)
+void print_help(char *cmd)
 {
     fprintf(stderr, "A shell to access a MediaFire account.\n");
     fprintf(stderr, "\n");
@@ -62,7 +62,7 @@ void print_help(mfshell_t *mfshell, char *cmd)
     fprintf(stderr, "\n");
 }
 
-void parse_argv(mfshell_t *mfshell, int argc, char **argv, char **username,
+void parse_argv(int argc, char **argv, char **username,
         char **password, char **server, char **command)
 {
     static struct option long_options[] = {
@@ -94,7 +94,7 @@ void parse_argv(mfshell_t *mfshell, int argc, char **argv, char **username,
                 *server = strdup(optarg);
                 break;
             case 'h':
-                print_help(mfshell, argv[0]);
+                print_help(argv[0]);
                 exit(0);
             case 'v':
                 exit(0);
@@ -125,12 +125,10 @@ int main(int argc,char **argv)
     char                *username = NULL;
     char                *password = NULL;
     char                *command = NULL;
-    size_t              len;
-    int                 retval;
 
     SSL_library_init();
 
-    parse_argv(mfshell, argc, argv, &username, &password, &server, &command);
+    parse_argv(argc, argv, &username, &password, &server, &command);
 
     mfshell = mfshell_create(35860,
         "2c6dq0gb2sr8rgsue5a347lzpjnaay46yjazjcjg",server);
@@ -156,6 +154,15 @@ mfshell_parse_commands(mfshell_t *mfshell, char *command)
     while ((next = strsep(&command, ";")) != NULL) {
         // FIXME: handle non-zero return value of wordexp
         ret = wordexp(next, &p, WRDE_SHOWERR | WRDE_UNDEF);
+        if (ret != 0) {
+            switch (ret) {
+                case WRDE_BADCHAR: fprintf(stderr, "wordexp: WRDE_BADCHAR\n"); break;
+                case WRDE_BADVAL: fprintf(stderr, "wordexp: WRDE_BADVAL\n"); break;
+                case WRDE_CMDSUB: fprintf(stderr, "wordexp: WRDE_CMDSUB\n"); break;
+                case WRDE_NOSPACE: fprintf(stderr, "wordexp: WRDE_NOSPACE\n"); break;
+                case WRDE_SYNTAX: fprintf(stderr, "wordexp: WRDE_SYNTAX\n"); break;
+            }
+        }
         if (p.we_wordc < 1) {
             fprintf(stderr, "Need more than zero arguments\n");
             exit(1);

@@ -29,6 +29,7 @@
 int
 mfshell_cmd_pwd(mfshell_t *mfshell, int argc, char **argv)
 {
+    (void)argv;
     const char  *folder_name;
     char        *folder_name_tmp = NULL;
 

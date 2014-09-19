@@ -29,6 +29,7 @@
 int
 mfshell_cmd_whoami(mfshell_t *mfshell, int argc, char **argv)
 {
+    (void)argv;
     int retval;
 
     if (argc != 1) {

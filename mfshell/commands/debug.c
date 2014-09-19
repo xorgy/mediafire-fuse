@@ -30,6 +30,7 @@
 int
 mfshell_cmd_debug(mfshell_t *mfshell, int argc, char **argv)
 {
+    (void)argv;
     if (argc != 1) {
         fprintf(stderr, "Invalid number of arguments\n");
         return -1;

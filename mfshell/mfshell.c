@@ -101,6 +101,7 @@ mfshell_exec(mfshell_t *mfshell, int argc, char **argv)
             return curr_cmd->handler(mfshell, argc, argv);
         }
     }
+    return -1;
 }
 
 int
@@ -114,6 +115,15 @@ mfshell_exec_shell_command(mfshell_t *mfshell,char *command)
 
     // FIXME: handle non-zero return value of wordexp
     retval = wordexp(command, &p, WRDE_SHOWERR | WRDE_UNDEF);
+    if (retval != 0) {
+        switch (retval) {
+            case WRDE_BADCHAR: fprintf(stderr, "wordexp: WRDE_BADCHAR\n"); break;
+            case WRDE_BADVAL: fprintf(stderr, "wordexp: WRDE_BADVAL\n"); break;
+            case WRDE_CMDSUB: fprintf(stderr, "wordexp: WRDE_CMDSUB\n"); break;
+            case WRDE_NOSPACE: fprintf(stderr, "wordexp: WRDE_NOSPACE\n"); break;
+            case WRDE_SYNTAX: fprintf(stderr, "wordexp: WRDE_SYNTAX\n"); break;
+        }
+    }
 
     if (p.we_wordc < 1)
         return 0;

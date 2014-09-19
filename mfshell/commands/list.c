@@ -29,6 +29,7 @@
 int
 mfshell_cmd_list(mfshell_t *mfshell, int argc, char **argv)
 {
+    (void)argv;
     int         retval;
     const char  *folder_curr;
 

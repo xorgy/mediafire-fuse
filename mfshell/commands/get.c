@@ -80,9 +80,9 @@ mfshell_cmd_get(mfshell_t *mfshell, int argc, char **argv)
         getcwd(mfshell->local_working_dir,PATH_MAX);
     }
 
-    retval = file_download_direct(file, mfshell->local_working_dir);
+    bytes_read = file_download_direct(file, mfshell->local_working_dir);
 
-    if(retval != -1)
+    if(bytes_read != -1)
         printf("\r   Downloaded %zd bytes OK!\n\r",bytes_read);
     else
         printf("\r\n   Download FAILED!\n\r");

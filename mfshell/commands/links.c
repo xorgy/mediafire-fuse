@@ -53,6 +53,9 @@ mfshell_cmd_links(mfshell_t *mfshell, int argc, char **argv)
     file = file_alloc();
 
     retval = mfconn_api_file_get_links(mfshell->mfconn,file,(char*)quickkey);
+    if (retval != 0) {
+        fprintf(stderr, "api call unsuccessful\n");
+    }
     mfconn_update_secret_key(mfshell->mfconn);
 
     share_link = file_get_share_link(file);

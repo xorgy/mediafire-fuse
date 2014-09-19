@@ -36,7 +36,6 @@ _get_passwd_from_user(void);
 int
 mfshell_cmd_auth(mfshell_t *mfshell, int argc, char **argv)
 {
-    int retval;
     char *username;
     char *password;
 

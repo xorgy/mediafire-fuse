@@ -28,6 +28,12 @@
 int
 mfshell_cmd_help(mfshell_t *mfshell, int argc, char **argv)
 {
+    (void)argv;
+    if (argc != 1) {
+        fprintf(stderr, "Invalid number of arguments\n");
+        return -1;
+    }
+
     printf(
         "  arguments:\n\r"
         "           <optional>\n\r"
@@ -35,8 +41,8 @@ mfshell_cmd_help(mfshell_t *mfshell, int argc, char **argv)
 
     printf("\n\r");
 
-    int column1_width = 0;
-    int column2_width = 0;
+    unsigned int column1_width = 0;
+    unsigned int column2_width = 0;
 
     _cmd_t* curr_cmd;
     for (curr_cmd = mfshell->commands; curr_cmd->name != NULL; curr_cmd++) {

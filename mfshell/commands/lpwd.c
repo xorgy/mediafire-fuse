@@ -29,6 +29,7 @@
 int
 mfshell_cmd_lpwd(mfshell_t *mfshell, int argc, char **argv)
 {
+    (void)argv;
     if(mfshell == NULL) return -1;
 
     if (argc != 1) {

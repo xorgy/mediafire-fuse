@@ -43,7 +43,6 @@ mfconn_api_folder_get_content(mfconn_t *mfconn, int mode, folder_t *folder_curr)
 {
     char        *api_call;
     int         retval;
-    char        *rx_buffer;
     char        *content_type;
 
     if(mfconn == NULL) return -1;
@@ -95,6 +94,9 @@ _decode_folder_get_content_folders(http_t *conn, void *user_ptr)
 
     int             array_sz;
     int             i = 0;
+
+    if (user_ptr != NULL)
+        return -1;
 
     root = http_parse_buf_json(conn, 0, &error);
 
@@ -153,6 +155,9 @@ _decode_folder_get_content_files(http_t *conn, void *user_ptr)
     json_t          *file_name;
     int             array_sz;
     int             i = 0;
+
+    if (user_ptr != NULL)
+        return -1;
 
     root = http_parse_buf_json(conn, 0, &error);
 

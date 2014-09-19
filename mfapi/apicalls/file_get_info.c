@@ -70,7 +70,6 @@ _decode_file_get_info(http_t *conn, void *data)
     json_t          *quickkey;
     json_t          *file_hash;
     json_t          *file_name;
-    json_t          *file_folder;
     int             retval = 0;
     file_t         *file;
 

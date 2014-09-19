@@ -75,7 +75,7 @@ strdup_join(char *string1,char *string2)
 
 
 char*
-strdup_subst(char *string,char *token,char *subst,int max)
+strdup_subst(char *string,char *token,char *subst, unsigned int max)
 {
     size_t      string_len = 0;
     size_t      subst_len = 0;

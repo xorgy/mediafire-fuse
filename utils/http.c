@@ -133,15 +133,14 @@ http_get_buf(http_t *conn, const char *url, int (*data_handler)(http_t *conn, vo
 static size_t
 http_read_buf_cb(char *data, size_t size, size_t nmemb, void *user_ptr)
 {
-    http_t *conn;
     size_t data_len;
 
     if (user_ptr == NULL) return 0;
 
-    conn = (http_t*)user_ptr;
     data_len = size*nmemb;
 
     if (data_len > 0) {
+        fwrite(data, size, nmemb, stderr);
         fprintf(stderr, "Not implemented");
         exit(1);
     }
@@ -225,9 +224,11 @@ http_write_file_cb(char *data, size_t size, size_t nmemb, void *user_ptr)
     fwrite(data, size, nmemb, conn->stream);
 
     fprintf(stderr, "\r   %.0f / %.0f", conn->dl_now, conn->dl_len);
+
+    return size*nmemb;
 }
 
-int
+/*int
 http_post_file(http_t *conn, const char *url, const char *post_args, FILE *fd)
 {
-}
+}*/

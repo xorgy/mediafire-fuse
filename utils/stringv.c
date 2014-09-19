@@ -133,7 +133,7 @@ stringv_split(char *string,char *token,int limit)
     char    *curr = NULL;
     char    *next = NULL;
     int     count = 0;
-    int     len;
+    unsigned int len;
     size_t  copy_len = 0;
 
     if(string == NULL) return (char**)NULL;
