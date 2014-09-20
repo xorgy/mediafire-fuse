@@ -1,9 +1,9 @@
 #!/bin/sh
 
 ret=0
-for f in ../**/*.c ../**/*.h; do
+find .. -name "*.c" -o -name "*.h" | while read f; do
 	case $f in
-		../**/CMakeFiles/**/*)
+		../*/CMakeFiles/*)
 			;;
 		*)
 			INDENT_PROFILE=../.indent.pro indent -st $f | diff -u $f -
