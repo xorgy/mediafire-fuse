@@ -17,16 +17,16 @@
  *
  */
 
-#include <stdio.h>
-
-#include <curl/curl.h>
-#include <openssl/ssl.h>
-#include <openssl/sha.h>
 #include <openssl/md5.h>
+#include <openssl/sha.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "../utils/strings.h"
-#include "mfconn.h"
 #include "apicalls.h"
+#include "mfconn.h"
 
 struct mfconn
 {

@@ -18,18 +18,17 @@
  */
 
 
-#include <stdio.h>
-#include <string.h>
-#include <inttypes.h>
-
-#include <curl/curl.h>
 #include <jansson.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-#include "../apicalls.h"
-#include "../mfconn.h"
 #include "../../utils/http.h"
-#include "../../utils/strings.h"
 #include "../../utils/json.h"
+#include "../../utils/strings.h"
+#include "../mfconn.h"
+#include "../apicalls.h" // IWYU pragma: keep
 
 static int
 _decode_get_session_token(mfhttp *conn, void *data);

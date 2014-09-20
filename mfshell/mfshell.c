@@ -19,23 +19,13 @@
 
 
 #include <stdio.h>
-#include <string.h>
-#include <inttypes.h>
 #include <stdlib.h>
-#include <termios.h>
-#include <unistd.h>
+#include <string.h>
 #include <wordexp.h>
 
-#include <sys/ioctl.h>
-
-#include "mfshell.h"
-#include "../utils/stringv.h"
-
-
-#include <curl/curl.h>
-
-#include "mfshell.h"
 #include "commands.h"
+#include "mfshell.h"
+#include "../mfapi/folder.h"
 
 struct mfcmd commands[] = {
     {"help",   "",              "show this help", mfshell_cmd_help},

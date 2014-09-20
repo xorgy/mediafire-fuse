@@ -20,8 +20,6 @@
 #ifndef _STR_TOOLS_H_
 #define _STR_TOOLS_H_
 
-#include <stdint.h>
-
 char*       strdup_printf(char* fmt, ...);
 
 char*       strdup_join(char *string1,char *string2);

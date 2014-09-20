@@ -19,12 +19,12 @@
 
 
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
 
-#include "../commands.h"
-#include "../mfshell.h"
 #include "../../utils/strings.h"
+#include "../mfshell.h"
+#include "../../mfapi/folder.h"
+#include "../commands.h" // IWYU pragma: keep
 
 int
 mfshell_cmd_pwd(mfshell *mfshell, int argc, char **argv)

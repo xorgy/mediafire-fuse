@@ -17,17 +17,15 @@
  *
  */
 
+#include <getopt.h>
+#include <openssl/ssl.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <termios.h>
-#include <unistd.h>
-#include <getopt.h>
+#include <string.h>
 #include <wordexp.h>
 
-#include <openssl/ssl.h>
-
 #include "mfshell.h"
-#include "../utils/strings.h"
 
 static void
 mfshell_run(mfshell *mfshell);

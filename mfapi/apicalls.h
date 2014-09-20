@@ -18,8 +18,8 @@
  */
 
 
-#ifndef _MFSHELL_MFAPI_H_
-#define _MFSHELL_FILE_INFO_H_
+#ifndef _MFAPI_APICALLS_H_
+#define _MFAPI_APICALLS_H_
 
 #include <stdint.h>
 

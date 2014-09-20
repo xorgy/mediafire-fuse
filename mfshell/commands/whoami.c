@@ -19,12 +19,11 @@
 
 
 #include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
 
-#include "../commands.h"
-#include "../mfshell.h"
 #include "../../mfapi/apicalls.h"
+#include "../mfshell.h"
+#include "../../mfapi/mfconn.h"
+#include "../commands.h" // IWYU pragma: keep
 
 int
 mfshell_cmd_whoami(mfshell *mfshell, int argc, char **argv)

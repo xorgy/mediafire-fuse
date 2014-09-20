@@ -20,7 +20,7 @@
 #ifndef _STRING_V_H_
 #define _STRING_V_H_
 
-#include <stdint.h>
+#include <stddef.h>
 
 #define     STRINGV_FREE_ALL    1
 

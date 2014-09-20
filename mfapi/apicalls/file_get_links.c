@@ -18,18 +18,15 @@
  */
 
 
+#include <jansson.h>
 #include <stdio.h>
 #include <string.h>
-#include <inttypes.h>
 
-#include <curl/curl.h>
-#include <jansson.h>
-
-#include "../apicalls.h"
-#include "../mfconn.h"
-#include "../../utils/strings.h"
-#include "../../utils/json.h"
 #include "../../utils/http.h"
+#include "../../utils/json.h"
+#include "../mfconn.h"
+#include "../file.h"
+#include "../apicalls.h" // IWYU pragma: keep
 
 static int
 _decode_file_get_links(mfhttp *conn, void *data);

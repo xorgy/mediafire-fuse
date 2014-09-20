@@ -18,13 +18,19 @@
  */
 
 
+#include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
-#include <inttypes.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <string.h>
 
+#include "../utils/http.h"
+#include "../utils/strings.h"
 #include "file.h"
 
-struct _file_s
+
+struct mffile
 {
     char        quickkey[18];
     char        hash[65];
@@ -205,21 +211,6 @@ file_get_onetime_link(mffile *file)
 
     return file->onetime_link;
 }
-
-#include <stdio.h>
-#include <string.h>
-#include <inttypes.h>
-#include <stdlib.h>
-#include <unistd.h>
-
-#include <sys/types.h>
-#include <sys/stat.h>
-
-#include <curl/curl.h>
-
-#include "mfconn.h"
-#include "../utils/http.h"
-#include "../utils/strings.h"
 
 ssize_t
 file_download_direct(mffile *file, char *local_dir)

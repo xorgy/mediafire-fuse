@@ -20,14 +20,10 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <inttypes.h>
 
-#include <curl/curl.h>
-
-#include "../apicalls.h"
-#include "../mfconn.h"
 #include "../../utils/http.h"
-#include "../../utils/strings.h"
+#include "../mfconn.h"
+#include "../apicalls.h" // IWYU pragma: keep
 
 int
 mfconn_api_folder_create(mfconn *conn,char *parent,char *name)

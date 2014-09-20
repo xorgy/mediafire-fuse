@@ -20,10 +20,9 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <stdlib.h>
 
 #include "../mfshell.h"
-#include "../commands.h"
+#include "../commands.h" // IWYU pragma: keep
 
 int
 mfshell_cmd_help(mfshell *mfshell, int argc, char **argv)

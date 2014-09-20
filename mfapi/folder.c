@@ -18,13 +18,13 @@
  */
 
 
+#include <stdint.h>
 #include <stdlib.h>
-#include <inttypes.h>
 #include <string.h>
 
 #include "folder.h"
 
-struct _folder_s
+struct mffolder
 {
     char        folderkey[20];
     char        name[41];

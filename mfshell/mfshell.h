@@ -24,6 +24,9 @@
 #include "../mfapi/folder.h"
 #include "../mfapi/mfconn.h"
 
+struct mfcmd;
+struct mfshell;
+
 typedef struct mfcmd     mfcmd;
 typedef struct mfshell   mfshell;
 

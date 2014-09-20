@@ -18,14 +18,13 @@
  */
 
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-
 #include <inttypes.h>
+#include <stdint.h>
+#include <stdio.h>
 
 #include "../mfshell.h"
-#include "../commands.h"
+#include "../../mfapi/mfconn.h"
+#include "../commands.h" // IWYU pragma: keep
 
 int
 mfshell_cmd_debug(mfshell *mfshell, int argc, char **argv)

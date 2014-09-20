@@ -18,13 +18,13 @@
  */
 
 
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <limits.h>
 
 #include "../mfshell.h"
-#include "../commands.h"
+#include "../commands.h" // IWYU pragma: keep
 
 int
 mfshell_cmd_lpwd(mfshell *mfshell, int argc, char **argv)

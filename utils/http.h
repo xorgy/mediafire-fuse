@@ -20,6 +20,8 @@
 #define _MFSHELL_HTTP_H_
 
 #include <jansson.h>
+#include <stddef.h>
+#include <stdio.h>
 
 typedef struct mfhttp mfhttp;
 

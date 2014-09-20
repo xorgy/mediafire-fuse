@@ -20,9 +20,9 @@
 #ifndef __MFAPI_FILE_H__
 #define __MFAPI_FILE_H__
 
-typedef struct  _file_s         mffile;
+#include <sys/types.h>
 
-struct _file_s;
+typedef struct mffile mffile;
 
 mffile*     file_alloc(void);
 

@@ -18,14 +18,16 @@
  */
 
 
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <termios.h>
+#include <unistd.h>
 
 #include "../mfshell.h"
-#include "../commands.h"
+#include "../../mfapi/mfconn.h"
+#include "../commands.h" // IWYU pragma: keep
 
 static char*
 _get_login_from_user(void);

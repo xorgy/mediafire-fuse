@@ -21,9 +21,11 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "../mfshell.h"
-#include "../commands.h"
 #include "../../mfapi/apicalls.h"
+#include "../mfshell.h"
+#include "../../mfapi/file.h"
+#include "../../mfapi/mfconn.h"
+#include "../commands.h" // IWYU pragma: keep
 
 int
 mfshell_cmd_links(mfshell *mfshell, int argc, char **argv)

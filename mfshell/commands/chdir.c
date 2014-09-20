@@ -20,11 +20,12 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <stdlib.h>
 
-#include "../mfshell.h"
-#include "../commands.h"
 #include "../../mfapi/apicalls.h"
+#include "../mfshell.h"
+#include "../../mfapi/folder.h"
+#include "../../mfapi/mfconn.h"
+#include "../commands.h" // IWYU pragma: keep
 
 int
 mfshell_cmd_chdir(mfshell *mfshell, int argc, char **argv)

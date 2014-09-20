@@ -20,9 +20,7 @@
 #ifndef __MFAPI_FOLDER_H__
 #define __MFAPI_FOLDER_H__
 
-typedef struct _folder_s    mffolder;
-
-struct _folder_s;
+typedef struct mffolder mffolder;
 
 mffolder*   folder_alloc(void);
 
