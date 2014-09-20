@@ -142,3 +142,13 @@ int mfshell_exec_shell_command(mfshell * shell, char *command)
 
     return 0;
 }
+
+void mfshell_destroy(mfshell * shell)
+{
+    free(shell->app_key);
+    free(shell->server);
+    free(shell->local_working_dir);
+    folder_free(shell->folder_curr);
+    mfconn_destroy(shell->conn);
+    free(shell);
+}

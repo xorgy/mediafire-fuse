@@ -75,6 +75,8 @@ mfconn_api_folder_get_content(mfconn * conn, int mode, mffolder * folder_curr)
                          _decode_folder_get_content_files, NULL);
     http_destroy(http);
 
+    free(api_call);
+
     return retval;
 }
 

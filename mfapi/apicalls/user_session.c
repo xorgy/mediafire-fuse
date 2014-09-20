@@ -69,6 +69,7 @@ mfconn_api_user_get_session_token(mfconn * conn, char *server,
                               "&token_version=2"
                               "&response_format=json",
                               username, password, user_signature);
+    free(user_signature);
 
     http = http_create();
     retval =

@@ -61,4 +61,6 @@ int             mfshell_exec(mfshell * mfshell, int argc, char **argv);
 
 int             mfshell_exec_shell_command(mfshell * mfshell, char *command);
 
+void            mfshell_destroy(mfshell * shell);
+
 #endif

@@ -18,6 +18,7 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "../../utils/http.h"
@@ -62,6 +63,8 @@ int mfconn_api_folder_create(mfconn * conn, char *parent, char *name)
     http = http_create();
     retval = http_get_buf(http, api_call, NULL, NULL);
     http_destroy(http);
+
+    free(api_call);
 
     return retval;
 }

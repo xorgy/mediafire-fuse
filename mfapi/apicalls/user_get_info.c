@@ -19,6 +19,7 @@
 
 #include <jansson.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "../../utils/http.h"
 #include "../../utils/json.h"
@@ -44,6 +45,8 @@ int mfconn_api_user_get_info(mfconn * conn)
     http = http_create();
     retval = http_get_buf(http, api_call, _decode_user_get_info, NULL);
     http_destroy(http);
+
+    free(api_call);
 
     return retval;
 }

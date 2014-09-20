@@ -1,0 +1,68 @@
+{
+   glibc #1
+   Memcheck:Value8
+   ...
+   fun:dl_main
+   fun:_dl_sysdep_start
+   fun:_dl_start
+   obj:*/ld-2.*.so
+   ...
+}
+{
+   glibc #2
+   Memcheck:Cond
+   ...
+   fun:dl_main
+   fun:_dl_sysdep_start
+   fun:_dl_start
+   obj:*/ld-2.*.so
+   ...
+}
+{
+   glibc #3
+   Memcheck:Param
+   sendmsg(mmsg[0].msg_hdr)
+   fun:sendmmsg
+   fun:__libc_res_nsend
+   fun:__libc_res_nquery
+   fun:__libc_res_nquerydomain
+   fun:__libc_res_nsearch
+   fun:_nss_dns_gethostbyname4_r
+   fun:gaih_inet
+   fun:getaddrinfo
+   ...
+   fun:start_thread
+   fun:clone
+}
+{
+   Since we can never safely uninitialize SSL, allow this
+   Memcheck:Leak
+   ...
+   fun:SSL_library_init
+   fun:main
+}
+{
+   gnutls #1
+   Memcheck:Leak
+   ...
+   fun:gnutls_global_init
+   obj:*
+   fun:call_init.part.0
+   fun:_dl_init
+   ...
+}
+{
+   gnutls #2
+   Memcheck:Cond
+   fun:gnutls_session_get_data
+   ...
+   fun:curl_multi_perform
+   fun:curl_easy_perform
+   fun:http_post_buf
+   fun:mfconn_api_user_get_session_token
+   fun:mfconn_create
+   fun:mfshell_cmd_auth
+   fun:mfshell_exec
+   fun:mfshell_parse_commands
+   fun:main
+}

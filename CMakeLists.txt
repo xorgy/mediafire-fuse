@@ -18,5 +18,6 @@ target_link_libraries(mfshell curl ssl crypto jansson mfapi mfutils)
 
 enable_testing()
 
-add_test(iwyu ../tests/iwyu.py)
-add_test(indent ../tests/indent.sh)
+add_test(iwyu ${CMAKE_SOURCE_DIR}/tests/iwyu.py ${CMAKE_BINARY_DIR})
+add_test(indent ${CMAKE_SOURCE_DIR}/tests/indent.sh ${CMAKE_SOURCE_DIR})
+add_test(valgrind ${CMAKE_SOURCE_DIR}/tests/valgrind.sh ${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR})

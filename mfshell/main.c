@@ -27,9 +27,9 @@
 
 #include "mfshell.h"
 
-static void     mfshell_run(mfshell * mfshell);
+static void     mfshell_run(mfshell * shell);
 
-static void     mfshell_parse_commands(mfshell * mfshell, char *command);
+static void     mfshell_parse_commands(mfshell * shell, char *command);
 
 void print_help(char *cmd)
 {
@@ -119,7 +119,7 @@ parse_argv(int argc, char **argv, char **username,
 
 int main(int argc, char **argv)
 {
-    mfshell        *mfshell;
+    mfshell        *shell;
     char           *server = "www.mediafire.com";
     char           *username = NULL;
     char           *password = NULL;
@@ -129,22 +129,32 @@ int main(int argc, char **argv)
 
     parse_argv(argc, argv, &username, &password, &server, &command);
 
-    mfshell = mfshell_create(35860,
-                             "2c6dq0gb2sr8rgsue5a347lzpjnaay46yjazjcjg",
-                             server);
+    shell = mfshell_create(35860, "2c6dq0gb2sr8rgsue5a347lzpjnaay46yjazjcjg",
+                           server);
 
     if (command == NULL) {
         // begin shell mode
-        mfshell_run(mfshell);
+        mfshell_run(shell);
     } else {
         // interpret command
-        mfshell_parse_commands(mfshell, command);
+        mfshell_parse_commands(shell, command);
     }
+
+    mfshell_destroy(shell);
+
+    if (server != NULL && strcmp("www.mediafire.com", server) != 0)
+        free(server);
+    if (username != NULL)
+        free(username);
+    if (password != NULL)
+        free(password);
+    if (command != NULL)
+        free(command);
 
     return 0;
 }
 
-static void mfshell_parse_commands(mfshell * mfshell, char *command)
+static void mfshell_parse_commands(mfshell * shell, char *command)
 {
     char           *next;
     int             ret;
@@ -177,12 +187,12 @@ static void mfshell_parse_commands(mfshell * mfshell, char *command)
             fprintf(stderr, "Need more than zero arguments\n");
             exit(1);
         }
-        mfshell_exec(mfshell, p.we_wordc, p.we_wordv);
+        mfshell_exec(shell, p.we_wordc, p.we_wordv);
         wordfree(&p);
     }
 }
 
-static void mfshell_run(mfshell * mfshell)
+static void mfshell_run(mfshell * shell)
 {
     char           *cmd = NULL;
     size_t          len;
@@ -212,7 +222,7 @@ static void mfshell_run(mfshell * mfshell)
             continue;
         }
 
-        retval = mfshell_exec_shell_command(mfshell, cmd);
+        retval = mfshell_exec_shell_command(shell, cmd);
         free(cmd);
         cmd = NULL;
     }

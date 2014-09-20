@@ -19,6 +19,7 @@
 
 #include <jansson.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "../../utils/http.h"
@@ -57,6 +58,8 @@ int mfconn_api_file_get_info(mfconn * conn, mffile * file, char *quickkey)
     http = http_create();
     retval = http_get_buf(http, api_call, _decode_file_get_info, file);
     http_destroy(http);
+
+    free(api_call);
 
     return retval;
 }

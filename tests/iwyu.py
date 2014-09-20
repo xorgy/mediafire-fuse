@@ -5,8 +5,20 @@ from __future__ import print_function
 import json
 import subprocess
 import shlex
+import sys
+import os
 
-with open("compile_commands.json", "r") as f:
+if len(sys.argv) == 1:
+    build_dir = "."
+elif len(sys.argv) == 2:
+    build_dir = sys.argv[1]
+else:
+    print("usage: %s [build_dir]"%sys.argv[0])
+    exit(1)
+
+compile_commands = os.path.join(build_dir, "compile_commands.json")
+
+with open(compile_commands, "r") as f:
     tunits = json.load(f)
 
 result = 0
