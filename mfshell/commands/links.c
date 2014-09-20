@@ -17,7 +17,6 @@
  *
  */
 
-
 #include <stdio.h>
 #include <string.h>
 
@@ -25,20 +24,20 @@
 #include "../mfshell.h"
 #include "../../mfapi/file.h"
 #include "../../mfapi/mfconn.h"
-#include "../commands.h" // IWYU pragma: keep
+#include "../commands.h"        // IWYU pragma: keep
 
-int
-mfshell_cmd_links(mfshell *mfshell, int argc, char **argv)
+int mfshell_cmd_links(mfshell * mfshell, int argc, char **argv)
 {
-    mffile      *file;
-    int         len;
-    int         retval;
-    const char *quickkey;
-    const char *share_link;
-    const char *direct_link;
-    const char *onetime_link;
+    mffile         *file;
+    int             len;
+    int             retval;
+    const char     *quickkey;
+    const char     *share_link;
+    const char     *direct_link;
+    const char     *onetime_link;
 
-    if(mfshell == NULL) return -1;
+    if (mfshell == NULL)
+        return -1;
 
     if (argc != 2) {
         fprintf(stderr, "Invalid number of arguments\n");
@@ -46,15 +45,17 @@ mfshell_cmd_links(mfshell *mfshell, int argc, char **argv)
     }
 
     quickkey = argv[1];
-    if(quickkey == NULL) return -1;
+    if (quickkey == NULL)
+        return -1;
 
     len = strlen(quickkey);
 
-    if(len != 11 && len != 15) return -1;
+    if (len != 11 && len != 15)
+        return -1;
 
     file = file_alloc();
 
-    retval = mfconn_api_file_get_links(mfshell->conn,file,(char*)quickkey);
+    retval = mfconn_api_file_get_links(mfshell->conn, file, (char *)quickkey);
     if (retval != 0) {
         fprintf(stderr, "api call unsuccessful\n");
     }
@@ -64,20 +65,16 @@ mfshell_cmd_links(mfshell *mfshell, int argc, char **argv)
     direct_link = file_get_direct_link(file);
     onetime_link = file_get_onetime_link(file);
 
-    if(share_link != NULL && share_link[0] != '\0')
-        printf("   %-15.15s   %s\n\r",
-        "sharing url:", share_link);
+    if (share_link != NULL && share_link[0] != '\0')
+        printf("   %-15.15s   %s\n\r", "sharing url:", share_link);
 
-    if(direct_link != NULL && direct_link[0] != '\0')
-        printf("   %-15.15s   %s\n\r",
-        "direct url:", direct_link);
+    if (direct_link != NULL && direct_link[0] != '\0')
+        printf("   %-15.15s   %s\n\r", "direct url:", direct_link);
 
-    if(onetime_link != NULL && onetime_link[0] != '\0')
-        printf("   %-15.15s   %s\n\r",
-        "1-time url:", onetime_link);
+    if (onetime_link != NULL && onetime_link[0] != '\0')
+        printf("   %-15.15s   %s\n\r", "1-time url:", onetime_link);
 
     file_free(file);
 
     return 0;
 }
-

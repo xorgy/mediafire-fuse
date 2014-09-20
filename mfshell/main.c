@@ -27,11 +27,9 @@
 
 #include "mfshell.h"
 
-static void
-mfshell_run(mfshell *mfshell);
+static void     mfshell_run(mfshell * mfshell);
 
-static void
-mfshell_parse_commands(mfshell *mfshell, char *command);
+static void     mfshell_parse_commands(mfshell * mfshell, char *command);
 
 void print_help(char *cmd)
 {
@@ -46,33 +44,36 @@ void print_help(char *cmd)
     fprintf(stderr, "  -p, --password=<PASS> Login password\n");
     fprintf(stderr, "  -s, --server=<SERVER> Login server\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "Username and password are optional. If not given, they\n"
-                    "have to be entered via standard input.\n");
+    fprintf(stderr,
+            "Username and password are optional. If not given, they\n"
+            "have to be entered via standard input.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "You should not pass your password as a commandline\n"
-                    "argument as other users with access to the list of\n"
-                    "running processes will then be able to see it.\n");
+            "argument as other users with access to the list of\n"
+            "running processes will then be able to see it.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "Use the \"help\" command to print a list of available\n"
-                    "commands in the interactive environment:\n");
+    fprintf(stderr,
+            "Use the \"help\" command to print a list of available\n"
+            "commands in the interactive environment:\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "     %s -c help\n", cmd);
     fprintf(stderr, "\n");
 }
 
-void parse_argv(int argc, char **argv, char **username,
-        char **password, char **server, char **command)
+void
+parse_argv(int argc, char **argv, char **username,
+           char **password, char **server, char **command)
 {
     static struct option long_options[] = {
-        {"command",  required_argument, 0, 'c'},
+        {"command", required_argument, 0, 'c'},
         {"username", required_argument, 0, 'u'},
         {"password", required_argument, 0, 'p'},
-        {"server",   required_argument, 0, 's'},
-        {"help",     no_argument,       0, 'h'},
-        {"version",  no_argument,       0, 'v'}
+        {"server", required_argument, 0, 's'},
+        {"help", no_argument, 0, 'h'},
+        {"version", no_argument, 0, 'v'}
     };
+    int             c;
 
-    int c;
     for (;;) {
         c = getopt_long(argc, argv, "c:u:p:s:hv", long_options, NULL);
         if (c == -1)
@@ -116,20 +117,21 @@ void parse_argv(int argc, char **argv, char **username,
     }
 }
 
-int main(int argc,char **argv)
+int main(int argc, char **argv)
 {
-    mfshell           *mfshell;
-    char                *server = "www.mediafire.com";
-    char                *username = NULL;
-    char                *password = NULL;
-    char                *command = NULL;
+    mfshell        *mfshell;
+    char           *server = "www.mediafire.com";
+    char           *username = NULL;
+    char           *password = NULL;
+    char           *command = NULL;
 
     SSL_library_init();
 
     parse_argv(argc, argv, &username, &password, &server, &command);
 
     mfshell = mfshell_create(35860,
-        "2c6dq0gb2sr8rgsue5a347lzpjnaay46yjazjcjg",server);
+                             "2c6dq0gb2sr8rgsue5a347lzpjnaay46yjazjcjg",
+                             server);
 
     if (command == NULL) {
         // begin shell mode
@@ -142,23 +144,33 @@ int main(int argc,char **argv)
     return 0;
 }
 
-static void
-mfshell_parse_commands(mfshell *mfshell, char *command)
+static void mfshell_parse_commands(mfshell * mfshell, char *command)
 {
-    char *next;
-    int ret;
-    wordexp_t p;
+    char           *next;
+    int             ret;
+    wordexp_t       p;
+
     // FIXME: don't split by semicolon but by unescaped/unquoted semicolon
     while ((next = strsep(&command, ";")) != NULL) {
         // FIXME: handle non-zero return value of wordexp
         ret = wordexp(next, &p, WRDE_SHOWERR | WRDE_UNDEF);
         if (ret != 0) {
             switch (ret) {
-                case WRDE_BADCHAR: fprintf(stderr, "wordexp: WRDE_BADCHAR\n"); break;
-                case WRDE_BADVAL: fprintf(stderr, "wordexp: WRDE_BADVAL\n"); break;
-                case WRDE_CMDSUB: fprintf(stderr, "wordexp: WRDE_CMDSUB\n"); break;
-                case WRDE_NOSPACE: fprintf(stderr, "wordexp: WRDE_NOSPACE\n"); break;
-                case WRDE_SYNTAX: fprintf(stderr, "wordexp: WRDE_SYNTAX\n"); break;
+                case WRDE_BADCHAR:
+                    fprintf(stderr, "wordexp: WRDE_BADCHAR\n");
+                    break;
+                case WRDE_BADVAL:
+                    fprintf(stderr, "wordexp: WRDE_BADVAL\n");
+                    break;
+                case WRDE_CMDSUB:
+                    fprintf(stderr, "wordexp: WRDE_CMDSUB\n");
+                    break;
+                case WRDE_NOSPACE:
+                    fprintf(stderr, "wordexp: WRDE_NOSPACE\n");
+                    break;
+                case WRDE_SYNTAX:
+                    fprintf(stderr, "wordexp: WRDE_SYNTAX\n");
+                    break;
             }
         }
         if (p.we_wordc < 1) {
@@ -170,45 +182,41 @@ mfshell_parse_commands(mfshell *mfshell, char *command)
     }
 }
 
-static void
-mfshell_run(mfshell *mfshell)
+static void mfshell_run(mfshell * mfshell)
 {
-    char    *cmd = NULL;
-    size_t  len;
-    int     abort = 0;
-    int     retval;
+    char           *cmd = NULL;
+    size_t          len;
+    int             abort = 0;
+    int             retval;
 
-    do
-    {
+    do {
         printf("\n\rmfshell > ");
 
-        retval = getline(&cmd,&len,stdin);
+        retval = getline(&cmd, &len, stdin);
         if (retval == -1) {
             exit(1);
         }
 
-        if (cmd[strlen(cmd)-1] == '\n')
-            cmd[strlen(cmd)-1] = '\0';
+        if (cmd[strlen(cmd) - 1] == '\n')
+            cmd[strlen(cmd) - 1] = '\0';
 
         printf("\n\r");
 
-        if(strcmp(cmd,"exit") == 0)
-        {
+        if (strcmp(cmd, "exit") == 0) {
             abort = 1;
             continue;
         }
 
-        if(strcmp(cmd,"quit") == 0)
-        {
+        if (strcmp(cmd, "quit") == 0) {
             abort = 1;
             continue;
         }
 
-        retval = mfshell_exec_shell_command(mfshell,cmd);
+        retval = mfshell_exec_shell_command(mfshell, cmd);
         free(cmd);
         cmd = NULL;
     }
-    while(abort == 0);
+    while (abort == 0);
 
     return;
 }

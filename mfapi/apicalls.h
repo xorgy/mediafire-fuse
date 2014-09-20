@@ -17,7 +17,6 @@
  *
  */
 
-
 #ifndef _MFAPI_APICALLS_H_
 #define _MFAPI_APICALLS_H_
 
@@ -27,20 +26,29 @@
 #include "folder.h"
 #include "mfconn.h"
 
-int mfconn_api_file_get_info(mfconn *conn, mffile *file, char *quickkey);
+int             mfconn_api_file_get_info(mfconn * conn, mffile * file,
+                                         char *quickkey);
 
-int mfconn_api_file_get_links(mfconn *conn, mffile *file, char *quickkey);
+int             mfconn_api_file_get_links(mfconn * conn, mffile * file,
+                                          char *quickkey);
 
-int mfconn_api_folder_create(mfconn *conn, char *parent, char *name);
+int             mfconn_api_folder_create(mfconn * conn, char *parent,
+                                         char *name);
 
-long mfconn_api_folder_get_content(mfconn *conn, int mode, mffolder *folder_curr);
+long            mfconn_api_folder_get_content(mfconn * conn, int mode,
+                                              mffolder * folder_curr);
 
-int mfconn_api_folder_get_info(mfconn *conn, mffolder *folder, char *folderkey);
+int             mfconn_api_folder_get_info(mfconn * conn, mffolder * folder,
+                                           char *folderkey);
 
-int mfconn_api_user_get_info(mfconn *conn);
+int             mfconn_api_user_get_info(mfconn * conn);
 
-int mfconn_api_user_get_session_token(mfconn *conn, char *server,
-        char *username, char *password, int app_id, char *app_key,
-        uint32_t *secret_key, char **secret_time, char **session_token);
+int             mfconn_api_user_get_session_token(mfconn * conn, char *server,
+                                                  char *username,
+                                                  char *password, int app_id,
+                                                  char *app_key,
+                                                  uint32_t * secret_key,
+                                                  char **secret_time,
+                                                  char **session_token);
 
 #endif

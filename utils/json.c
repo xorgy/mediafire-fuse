@@ -16,39 +16,40 @@
  *
  */
 
-
 #include <stdlib.h>
 
 #include "json.h"
 #include "stringv.h"
 
-json_t*
-json_object_by_path(json_t *start,const char *path)
+json_t         *json_object_by_path(json_t * start, const char *path)
 {
-    char    **path_nodes;
-    char    **curr;
-    json_t  *node = NULL;
-    json_t  *data = NULL;
+    char          **path_nodes;
+    char          **curr;
+    json_t         *node = NULL;
+    json_t         *data = NULL;
 
-    if(start == NULL) return NULL;
-    if(path == NULL) return NULL;
+    if (start == NULL)
+        return NULL;
+    if (path == NULL)
+        return NULL;
 
-    path_nodes = stringv_split((char*)path,"/",10);
+    path_nodes = stringv_split((char *)path, "/", 10);
 
-    if(path_nodes == NULL) return NULL;
+    if (path_nodes == NULL)
+        return NULL;
     curr = path_nodes;
     node = start;
 
-    while(curr != NULL)
-    {
-        if(*curr == NULL) break;
+    while (curr != NULL) {
+        if (*curr == NULL)
+            break;
 
-        node = json_object_get(node,*curr);
-        if(node == NULL) break;
+        node = json_object_get(node, *curr);
+        if (node == NULL)
+            break;
 
-        if(!json_is_object(node))
-        {
-            stringv_free(path_nodes,STRINGV_FREE_ALL);
+        if (!json_is_object(node)) {
+            stringv_free(path_nodes, STRINGV_FREE_ALL);
             return NULL;
         }
 
@@ -56,7 +57,7 @@ json_object_by_path(json_t *start,const char *path)
         data = node;
     }
 
-    stringv_free(path_nodes,STRINGV_FREE_ALL);
+    stringv_free(path_nodes, STRINGV_FREE_ALL);
 
     return data;
 }
@@ -101,5 +102,3 @@ json_object_by_path(json_t *start,const char *path)
         return NULL;
     }
 */
-
-

@@ -17,7 +17,6 @@
  *
  */
 
-
 #include <jansson.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -28,49 +27,53 @@
 #include "../../utils/json.h"
 #include "../../utils/strings.h"
 #include "../mfconn.h"
-#include "../apicalls.h" // IWYU pragma: keep
+#include "../apicalls.h"        // IWYU pragma: keep
 
-static int
-_decode_get_session_token(mfhttp *conn, void *data);
+static int      _decode_get_session_token(mfhttp * conn, void *data);
 
-struct user_get_session_token_response
-{
-    uint32_t    secret_key;
-    char        *secret_time;
-    char        *session_token;
+struct user_get_session_token_response {
+    uint32_t        secret_key;
+    char           *secret_time;
+    char           *session_token;
 };
 
 int
-mfconn_api_user_get_session_token(mfconn *conn, char *server,
-        char *username, char *password, int app_id, char *app_key,
-        uint32_t *secret_key, char **secret_time, char **session_token)
+mfconn_api_user_get_session_token(mfconn * conn, char *server,
+                                  char *username, char *password,
+                                  int app_id, char *app_key,
+                                  uint32_t * secret_key,
+                                  char **secret_time, char **session_token)
 {
-    char        *login_url;
-    char        *post_args;
-    char        *user_signature;
-    int         retval;
+    char           *login_url;
+    char           *post_args;
+    char           *user_signature;
+    int             retval;
     struct user_get_session_token_response response;
+    mfhttp         *http;
 
-    if(conn == NULL) return -1;
+    if (conn == NULL)
+        return -1;
 
     // configure url for operation
     login_url = strdup_printf("https://%s/api/user/get_session_token.php",
-        server);
+                              server);
 
     // create user signature
-    user_signature = mfconn_create_user_signature(conn, username, password, app_id, app_key);
+    user_signature =
+        mfconn_create_user_signature(conn, username, password, app_id, app_key);
 
-    post_args = strdup_printf(
-        "email=%s"
-        "&password=%s"
-        "&application_id=35860"
-        "&signature=%s"
-        "&token_version=2"
-        "&response_format=json",
-        username, password, user_signature);
+    post_args = strdup_printf("email=%s"
+                              "&password=%s"
+                              "&application_id=35860"
+                              "&signature=%s"
+                              "&token_version=2"
+                              "&response_format=json",
+                              username, password, user_signature);
 
-    mfhttp *http = http_create();
-    retval = http_post_buf(http, login_url, post_args, _decode_get_session_token, (void *)(&response));
+    http = http_create();
+    retval =
+        http_post_buf(http, login_url, post_args,
+                      _decode_get_session_token, (void *)(&response));
     http_destroy(http);
 
     free(login_url);
@@ -83,48 +86,49 @@ mfconn_api_user_get_session_token(mfconn *conn, char *server,
     return retval;
 }
 
-static int
-_decode_get_session_token(mfhttp *conn, void *user_ptr)
+static int _decode_get_session_token(mfhttp * conn, void *user_ptr)
 {
     json_error_t    error;
-    json_t          *root = NULL;
-    json_t          *data;
-    json_t          *session_token;
-    json_t          *secret_key;
-    json_t          *secret_time;
+    json_t         *root = NULL;
+    json_t         *data;
+    json_t         *session_token;
+    json_t         *secret_key;
+    json_t         *secret_time;
     struct user_get_session_token_response *response;
 
-    if(user_ptr == NULL) return -1;
+    if (user_ptr == NULL)
+        return -1;
 
     response = (struct user_get_session_token_response *)user_ptr;
 
     root = http_parse_buf_json(conn, 0, &error);
 
-    data = json_object_by_path(root,"response");
-    if(data == NULL) return -1;
+    data = json_object_by_path(root, "response");
+    if (data == NULL)
+        return -1;
 
-    session_token = json_object_get(data,"session_token");
-    if(session_token == NULL)
-    {
+    session_token = json_object_get(data, "session_token");
+    if (session_token == NULL) {
         json_decref(root);
         return -1;
     }
 
     response->session_token = strdup(json_string_value(session_token));
 
-    secret_key = json_object_get(data,"secret_key");
-    if(secret_key != NULL)
+    secret_key = json_object_get(data, "secret_key");
+    if (secret_key != NULL)
         response->secret_key = atoll(json_string_value(secret_key));
 
     /*
-        time looks like a float but we must store it as a string to
-        remain congruent with the server on decimal place presentation.
-    */
-    secret_time = json_object_get(data,"time");
-    if(secret_time != NULL)
-       response->secret_time = strdup(json_string_value(secret_time));
+       time looks like a float but we must store it as a string to
+       remain congruent with the server on decimal place presentation.
+     */
+    secret_time = json_object_get(data, "time");
+    if (secret_time != NULL)
+        response->secret_time = strdup(json_string_value(secret_time));
 
-    if(root != NULL) json_decref(root);
+    if (root != NULL)
+        json_decref(root);
 
     return 0;
 }

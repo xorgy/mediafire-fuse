@@ -17,7 +17,6 @@
  *
  */
 
-
 #ifndef _MFSHELL_H_
 #define _MFSHELL_H_
 
@@ -27,42 +26,39 @@
 struct mfcmd;
 struct mfshell;
 
-typedef struct mfcmd     mfcmd;
-typedef struct mfshell   mfshell;
+typedef struct mfcmd mfcmd;
+typedef struct mfshell mfshell;
 
-struct mfcmd
-{
-    char *name;
-    char *argstring;
-    char *help;
-    int  (*handler) (mfshell *mfshell, int argc, char **argv);
+struct mfcmd {
+    char           *name;
+    char           *argstring;
+    char           *help;
+    int             (*handler) (mfshell * mfshell, int argc, char **argv);
 };
 
-struct mfshell
-{
-    int         app_id;
-    char        *app_key;
-    char        *server;
+struct mfshell {
+    int             app_id;
+    char           *app_key;
+    char           *server;
 
     /* REST API tracking */
-    mffolder    *folder_curr;
+    mffolder       *folder_curr;
 
     /* Local tracking */
-    char        *local_working_dir;
+    char           *local_working_dir;
 
     /* shell commands */
-    mfcmd      *commands;
+    mfcmd          *commands;
 
-    mfconn    *conn;
+    mfconn         *conn;
 };
 
-mfshell*  mfshell_create(int app_id,char *app_key,char *server);
+mfshell        *mfshell_create(int app_id, char *app_key, char *server);
 
-int         mfshell_authenticate_user(mfshell *mfshell);
+int             mfshell_authenticate_user(mfshell * mfshell);
 
-int mfshell_exec(mfshell *mfshell, int argc, char **argv);
+int             mfshell_exec(mfshell * mfshell, int argc, char **argv);
 
-int mfshell_exec_shell_command(mfshell *mfshell,char *command);
+int             mfshell_exec_shell_command(mfshell * mfshell, char *command);
 
 #endif
-

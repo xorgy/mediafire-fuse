@@ -17,7 +17,6 @@
  *
  */
 
-
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,22 +26,21 @@
 
 #include "../mfshell.h"
 #include "../../mfapi/mfconn.h"
-#include "../commands.h" // IWYU pragma: keep
+#include "../commands.h"        // IWYU pragma: keep
 
-static char*
-_get_login_from_user(void);
+static char    *_get_login_from_user(void);
 
-static char*
-_get_passwd_from_user(void);
+static char    *_get_passwd_from_user(void);
 
-int
-mfshell_cmd_auth(mfshell *mfshell, int argc, char **argv)
+int mfshell_cmd_auth(mfshell * mfshell, int argc, char **argv)
 {
-    char *username;
-    char *password;
+    char           *username;
+    char           *password;
 
-    if(mfshell == NULL) return -1;
-    if(mfshell->server == NULL) return -1;
+    if (mfshell == NULL)
+        return -1;
+    if (mfshell->server == NULL)
+        return -1;
 
     switch (argc) {
         case 1:
@@ -62,10 +60,11 @@ mfshell_cmd_auth(mfshell *mfshell, int argc, char **argv)
             return -1;
     }
 
-    if(username == NULL || password == NULL) return -1;
+    if (username == NULL || password == NULL)
+        return -1;
 
     mfshell->conn = mfconn_create(mfshell->server, username, password,
-            mfshell->app_id, mfshell->app_key);
+                                  mfshell->app_id, mfshell->app_key);
 
     if (mfshell->conn != NULL)
         printf("\n\rAuthentication SUCCESS\n\r");
@@ -75,39 +74,35 @@ mfshell_cmd_auth(mfshell *mfshell, int argc, char **argv)
     return (mfshell->conn != NULL);
 }
 
-char*
-_get_login_from_user(void)
+char           *_get_login_from_user(void)
 {
-    char        *login = NULL;
-    size_t      len;
-    ssize_t     bytes_read;
+    char           *login = NULL;
+    size_t          len;
+    ssize_t         bytes_read;
 
     printf("login: ");
-    bytes_read = getline(&login,&len,stdin);
+    bytes_read = getline(&login, &len, stdin);
 
-    if(bytes_read < 3)
-    {
-        if(login != NULL)
-        {
+    if (bytes_read < 3) {
+        if (login != NULL) {
             free(login);
             login = NULL;
         }
     }
 
-    if (login[strlen(login)-1] == '\n')
-        login[strlen(login)-1] = '\0';
-
+    if (login[strlen(login) - 1] == '\n')
+        login[strlen(login) - 1] = '\0';
 
     return login;
 }
 
-char*
-_get_passwd_from_user(void)
+char           *_get_passwd_from_user(void)
 {
-    char        *passwd = NULL;
-    size_t      len;
-    ssize_t     bytes_read;
-    struct termios old, new;
+    char           *passwd = NULL;
+    size_t          len;
+    ssize_t         bytes_read;
+    struct termios  old,
+                    new;
 
     printf("passwd: ");
 
@@ -118,22 +113,19 @@ _get_passwd_from_user(void)
     if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &new) != 0)
         return NULL;
 
-    bytes_read = getline(&passwd,&len,stdin);
+    bytes_read = getline(&passwd, &len, stdin);
 
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &old);
 
-    if(bytes_read < 3)
-    {
-        if(passwd != NULL)
-        {
+    if (bytes_read < 3) {
+        if (passwd != NULL) {
             free(passwd);
             passwd = NULL;
         }
     }
 
-    if (passwd[strlen(passwd)-1] == '\n')
-        passwd[strlen(passwd)-1] = '\0';
+    if (passwd[strlen(passwd) - 1] == '\n')
+        passwd[strlen(passwd) - 1] = '\0';
 
     return passwd;
 }
-

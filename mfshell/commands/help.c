@@ -17,33 +17,29 @@
  *
  */
 
-
 #include <stdio.h>
 #include <string.h>
 
 #include "../mfshell.h"
-#include "../commands.h" // IWYU pragma: keep
+#include "../commands.h"        // IWYU pragma: keep
 
-int
-mfshell_cmd_help(mfshell *mfshell, int argc, char **argv)
+int mfshell_cmd_help(mfshell * mfshell, int argc, char **argv)
 {
     (void)argv;
+    unsigned int    column1_width = 0;
+    unsigned int    column2_width = 0;
+    mfcmd          *curr_cmd;
+
     if (argc != 1) {
         fprintf(stderr, "Invalid number of arguments\n");
         return -1;
     }
 
-    printf(
-        "  arguments:\n\r"
-        "           <optional>\n\r"
-        "           [required]\n\r");
+    printf("  arguments:\n\r"
+           "           <optional>\n\r" "           [required]\n\r");
 
     printf("\n\r");
 
-    unsigned int column1_width = 0;
-    unsigned int column2_width = 0;
-
-    mfcmd* curr_cmd;
     for (curr_cmd = mfshell->commands; curr_cmd->name != NULL; curr_cmd++) {
         if (strlen(curr_cmd->name) > column1_width)
             column1_width = strlen(curr_cmd->name);
@@ -52,10 +48,9 @@ mfshell_cmd_help(mfshell *mfshell, int argc, char **argv)
     }
 
     for (curr_cmd = mfshell->commands; curr_cmd->name != NULL; curr_cmd++) {
-        printf("%*s %*s %s\n", column1_width, curr_cmd->name, column2_width, curr_cmd->argstring, curr_cmd->help);
+        printf("%*s %*s %s\n", column1_width, curr_cmd->name,
+               column2_width, curr_cmd->argstring, curr_cmd->help);
     }
 
     return 0;
 }
-
-

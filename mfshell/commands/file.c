@@ -17,7 +17,6 @@
  *
  */
 
-
 #include <stdio.h>
 #include <string.h>
 
@@ -25,19 +24,19 @@
 #include "../mfshell.h"
 #include "../../mfapi/file.h"
 #include "../../mfapi/mfconn.h"
-#include "../commands.h" // IWYU pragma: keep
+#include "../commands.h"        // IWYU pragma: keep
 
-int
-mfshell_cmd_file(mfshell *mfshell, int argc, char **argv)
+int mfshell_cmd_file(mfshell * mfshell, int argc, char **argv)
 {
-    mffile      *file;
-    int         len;
-    int         retval;
-    const char *quickkey;
-    const char *name;
-    const char *hash;
+    mffile         *file;
+    int             len;
+    int             retval;
+    const char     *quickkey;
+    const char     *name;
+    const char     *hash;
 
-    if(mfshell == NULL) return -1;
+    if (mfshell == NULL)
+        return -1;
 
     if (argc != 2) {
         fprintf(stderr, "Invalid number of arguments\n");
@@ -45,15 +44,17 @@ mfshell_cmd_file(mfshell *mfshell, int argc, char **argv)
     }
 
     quickkey = argv[1];
-    if(quickkey == NULL) return -1;
+    if (quickkey == NULL)
+        return -1;
 
     len = strlen(quickkey);
 
-    if(len != 11 && len != 15) return -1;
+    if (len != 11 && len != 15)
+        return -1;
 
     file = file_alloc();
 
-    retval = mfconn_api_file_get_info(mfshell->conn,file,(char*)quickkey);
+    retval = mfconn_api_file_get_info(mfshell->conn, file, (char *)quickkey);
     if (retval != 0) {
         fprintf(stderr, "api call unsuccessful\n");
     }
@@ -63,20 +64,16 @@ mfshell_cmd_file(mfshell *mfshell, int argc, char **argv)
     name = file_get_name(file);
     hash = file_get_hash(file);
 
-    if(name != NULL && name[0] != '\0')
-        printf("   %-15.15s   %s\n\r",
-        "filename:", name);
+    if (name != NULL && name[0] != '\0')
+        printf("   %-15.15s   %s\n\r", "filename:", name);
 
-    if(quickkey != NULL && quickkey[0] != '\0')
-        printf("   %-15.15s   %s\n\r",
-        "quickkey:", quickkey);
+    if (quickkey != NULL && quickkey[0] != '\0')
+        printf("   %-15.15s   %s\n\r", "quickkey:", quickkey);
 
-    if(hash != NULL && hash[0] != '\0')
-        printf("   %-15.15s   %s\n\r",
-        "hash:", hash);
+    if (hash != NULL && hash[0] != '\0')
+        printf("   %-15.15s   %s\n\r", "hash:", hash);
 
     file_free(file);
 
     return 0;
 }
-

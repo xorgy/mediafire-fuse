@@ -26,22 +26,25 @@
 
 typedef struct mfconn mfconn;
 
-mfconn* mfconn_create(char *server, char *username, char *password, int app_id, char *app_key);
+mfconn         *mfconn_create(char *server, char *username, char *password,
+                              int app_id, char *app_key);
 
-void mfconn_destroy(mfconn *conn);
+void            mfconn_destroy(mfconn * conn);
 
-ssize_t mfconn_download_direct(mffile *file,char *local_dir);
+ssize_t         mfconn_download_direct(mffile * file, char *local_dir);
 
-char* mfconn_create_signed_get(mfconn *conn,int ssl,char *api,char *fmt,...);
+char           *mfconn_create_signed_get(mfconn * conn, int ssl, char *api,
+                                         char *fmt, ...);
 
-char* mfconn_create_user_signature(mfconn *conn, char *username,
-        char *password, int app_id, char *app_key);
+char           *mfconn_create_user_signature(mfconn * conn, char *username,
+                                             char *password, int app_id,
+                                             char *app_key);
 
-void mfconn_update_secret_key(mfconn *conn);
+void            mfconn_update_secret_key(mfconn * conn);
 
-const char* mfconn_get_session_token(mfconn *conn);
+const char     *mfconn_get_session_token(mfconn * conn);
 
-const char* mfconn_get_secret_time(mfconn *conn);
+const char     *mfconn_get_secret_time(mfconn * conn);
 
-uint32_t mfconn_get_secret_key(mfconn *conn);
+uint32_t        mfconn_get_secret_key(mfconn * conn);
 #endif

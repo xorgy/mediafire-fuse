@@ -17,19 +17,17 @@
  *
  */
 
-
 #include <stdio.h>
 
 #include "../../mfapi/apicalls.h"
 #include "../mfshell.h"
 #include "../../mfapi/mfconn.h"
-#include "../commands.h" // IWYU pragma: keep
+#include "../commands.h"        // IWYU pragma: keep
 
-int
-mfshell_cmd_whoami(mfshell *mfshell, int argc, char **argv)
+int mfshell_cmd_whoami(mfshell * mfshell, int argc, char **argv)
 {
     (void)argv;
-    int retval;
+    int             retval;
 
     if (argc != 1) {
         fprintf(stderr, "Invalid number of arguments\n");
@@ -41,5 +39,3 @@ mfshell_cmd_whoami(mfshell *mfshell, int argc, char **argv)
 
     return retval;
 }
-
-

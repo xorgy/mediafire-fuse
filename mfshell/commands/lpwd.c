@@ -17,34 +17,31 @@
  *
  */
 
-
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
 #include "../mfshell.h"
-#include "../commands.h" // IWYU pragma: keep
+#include "../commands.h"        // IWYU pragma: keep
 
-int
-mfshell_cmd_lpwd(mfshell *mfshell, int argc, char **argv)
+int mfshell_cmd_lpwd(mfshell * mfshell, int argc, char **argv)
 {
     (void)argv;
-    if(mfshell == NULL) return -1;
+    if (mfshell == NULL)
+        return -1;
 
     if (argc != 1) {
         fprintf(stderr, "Invalid number of argumens\n");
         return -1;
     }
 
-    if(mfshell->local_working_dir == NULL)
-    {
-        mfshell->local_working_dir = (char*)calloc(PATH_MAX + 1,sizeof(char));
-        getcwd(mfshell->local_working_dir,PATH_MAX);
+    if (mfshell->local_working_dir == NULL) {
+        mfshell->local_working_dir = (char *)calloc(PATH_MAX + 1, sizeof(char));
+        getcwd(mfshell->local_working_dir, PATH_MAX);
     }
 
     printf("%s\n\r", mfshell->local_working_dir);
 
     return 0;
 }
-

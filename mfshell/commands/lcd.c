@@ -17,22 +17,21 @@
  *
  */
 
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
 #include "../mfshell.h"
-#include "../commands.h" // IWYU pragma: keep
+#include "../commands.h"        // IWYU pragma: keep
 
-int
-mfshell_cmd_lcd(mfshell *mfshell, int argc, char **argv)
+int mfshell_cmd_lcd(mfshell * mfshell, int argc, char **argv)
 {
-    int retval;
-    const char *dir;
+    int             retval;
+    const char     *dir;
 
-    if(mfshell == NULL) return -1;
+    if (mfshell == NULL)
+        return -1;
 
     if (argc != 2) {
         fprintf(stderr, "Invalid number of arguments\n");
@@ -40,15 +39,15 @@ mfshell_cmd_lcd(mfshell *mfshell, int argc, char **argv)
     }
 
     dir = argv[1];
-    if(dir == NULL) return -1;
+    if (dir == NULL)
+        return -1;
 
-    if(strlen(dir) < 1) return -1;
+    if (strlen(dir) < 1)
+        return -1;
 
     retval = chdir(dir);
-    if(retval == 0)
-    {
-        if(mfshell->local_working_dir != NULL)
-        {
+    if (retval == 0) {
+        if (mfshell->local_working_dir != NULL) {
             free(mfshell->local_working_dir);
             mfshell->local_working_dir = NULL;
         }
@@ -58,4 +57,3 @@ mfshell_cmd_lcd(mfshell *mfshell, int argc, char **argv)
 
     return retval;
 }
-

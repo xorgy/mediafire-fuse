@@ -19,3 +19,4 @@ target_link_libraries(mfshell curl ssl crypto jansson mfapi mfutils)
 enable_testing()
 
 add_test(iwyu ../tests/iwyu.py)
+add_test(indent ../tests/indent.sh)

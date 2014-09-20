@@ -17,23 +17,22 @@
  *
  */
 
-
 #include <stdio.h>
 
 #include "../../mfapi/apicalls.h"
 #include "../mfshell.h"
 #include "../../mfapi/folder.h"
 #include "../../mfapi/mfconn.h"
-#include "../commands.h" // IWYU pragma: keep
+#include "../commands.h"        // IWYU pragma: keep
 
-int
-mfshell_cmd_list(mfshell *mfshell, int argc, char **argv)
+int mfshell_cmd_list(mfshell * mfshell, int argc, char **argv)
 {
     (void)argv;
-    int         retval;
-    const char  *folder_curr;
+    int             retval;
+    const char     *folder_curr;
 
-    if(mfshell == NULL) return -1;
+    if (mfshell == NULL)
+        return -1;
 
     if (argc != 1) {
         fprintf(stderr, "Invalid number of arguments\n");
@@ -43,22 +42,22 @@ mfshell_cmd_list(mfshell *mfshell, int argc, char **argv)
     folder_curr = folder_get_key(mfshell->folder_curr);
 
     // safety check... this should never happen
-    if(folder_curr == NULL)
-        folder_set_key(mfshell->folder_curr,"myfiles");
+    if (folder_curr == NULL)
+        folder_set_key(mfshell->folder_curr, "myfiles");
 
     // safety check... this should never happen
-    if(folder_curr[0] == '\0')
-        folder_set_key(mfshell->folder_curr,"myfiles");
+    if (folder_curr[0] == '\0')
+        folder_set_key(mfshell->folder_curr, "myfiles");
 
     // first folders
-    retval = mfconn_api_folder_get_content(mfshell->conn, 0, mfshell->folder_curr);
+    retval =
+        mfconn_api_folder_get_content(mfshell->conn, 0, mfshell->folder_curr);
     mfconn_update_secret_key(mfshell->conn);
 
     // then files
-    retval = mfconn_api_folder_get_content(mfshell->conn, 1, mfshell->folder_curr);
+    retval =
+        mfconn_api_folder_get_content(mfshell->conn, 1, mfshell->folder_curr);
     mfconn_update_secret_key(mfshell->conn);
 
     return retval;
 }
-
-

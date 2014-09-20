@@ -17,53 +17,51 @@
  *
  */
 
-
 #include <stdio.h>
 #include <string.h>
 
 #include "../../utils/http.h"
 #include "../mfconn.h"
-#include "../apicalls.h" // IWYU pragma: keep
+#include "../apicalls.h"        // IWYU pragma: keep
 
-int
-mfconn_api_folder_create(mfconn *conn,char *parent,char *name)
+int mfconn_api_folder_create(mfconn * conn, char *parent, char *name)
 {
-    char        *api_call;
-    int         retval;
+    char           *api_call;
+    int             retval;
+    mfhttp         *http;
 
-    if(conn == NULL) return -1;
+    if (conn == NULL)
+        return -1;
 
-    if(name == NULL) return -1;
-    if(strlen(name) < 1) return -1;
+    if (name == NULL)
+        return -1;
+    if (strlen(name) < 1)
+        return -1;
 
     // key must either be 11 chars or "myfiles"
-    if(parent != NULL)
-    {
-        if(strlen(parent) != 13)
-        {
+    if (parent != NULL) {
+        if (strlen(parent) != 13) {
             // if it is myfiles, set paret to NULL
-            if(strcmp(parent,"myfiles") == 0) parent = NULL;
+            if (strcmp(parent, "myfiles") == 0)
+                parent = NULL;
         }
     }
 
-    if(parent != NULL)
-    {
-        api_call = mfconn_create_signed_get(conn,0,"folder/create.php",
-            "?parent_key=%s"
-            "&foldername=%s"
-            "&response_format=json",
-            parent,name);
-    }
-    else
-    {
-        api_call = mfconn_create_signed_get(conn,0,"folder/create.php",
-            "?foldername=%s&response_format=json", name);
+    if (parent != NULL) {
+        api_call =
+            mfconn_create_signed_get(conn, 0, "folder/create.php",
+                                     "?parent_key=%s" "&foldername=%s"
+                                     "&response_format=json", parent, name);
+    } else {
+        api_call =
+            mfconn_create_signed_get(conn, 0, "folder/create.php",
+                                     "?foldername=%s&response_format=json",
+                                     name);
     }
 
-    mfhttp *http = http_create();
+    http = http_create();
     retval = http_get_buf(http, api_call, NULL, NULL);
     http_destroy(http);
 
     return retval;
 }
-

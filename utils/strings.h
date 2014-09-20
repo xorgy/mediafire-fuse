@@ -16,17 +16,17 @@
  *
  */
 
-
 #ifndef _STR_TOOLS_H_
 #define _STR_TOOLS_H_
 
-char*       strdup_printf(char* fmt, ...);
+char           *strdup_printf(char *fmt, ...);
 
-char*       strdup_join(char *string1,char *string2);
+char           *strdup_join(char *string1, char *string2);
 
-char*       strdup_subst(char *string,char *str_old,char *str_new, unsigned int max);
+char           *strdup_subst(char *string, char *str_old, char *str_new,
+                             unsigned int max);
 
-void        string_chomp(char *string);
+void            string_chomp(char *string);
 
 // void        string_strip_head(char *string,char c);
 

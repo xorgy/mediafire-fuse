@@ -17,7 +17,6 @@
  *
  */
 
-
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,16 +24,14 @@
 
 #include "../mfshell.h"
 #include "../../mfapi/mfconn.h"
-#include "../commands.h" // IWYU pragma: keep
+#include "../commands.h"        // IWYU pragma: keep
 
-static char*
-_get_host_from_user(void);
+static char    *_get_host_from_user(void);
 
-int
-mfshell_cmd_host(mfshell *mfshell, int argc, char **argv)
+int mfshell_cmd_host(mfshell * mfshell, int argc, char **argv)
 {
-    char    *alt_host = NULL;
-    char    *host;
+    char           *alt_host = NULL;
+    char           *host;
 
     switch (argc) {
         case 1:
@@ -49,17 +46,15 @@ mfshell_cmd_host(mfshell *mfshell, int argc, char **argv)
             return -1;
     }
 
-    if(mfshell->server != NULL)
-    {
+    if (mfshell->server != NULL) {
         // do nothing if the server is exactly the same
-        if(strcmp(mfshell->server,host) == 0)
-        {
-            if(alt_host != NULL) free(alt_host);
+        if (strcmp(mfshell->server, host) == 0) {
+            if (alt_host != NULL)
+                free(alt_host);
             return 0;
         }
 
-        if(mfshell->server != NULL)
-        {
+        if (mfshell->server != NULL) {
             free(mfshell->server);
             mfshell->server = NULL;
         }
@@ -69,27 +64,26 @@ mfshell_cmd_host(mfshell *mfshell, int argc, char **argv)
 
     mfconn_destroy(mfshell->conn);
 
-    if(alt_host != NULL) free(alt_host);
+    if (alt_host != NULL)
+        free(alt_host);
 
     return 0;
 }
 
-char*
-_get_host_from_user(void)
+char           *_get_host_from_user(void)
 {
-    size_t  len = 0;
-    char    *host = NULL;
+    size_t          len = 0;
+    char           *host = NULL;
 
     printf("host: [www.mediafire.com] ");
-    getline(&host,&len,stdin);
-    if (host[strlen(host)-1] == '\n')
-        host[strlen(host)-1] = '\0';
+    getline(&host, &len, stdin);
+    if (host[strlen(host) - 1] == '\n')
+        host[strlen(host) - 1] = '\0';
 
-    if(host == NULL)
+    if (host == NULL)
         return strdup("www.mediafire.com");
 
-    if(strlen(host) < 2)
-    {
+    if (strlen(host) < 2) {
         free(host);
         return strdup("www.mediafire.com");
     }

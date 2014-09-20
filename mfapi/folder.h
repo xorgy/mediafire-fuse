@@ -22,20 +22,20 @@
 
 typedef struct mffolder mffolder;
 
-mffolder*   folder_alloc(void);
+mffolder       *folder_alloc(void);
 
-void        folder_free(mffolder *folder);
+void            folder_free(mffolder * folder);
 
-int         folder_set_key(mffolder *folder,const char *folderkey);
+int             folder_set_key(mffolder * folder, const char *folderkey);
 
-const char* folder_get_key(mffolder *folder);
+const char     *folder_get_key(mffolder * folder);
 
-int         folder_set_parent(mffolder *folder,const char *folderkey);
+int             folder_set_parent(mffolder * folder, const char *folderkey);
 
-const char* folder_get_parent(mffolder *folder);
+const char     *folder_get_parent(mffolder * folder);
 
-int         folder_set_name(mffolder *folder,const char *name);
+int             folder_set_name(mffolder * folder, const char *name);
 
-const char* folder_get_name(mffolder *folder);
+const char     *folder_get_name(mffolder * folder);
 
 #endif
