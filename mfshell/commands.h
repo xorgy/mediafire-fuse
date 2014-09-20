@@ -52,4 +52,6 @@ int             mfshell_cmd_get(mfshell * mfshell, int argc, char **argv);
 
 int             mfshell_cmd_whoami(mfshell * mfshell, int argc, char **argv);
 
+int             mfshell_cmd_rmdir(mfshell * mfshell, int argc, char **argv);
+
 #endif

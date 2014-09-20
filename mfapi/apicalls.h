@@ -51,4 +51,6 @@ int             mfconn_api_user_get_session_token(mfconn * conn, char *server,
                                                   char **secret_time,
                                                   char **session_token);
 
+int             mfconn_api_folder_delete(mfconn * conn, const char *folderkey);
+
 #endif

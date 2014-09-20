@@ -46,6 +46,7 @@ struct mfcmd    commands[] = {
     {"links", "[quickkey]", "show access urls for the file",
      mfshell_cmd_links},
     {"get", "[quickkey]", "download a file", mfshell_cmd_get},
+    {"rmdir", "[folderkey]", "remove directory", mfshell_cmd_rmdir},
     {NULL, NULL, NULL, NULL}
 };
 
