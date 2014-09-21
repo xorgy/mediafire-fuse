@@ -27,7 +27,7 @@
 
 int mfconn_api_folder_delete(mfconn * conn, const char *folderkey)
 {
-    char           *api_call;
+    const char     *api_call;
     int             retval;
     mfhttp         *http;
 
@@ -48,7 +48,7 @@ int mfconn_api_folder_delete(mfconn * conn, const char *folderkey)
     retval = http_get_buf(http, api_call, NULL, NULL);
     http_destroy(http);
 
-    free(api_call);
+    free((void *)api_call);
 
     return retval;
 }

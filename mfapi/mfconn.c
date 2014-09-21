@@ -35,8 +35,9 @@ struct mfconn {
     char           *session_token;
 };
 
-mfconn         *mfconn_create(char *server, char *username, char *password,
-                              int app_id, char *app_key)
+mfconn         *mfconn_create(const char *server, const char *username,
+                              const char *password, int app_id,
+                              const char *app_key)
 {
     mfconn         *conn;
     int             retval;
@@ -80,9 +81,10 @@ void mfconn_update_secret_key(mfconn * conn)
     return;
 }
 
-char           *mfconn_create_user_signature(mfconn * conn, char *username,
-                                             char *password, int app_id,
-                                             char *app_key)
+const char     *mfconn_create_user_signature(mfconn * conn,
+                                             const char *username,
+                                             const char *password, int app_id,
+                                             const char *app_key)
 {
     char           *signature_raw;
     unsigned char   signature_enc[20];  // sha1 is 160 bits
@@ -108,8 +110,8 @@ char           *mfconn_create_user_signature(mfconn * conn, char *username,
     return strdup((const char *)signature_hex);
 }
 
-char           *mfconn_create_call_signature(mfconn * conn, char *url,
-                                             char *args)
+const char     *mfconn_create_call_signature(mfconn * conn, const char *url,
+                                             const char *args)
 {
     char           *signature_raw;
     unsigned char   signature_enc[16];  // md5 is 128 bits
@@ -148,13 +150,14 @@ char           *mfconn_create_call_signature(mfconn * conn, char *url,
     return strdup((const char *)signature_hex);
 }
 
-char           *mfconn_create_signed_get(mfconn * conn, int ssl, char *api,
-                                         char *fmt, ...)
+const char     *mfconn_create_signed_get(mfconn * conn, int ssl,
+                                         const char *api,
+                                         const char *fmt, ...)
 {
     char           *api_request = NULL;
     char           *api_args = NULL;
     char           *signature;
-    char           *call_hash;
+    const char     *call_hash;
     char           *session_token;
     int             bytes_to_alloc;
     int             api_args_len;
@@ -200,14 +203,14 @@ char           *mfconn_create_signed_get(mfconn * conn, int ssl, char *api,
 
     // correct user error of trailing slash
     if (api[api_len - 1] == '/')
-        api[api_len - 1] = '\0';
+        return NULL;
 
     api_request = strdup_printf("%s//%s/api/%s",
                                 (ssl ? "https:" : "http:"), conn->server, api);
 
     call_hash = mfconn_create_call_signature(conn, api_request, api_args);
     signature = strdup_printf("&signature=%s", call_hash);
-    free(call_hash);
+    free((void *)call_hash);
 
     // compute the amount of space requred to realloc() the request
     bytes_to_alloc = api_args_len;

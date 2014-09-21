@@ -32,7 +32,7 @@ static char    *_get_login_from_user(void);
 
 static char    *_get_passwd_from_user(void);
 
-int mfshell_cmd_auth(mfshell * mfshell, int argc, char **argv)
+int mfshell_cmd_auth(mfshell * mfshell, int argc, char *const argv[])
 {
     char           *username;
     char           *password;

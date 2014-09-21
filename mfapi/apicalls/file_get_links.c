@@ -32,7 +32,7 @@ static int      _decode_file_get_links(mfhttp * conn, void *data);
 
 int mfconn_api_file_get_links(mfconn * conn, mffile * file, char *quickkey)
 {
-    char           *api_call;
+    const char     *api_call;
     int             retval;
     int             len;
     mfhttp         *http;
@@ -59,7 +59,7 @@ int mfconn_api_file_get_links(mfconn * conn, mffile * file, char *quickkey)
     retval = http_get_buf(http, api_call, _decode_file_get_links, file);
     http_destroy(http);
 
-    free(api_call);
+    free((void *)api_call);
 
     return retval;
 }
@@ -96,15 +96,15 @@ static int _decode_file_get_links(mfhttp * conn, void *data)
 
     quickkey = json_object_get(node, "quickkey");
     if (quickkey != NULL)
-        file_set_key(file, (char *)json_string_value(quickkey));
+        file_set_key(file, json_string_value(quickkey));
 
     share_link = json_object_get(node, "normal_download");
     if (share_link != NULL)
-        file_set_share_link(file, (char *)json_string_value(share_link));
+        file_set_share_link(file, json_string_value(share_link));
 
     direct_link = json_object_get(node, "direct_download");
     if (direct_link != NULL) {
-        file_set_direct_link(file, (char *)json_string_value(direct_link));
+        file_set_direct_link(file, json_string_value(direct_link));
     }
 
     onetime_link = json_object_get(node, "one_time_download");

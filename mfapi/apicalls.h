@@ -43,10 +43,12 @@ int             mfconn_api_folder_get_info(mfconn * conn, mffolder * folder,
 
 int             mfconn_api_user_get_info(mfconn * conn);
 
-int             mfconn_api_user_get_session_token(mfconn * conn, char *server,
-                                                  char *username,
-                                                  char *password, int app_id,
-                                                  char *app_key,
+int             mfconn_api_user_get_session_token(mfconn * conn,
+                                                  const char *server,
+                                                  const char *username,
+                                                  const char *password,
+                                                  int app_id,
+                                                  const char *app_key,
                                                   uint32_t * secret_key,
                                                   char **secret_time,
                                                   char **session_token);

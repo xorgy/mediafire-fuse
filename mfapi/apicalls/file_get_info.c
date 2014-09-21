@@ -32,7 +32,7 @@ static int      _decode_file_get_info(mfhttp * conn, void *data);
 
 int mfconn_api_file_get_info(mfconn * conn, mffile * file, char *quickkey)
 {
-    char           *api_call;
+    const char     *api_call;
     int             retval;
     int             len;
     mfhttp         *http;
@@ -59,7 +59,7 @@ int mfconn_api_file_get_info(mfconn * conn, mffile * file, char *quickkey)
     retval = http_get_buf(http, api_call, _decode_file_get_info, file);
     http_destroy(http);
 
-    free(api_call);
+    free((void *)api_call);
 
     return retval;
 }
@@ -86,15 +86,15 @@ static int _decode_file_get_info(mfhttp * conn, void *data)
 
     quickkey = json_object_get(node, "quickkey");
     if (quickkey != NULL)
-        file_set_key(file, (char *)json_string_value(quickkey));
+        file_set_key(file, json_string_value(quickkey));
 
     file_name = json_object_get(node, "filename");
     if (file_name != NULL)
-        file_set_name(file, (char *)json_string_value(file_name));
+        file_set_name(file, json_string_value(file_name));
 
     file_hash = json_object_get(node, "hash");
     if (file_hash != NULL) {
-        file_set_hash(file, (char *)json_string_value(file_hash));
+        file_set_hash(file, json_string_value(file_hash));
     }
 
     if (quickkey == NULL)

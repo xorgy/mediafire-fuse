@@ -22,36 +22,52 @@
 
 #include "mfshell.h"
 
-int             mfshell_cmd_help(mfshell * mfshell, int argc, char **argv);
+int             mfshell_cmd_help(mfshell * mfshell, int argc,
+                                 char *const argv[]);
 
-int             mfshell_cmd_debug(mfshell * mfshell, int argc, char **argv);
+int             mfshell_cmd_debug(mfshell * mfshell, int argc,
+                                  char *const argv[]);
 
-int             mfshell_cmd_host(mfshell * mfshell, int argc, char **argv);
+int             mfshell_cmd_host(mfshell * mfshell, int argc,
+                                 char *const argv[]);
 
-int             mfshell_cmd_auth(mfshell * mfshell, int argc, char **argv);
+int             mfshell_cmd_auth(mfshell * mfshell, int argc,
+                                 char *const argv[]);
 
-int             mfshell_cmd_whomai(mfshell * mfshell, int argc, char **argv);
+int             mfshell_cmd_whomai(mfshell * mfshell, int argc,
+                                   char *const argv[]);
 
-int             mfshell_cmd_list(mfshell * mfshell, int argc, char **argv);
+int             mfshell_cmd_list(mfshell * mfshell, int argc,
+                                 char *const argv[]);
 
-int             mfshell_cmd_chdir(mfshell * mfshell, int argc, char **argv);
+int             mfshell_cmd_chdir(mfshell * mfshell, int argc,
+                                  char *const argv[]);
 
-int             mfshell_cmd_pwd(mfshell * mfshell, int argc, char **argv);
+int             mfshell_cmd_pwd(mfshell * mfshell, int argc,
+                                char *const argv[]);
 
-int             mfshell_cmd_lpwd(mfshell * mfshell, int argc, char **argv);
+int             mfshell_cmd_lpwd(mfshell * mfshell, int argc,
+                                 char *const argv[]);
 
-int             mfshell_cmd_lcd(mfshell * mfshell, int argc, char **argv);
+int             mfshell_cmd_lcd(mfshell * mfshell, int argc,
+                                char *const argv[]);
 
-int             mfshell_cmd_file(mfshell * mfshell, int argc, char **argv);
+int             mfshell_cmd_file(mfshell * mfshell, int argc,
+                                 char *const argv[]);
 
-int             mfshell_cmd_links(mfshell * mfshell, int argc, char **argv);
+int             mfshell_cmd_links(mfshell * mfshell, int argc,
+                                  char *const argv[]);
 
-int             mfshell_cmd_mkdir(mfshell * mfshell, int argc, char **argv);
+int             mfshell_cmd_mkdir(mfshell * mfshell, int argc,
+                                  char *const argv[]);
 
-int             mfshell_cmd_get(mfshell * mfshell, int argc, char **argv);
+int             mfshell_cmd_get(mfshell * mfshell, int argc,
+                                char *const argv[]);
 
-int             mfshell_cmd_whoami(mfshell * mfshell, int argc, char **argv);
+int             mfshell_cmd_whoami(mfshell * mfshell, int argc,
+                                   char *const argv[]);
 
-int             mfshell_cmd_rmdir(mfshell * mfshell, int argc, char **argv);
+int             mfshell_cmd_rmdir(mfshell * mfshell, int argc,
+                                  char *const argv[]);
 
 #endif

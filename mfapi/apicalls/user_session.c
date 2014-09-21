@@ -38,15 +38,16 @@ struct user_get_session_token_response {
 };
 
 int
-mfconn_api_user_get_session_token(mfconn * conn, char *server,
-                                  char *username, char *password,
-                                  int app_id, char *app_key,
+mfconn_api_user_get_session_token(mfconn * conn, const char *server,
+                                  const char *username, const char *password,
+                                  int app_id, const char *app_key,
                                   uint32_t * secret_key,
-                                  char **secret_time, char **session_token)
+                                  char **secret_time,
+                                  char **session_token)
 {
     char           *login_url;
     char           *post_args;
-    char           *user_signature;
+    const char     *user_signature;
     int             retval;
     struct user_get_session_token_response response;
     mfhttp         *http;
@@ -69,7 +70,7 @@ mfconn_api_user_get_session_token(mfconn * conn, char *server,
                               "&token_version=2"
                               "&response_format=json",
                               username, password, user_signature);
-    free(user_signature);
+    free((void *)user_signature);
 
     http = http_create();
     retval =

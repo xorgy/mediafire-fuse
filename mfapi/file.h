@@ -52,6 +52,6 @@ int             file_set_onetime_link(mffile * file, const char *onetime_link);
 
 const char     *file_get_onetime_link(mffile * file);
 
-ssize_t         file_download_direct(mffile * file, char *local_dir);
+ssize_t         file_download_direct(mffile * file, const char *local_dir);
 
 #endif

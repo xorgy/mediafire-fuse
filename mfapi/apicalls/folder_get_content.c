@@ -35,7 +35,7 @@ static int      _decode_folder_get_content_files(mfhttp * conn, void *data);
 long
 mfconn_api_folder_get_content(mfconn * conn, int mode, mffolder * folder_curr)
 {
-    char           *api_call;
+    const char     *api_call;
     int             retval;
     char           *content_type;
     mfhttp         *http;
@@ -75,7 +75,7 @@ mfconn_api_folder_get_content(mfconn * conn, int mode, mffolder * folder_curr)
                          _decode_folder_get_content_files, NULL);
     http_destroy(http);
 
-    free(api_call);
+    free((void *)api_call);
 
     return retval;
 }

@@ -27,7 +27,7 @@
 
 int mfconn_api_folder_create(mfconn * conn, char *parent, char *name)
 {
-    char           *api_call;
+    const char     *api_call;
     int             retval;
     mfhttp         *http;
 
@@ -64,7 +64,7 @@ int mfconn_api_folder_create(mfconn * conn, char *parent, char *name)
     retval = http_get_buf(http, api_call, NULL, NULL);
     http_destroy(http);
 
-    free(api_call);
+    free((void *)api_call);
 
     return retval;
 }

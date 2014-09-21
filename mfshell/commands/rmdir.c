@@ -25,7 +25,7 @@
 #include "../../mfapi/mfconn.h"
 #include "../commands.h"        // IWYU pragma: keep
 
-int mfshell_cmd_rmdir(mfshell * mfshell, int argc, char **argv)
+int mfshell_cmd_rmdir(mfshell * mfshell, int argc, char *const argv[])
 {
     int             retval;
     const char     *folderkey;

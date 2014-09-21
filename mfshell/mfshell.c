@@ -85,7 +85,7 @@ mfshell        *mfshell_create(int app_id, char *app_key, char *server)
     return shell;
 }
 
-int mfshell_exec(mfshell * shell, int argc, char **argv)
+int mfshell_exec(mfshell * shell, int argc, char *const argv[])
 {
     mfcmd          *curr_cmd;
 

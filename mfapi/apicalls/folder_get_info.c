@@ -33,7 +33,7 @@ static int      _decode_folder_get_info(mfhttp * conn, void *data);
 int
 mfconn_api_folder_get_info(mfconn * conn, mffolder * folder, char *folderkey)
 {
-    char           *api_call;
+    const char     *api_call;
     int             retval;
     mfhttp         *http;
 
@@ -59,7 +59,7 @@ mfconn_api_folder_get_info(mfconn * conn, mffolder * folder, char *folderkey)
     retval = http_get_buf(http, api_call, _decode_folder_get_info, folder);
     http_destroy(http);
 
-    free(api_call);
+    free((void *)api_call);
 
     return retval;
 }
@@ -86,15 +86,15 @@ static int _decode_folder_get_info(mfhttp * conn, void *data)
 
     folderkey = json_object_get(node, "folderkey");
     if (folderkey != NULL)
-        folder_set_key(folder, (char *)json_string_value(folderkey));
+        folder_set_key(folder, json_string_value(folderkey));
 
     folder_name = json_object_get(node, "name");
     if (folder_name != NULL)
-        folder_set_name(folder, (char *)json_string_value(folder_name));
+        folder_set_name(folder, json_string_value(folder_name));
 
     parent_folder = json_object_get(node, "parent_folderkey");
     if (parent_folder != NULL) {
-        folder_set_parent(folder, (char *)json_string_value(parent_folder));
+        folder_set_parent(folder, json_string_value(parent_folder));
     }
     // infer that the parent folder must be "myfiles" root
     if (parent_folder == NULL && folderkey != NULL)

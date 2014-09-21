@@ -23,7 +23,7 @@
 #include "../mfshell.h"
 #include "../commands.h"        // IWYU pragma: keep
 
-int mfshell_cmd_help(mfshell * mfshell, int argc, char **argv)
+int mfshell_cmd_help(mfshell * mfshell, int argc, char *const argv[])
 {
     (void)argv;
     unsigned int    column1_width = 0;

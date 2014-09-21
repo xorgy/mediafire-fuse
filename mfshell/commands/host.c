@@ -28,7 +28,7 @@
 
 static char    *_get_host_from_user(void);
 
-int mfshell_cmd_host(mfshell * mfshell, int argc, char **argv)
+int mfshell_cmd_host(mfshell * mfshell, int argc, char *const argv[])
 {
     char           *alt_host = NULL;
     char           *host;

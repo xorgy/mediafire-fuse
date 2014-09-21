@@ -31,7 +31,7 @@ static void     mfshell_run(mfshell * shell);
 
 static void     mfshell_parse_commands(mfshell * shell, char *command);
 
-void print_help(char *cmd)
+void print_help(const char *cmd)
 {
     fprintf(stderr, "A shell to access a MediaFire account.\n");
     fprintf(stderr, "\n");
@@ -61,7 +61,7 @@ void print_help(char *cmd)
 }
 
 void
-parse_argv(int argc, char **argv, char **username,
+parse_argv(int argc, char *const argv[], char **username,
            char **password, char **server, char **command)
 {
     static struct option long_options[] = {
@@ -117,7 +117,7 @@ parse_argv(int argc, char **argv, char **username,
     }
 }
 
-int main(int argc, char **argv)
+int main(int argc, char *const argv[])
 {
     mfshell        *shell;
     char           *server = "www.mediafire.com";

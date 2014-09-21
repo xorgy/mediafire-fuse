@@ -33,7 +33,7 @@ struct mfcmd {
     char           *name;
     char           *argstring;
     char           *help;
-    int             (*handler) (mfshell * mfshell, int argc, char **argv);
+    int             (*handler) (mfshell * mfshell, int argc, char *const argv[]);
 };
 
 struct mfshell {
@@ -57,7 +57,7 @@ mfshell        *mfshell_create(int app_id, char *app_key, char *server);
 
 int             mfshell_authenticate_user(mfshell * mfshell);
 
-int             mfshell_exec(mfshell * mfshell, int argc, char **argv);
+int             mfshell_exec(mfshell * mfshell, int argc, char *const argv[]);
 
 int             mfshell_exec_shell_command(mfshell * mfshell, char *command);
 

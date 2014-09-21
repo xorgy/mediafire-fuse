@@ -29,7 +29,7 @@
 #include "../../mfapi/mfconn.h"
 #include "../commands.h"        // IWYU pragma: keep
 
-int mfshell_cmd_get(mfshell * mfshell, int argc, char **argv)
+int mfshell_cmd_get(mfshell * mfshell, int argc, char *const argv[])
 {
     mffile         *file;
     int             len;

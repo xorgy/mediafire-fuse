@@ -25,7 +25,7 @@
 #include "../../mfapi/folder.h"
 #include "../commands.h"        // IWYU pragma: keep
 
-int mfshell_cmd_pwd(mfshell * mfshell, int argc, char **argv)
+int mfshell_cmd_pwd(mfshell * mfshell, int argc, char *const argv[])
 {
     (void)argv;
     const char     *folder_name;

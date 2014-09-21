@@ -217,11 +217,11 @@ const char     *file_get_onetime_link(mffile * file)
     return file->onetime_link;
 }
 
-ssize_t file_download_direct(mffile * file, char *local_dir)
+ssize_t file_download_direct(mffile * file, const char *local_dir)
 {
     const char     *url;
     const char     *file_name;
-    char           *file_path;
+    const char     *file_path;
     struct stat     file_info;
     ssize_t         bytes_read = 0;
     int             retval;
@@ -258,7 +258,7 @@ ssize_t file_download_direct(mffile * file, char *local_dir)
     memset(&file_info, 0, sizeof(file_info));
     retval = stat(file_path, &file_info);
 
-    free(file_path);
+    free((void *)file_path);
 
     if (retval != 0)
         return -1;

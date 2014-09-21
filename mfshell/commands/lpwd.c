@@ -25,7 +25,7 @@
 #include "../mfshell.h"
 #include "../commands.h"        // IWYU pragma: keep
 
-int mfshell_cmd_lpwd(mfshell * mfshell, int argc, char **argv)
+int mfshell_cmd_lpwd(mfshell * mfshell, int argc, char *const argv[])
 {
     (void)argv;
     if (mfshell == NULL)

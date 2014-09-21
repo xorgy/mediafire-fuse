@@ -30,7 +30,7 @@ static int      _decode_user_get_info(mfhttp * conn, void *data);
 
 int mfconn_api_user_get_info(mfconn * conn)
 {
-    char           *api_call;
+    const char     *api_call;
     int             retval;
     mfhttp         *http;
 
@@ -46,7 +46,7 @@ int mfconn_api_user_get_info(mfconn * conn)
     retval = http_get_buf(http, api_call, _decode_user_get_info, NULL);
     http_destroy(http);
 
-    free(api_call);
+    free((void *)api_call);
 
     return retval;
 }
@@ -69,15 +69,15 @@ static int _decode_user_get_info(mfhttp * conn, void *data)
 
     email = json_object_get(node, "email");
     if (email != NULL)
-        printf("Email: %s\n\r", (char *)json_string_value(email));
+        printf("Email: %s\n\r", json_string_value(email));
 
     first_name = json_object_get(node, "first_name");
     if (first_name != NULL)
-        printf("Name: %s ", (char *)json_string_value(first_name));
+        printf("Name: %s ", json_string_value(first_name));
 
     last_name = json_object_get(node, "last_name");
     if (node != NULL)
-        printf("%s", (char *)json_string_value(last_name));
+        printf("%s", json_string_value(last_name));
 
     printf("\n\r");
 
