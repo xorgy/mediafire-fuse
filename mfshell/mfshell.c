@@ -149,6 +149,7 @@ void mfshell_destroy(mfshell * shell)
     free(shell->server);
     free(shell->local_working_dir);
     folder_free(shell->folder_curr);
-    mfconn_destroy(shell->conn);
+    if (shell->conn != NULL)
+        mfconn_destroy(shell->conn);
     free(shell);
 }
