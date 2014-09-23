@@ -25,6 +25,8 @@ struct mfshell_user_options {
     char *command;
     char *server;
     char *config;
+    int app_id;
+    char *api_key;
 };
 
 void print_help(const char *cmd);

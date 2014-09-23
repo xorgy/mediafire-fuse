@@ -35,6 +35,8 @@ void print_help(const char *cmd)
     fprintf(stderr, "  -u, --username=<USER> Login username\n");
     fprintf(stderr, "  -p, --password=<PASS> Login password\n");
     fprintf(stderr, "  -s, --server=<SERVER> Login server\n");
+    fprintf(stderr, "  -i, --app-id=<id>     App ID\n");
+    fprintf(stderr, "  -k, --api-key=<key>   API Key\n");
     fprintf(stderr, "\n");
     fprintf(stderr,
             "Username and password are optional. If not given, they\n"
@@ -72,6 +74,8 @@ void parse_argv(int argc, char *const argv[], struct mfshell_user_options *opts)
         {"username", required_argument, 0, 'u'},
         {"password", required_argument, 0, 'p'},
         {"server", required_argument, 0, 's'},
+        {"app-id", required_argument, 0, 'i'},
+        {"api-key", required_argument, 0, 'k'},
         {"help", no_argument, 0, 'h'},
         {"version", no_argument, 0, 'v'},
         {0, 0, 0, 0}
@@ -107,6 +111,12 @@ void parse_argv(int argc, char *const argv[], struct mfshell_user_options *opts)
             case 'f':
                 if (opts->config == NULL)
                     opts->config = strdup(optarg);
+            case 'i':
+                if (opts->app_id == -1)
+                    opts->app_id = atoi(optarg);
+            case 'k':
+                if (opts->api_key == NULL)
+                    opts->api_key = strdup(optarg);
             case 'h':
                 print_help(argv[0]);
                 exit(0);

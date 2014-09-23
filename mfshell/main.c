@@ -37,7 +37,9 @@ int main(int argc, char *const argv[])
         .password = NULL,
         .command = NULL,
         .server = NULL,
-        .config = NULL
+        .config = NULL,
+        .app_id = -1,
+        .api_key = NULL,
     };
 
     SSL_library_init();
@@ -52,7 +54,12 @@ int main(int argc, char *const argv[])
         opts.server = strdup("www.mediafire.com");
     }
 
-    shell = mfshell_create(35860, NULL,
+    // if app_id was neither set on the commandline nor in the config, set it
+    // to the default value
+    if (opts.app_id == -1)
+        opts.app_id = 42709;
+
+    shell = mfshell_create(opts.app_id, opts.api_key,
                            opts.server);
     if (shell == NULL) {
         fprintf(stderr, "cannot create shell\n");
@@ -92,6 +99,8 @@ int main(int argc, char *const argv[])
         free(opts.command);
     if (opts.config != NULL)
         free(opts.config);
+    if (opts.api_key != NULL)
+        free(opts.api_key);
 
     return 0;
 }
