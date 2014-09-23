@@ -18,6 +18,10 @@ target_link_libraries(mediafire-shell curl ssl crypto jansson mfapi mfutils)
 
 enable_testing()
 
+add_executable(mediafire-fuse fuse/main.c)
+set_target_properties(mediafire-fuse PROPERTIES COMPILE_FLAGS "-Wall -Wextra -Werror -D_FILE_OFFSET_BITS=64")
+target_link_libraries(mediafire-fuse curl ssl fuse)
+
 add_test(iwyu ${CMAKE_SOURCE_DIR}/tests/iwyu.py ${CMAKE_BINARY_DIR})
 add_test(indent ${CMAKE_SOURCE_DIR}/tests/indent.sh ${CMAKE_SOURCE_DIR})
 add_test(valgrind ${CMAKE_SOURCE_DIR}/tests/valgrind.sh ${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR})
