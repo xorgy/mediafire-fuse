@@ -25,6 +25,7 @@
 #include <string.h>
 #include <wordexp.h>
 
+#include "../utils/strings.h"
 #include "mfshell.h"
 
 static void     mfshell_run(mfshell * shell);
@@ -124,6 +125,7 @@ int main(int argc, char *const argv[])
     char           *username = NULL;
     char           *password = NULL;
     char           *command = NULL;
+    char           *auth_cmd;
 
     SSL_library_init();
 
@@ -131,6 +133,16 @@ int main(int argc, char *const argv[])
 
     shell = mfshell_create(35860, "2c6dq0gb2sr8rgsue5a347lzpjnaay46yjazjcjg",
                            server);
+
+    if (username != NULL) {
+        if (password != NULL) {
+            auth_cmd = strdup_printf("auth %s %s", username, password);
+        } else {
+            auth_cmd = strdup_printf("auth %s", username);
+        }
+        mfshell_parse_commands(shell, auth_cmd);
+        free(auth_cmd);
+    }
 
     if (command == NULL) {
         // begin shell mode
