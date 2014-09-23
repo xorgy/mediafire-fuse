@@ -143,6 +143,83 @@ int mfshell_exec_shell_command(mfshell * shell, char *command)
     return 0;
 }
 
+void mfshell_parse_commands(mfshell * shell, char *command)
+{
+    char           *next;
+    int             ret;
+    wordexp_t       p;
+
+    // FIXME: don't split by semicolon but by unescaped/unquoted semicolon
+    while ((next = strsep(&command, ";")) != NULL) {
+        // FIXME: handle non-zero return value of wordexp
+        ret = wordexp(next, &p, WRDE_SHOWERR | WRDE_UNDEF);
+        if (ret != 0) {
+            switch (ret) {
+                case WRDE_BADCHAR:
+                    fprintf(stderr, "wordexp: WRDE_BADCHAR\n");
+                    break;
+                case WRDE_BADVAL:
+                    fprintf(stderr, "wordexp: WRDE_BADVAL\n");
+                    break;
+                case WRDE_CMDSUB:
+                    fprintf(stderr, "wordexp: WRDE_CMDSUB\n");
+                    break;
+                case WRDE_NOSPACE:
+                    fprintf(stderr, "wordexp: WRDE_NOSPACE\n");
+                    break;
+                case WRDE_SYNTAX:
+                    fprintf(stderr, "wordexp: WRDE_SYNTAX\n");
+                    break;
+            }
+        }
+        if (p.we_wordc < 1) {
+            fprintf(stderr, "Need more than zero arguments\n");
+            exit(1);
+        }
+        mfshell_exec(shell, p.we_wordc, p.we_wordv);
+        wordfree(&p);
+    }
+}
+
+void mfshell_run(mfshell * shell)
+{
+    char           *cmd = NULL;
+    size_t          len;
+    int             abort = 0;
+    int             retval;
+
+    do {
+        printf("\n\rmfshell > ");
+
+        retval = getline(&cmd, &len, stdin);
+        if (retval == -1) {
+            exit(1);
+        }
+
+        if (cmd[strlen(cmd) - 1] == '\n')
+            cmd[strlen(cmd) - 1] = '\0';
+
+        printf("\n\r");
+
+        if (strcmp(cmd, "exit") == 0) {
+            abort = 1;
+            continue;
+        }
+
+        if (strcmp(cmd, "quit") == 0) {
+            abort = 1;
+            continue;
+        }
+
+        retval = mfshell_exec_shell_command(shell, cmd);
+        free(cmd);
+        cmd = NULL;
+    }
+    while (abort == 0);
+
+    return;
+}
+
 void mfshell_destroy(mfshell * shell)
 {
     free(shell->app_key);

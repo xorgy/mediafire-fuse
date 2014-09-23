@@ -12,7 +12,7 @@ set_target_properties(mfapi PROPERTIES COMPILE_FLAGS "-Wall -Wextra -Werror")
 add_library(mfutils SHARED utils/http.c  utils/json.c  utils/strings.c  utils/stringv.c)
 set_target_properties(mfutils PROPERTIES COMPILE_FLAGS "-Wall -Wextra -Werror")
 
-add_executable(mediafire-shell mfshell/main.c mfshell/mfshell.c mfshell/commands/auth.c mfshell/commands/chdir.c mfshell/commands/debug.c mfshell/commands/file.c mfshell/commands/get.c mfshell/commands/help.c mfshell/commands/host.c mfshell/commands/lcd.c mfshell/commands/links.c mfshell/commands/list.c mfshell/commands/lpwd.c mfshell/commands/mkdir.c mfshell/commands/pwd.c mfshell/commands/whoami.c mfshell/commands/rmdir.c)
+add_executable(mediafire-shell mfshell/main.c mfshell/mfshell.c mfshell/commands/auth.c mfshell/commands/chdir.c mfshell/commands/debug.c mfshell/commands/file.c mfshell/commands/get.c mfshell/commands/help.c mfshell/commands/host.c mfshell/commands/lcd.c mfshell/commands/links.c mfshell/commands/list.c mfshell/commands/lpwd.c mfshell/commands/mkdir.c mfshell/commands/pwd.c mfshell/commands/whoami.c mfshell/commands/rmdir.c mfshell/config.c mfshell/options.c)
 set_target_properties(mediafire-shell PROPERTIES COMPILE_FLAGS "-Wall -Wextra -Werror")
 target_link_libraries(mediafire-shell curl ssl crypto jansson mfapi mfutils)
 

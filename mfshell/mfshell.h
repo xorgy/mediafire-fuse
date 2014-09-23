@@ -61,6 +61,10 @@ int             mfshell_exec(mfshell * mfshell, int argc, char *const argv[]);
 
 int             mfshell_exec_shell_command(mfshell * mfshell, char *command);
 
+void            mfshell_parse_commands(mfshell * shell, char *command);
+
+void            mfshell_run(mfshell * shell);
+
 void            mfshell_destroy(mfshell * shell);
 
 #endif
