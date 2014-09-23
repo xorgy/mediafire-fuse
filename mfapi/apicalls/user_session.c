@@ -106,12 +106,15 @@ static int _decode_get_session_token(mfhttp * conn, void *user_ptr)
     root = http_parse_buf_json(conn, 0, &error);
 
     data = json_object_by_path(root, "response");
-    if (data == NULL)
+    if (data == NULL) {
+        fprintf(stderr, "json: no /response content\n");
         return -1;
+    }
 
     session_token = json_object_get(data, "session_token");
     if (session_token == NULL) {
         json_decref(root);
+        fprintf(stderr, "json: no /session_token content\n");
         return -1;
     }
 

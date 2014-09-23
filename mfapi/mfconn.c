@@ -66,8 +66,10 @@ mfconn         *mfconn_create(const char *server, const char *username,
 
     if (retval == 0)
         return conn;
-    else
+    else {
+        fprintf(stderr, "error: mfconn_api_user_get_session_token\n");
         return NULL;
+    }
 }
 
 void mfconn_destroy(mfconn * conn)
