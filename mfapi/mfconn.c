@@ -42,6 +42,18 @@ mfconn         *mfconn_create(const char *server, const char *username,
     mfconn         *conn;
     int             retval;
 
+    if (server == NULL)
+        return NULL;
+
+    if (username == NULL)
+        return NULL;
+
+    if (password == NULL)
+        return NULL;
+
+    if (app_id < 0)
+        return NULL;
+
     conn = (mfconn *) calloc(1, sizeof(mfconn));
 
     conn->server = strdup(server);
