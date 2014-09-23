@@ -16,20 +16,19 @@
  *
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <termios.h>
-#include <unistd.h>
-
-#include <openssl/ssl.h>
-
 #define FUSE_USE_VERSION 30
 
-#include <fuse.h>
-#include <stdio.h>
-#include <string.h>
 #include <errno.h>
-#include <fcntl.h>
+#include <fuse/fuse.h>
+#include <fuse/fuse_opt.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+#include "../mfapi/mfconn.h"
 
 enum
 {
@@ -37,12 +36,17 @@ enum
     KEY_VERSION,
 };
 
+mfconn *conn;
+
 struct mediafirefs_user_options {
     char *username;
     char *password;
     char *configfile;
+    char *server;
+    int app_id;
+    char *api_key;
 } mediafirefs_user_options = {
-    NULL, NULL, NULL
+    NULL, NULL, NULL, NULL, -1, NULL
 };
 
 static struct fuse_opt mediafirefs_opts[] = {
@@ -51,11 +55,16 @@ static struct fuse_opt mediafirefs_opts[] = {
     FUSE_OPT_KEY("-V", KEY_VERSION),
     FUSE_OPT_KEY("--version", KEY_VERSION),
     {"-c %s", offsetof(struct mediafirefs_user_options, configfile), 0},
-    {"--configfile=%s", offsetof(struct mediafirefs_user_options, configfile), 0},
+    {"--config=%s", offsetof(struct mediafirefs_user_options, configfile), 0},
     {"-u %s", offsetof(struct mediafirefs_user_options, username), 0},
     {"--username %s", offsetof(struct mediafirefs_user_options, username), 0},
     {"-p %s", offsetof(struct mediafirefs_user_options, password), 0},
     {"--password %s", offsetof(struct mediafirefs_user_options, password), 0},
+    {"--server %s", offsetof(struct mediafirefs_user_options, server), 0},
+    {"-i %d", offsetof(struct mediafirefs_user_options, app_id), 0},
+    {"--app-id %d", offsetof(struct mediafirefs_user_options, app_id), 0},
+    {"-k %s", offsetof(struct mediafirefs_user_options, api_key), 0},
+    {"--api-key %s", offsetof(struct mediafirefs_user_options, api_key), 0},
     FUSE_OPT_END
 };
 
@@ -64,14 +73,20 @@ static void usage(const char *progname)
     fprintf(stderr, "Usage %s [options] mountpoint\n"
             "\n"
             "general options:\n"
-            "    -o opt[,opt...] mount options\n"
-            "    -h, --help      show this help\n"
-            "    -V, --version   show version information\n"
+            "    -o opt[,opt...]        mount options\n"
+            "    -h, --help             show this help\n"
+            "    -V, --version          show version information\n"
             "\n"
             "MediaFire FS options:\n"
-            "    -o user=str     username\n"
-            "    -o password=str password\n"
-            "    -c config=str   configuration file\n"
+            "    -o, --username str     username\n"
+            "    -p, --password str     password\n"
+            "    -c, --config file      configuration file\n"
+            "    --server domain        server domain\n"
+            "    -i, --app-id id        App ID\n"
+            "    -k, --api-key key      API Key\n"
+            "\n"
+            "Notice that long options are separated from their arguments by\n"
+            "a space and not an equal sign.\n"
             "\n", progname);
 }
 
@@ -160,5 +175,31 @@ main(int argc, char *argv[])
     {
         exit(1);
     }
+
+    if (mediafirefs_user_options.app_id == -1) {
+        mediafirefs_user_options.app_id = 42709;
+    }
+
+    if (mediafirefs_user_options.server == NULL) {
+        mediafirefs_user_options.server = "www.mediafire.com";
+    }
+
+    if (mediafirefs_user_options.username == NULL ||
+        mediafirefs_user_options.password == NULL) {
+        fprintf(stderr, "You must specify username and pasword\n");
+        exit(1);
+    }
+
+    conn = mfconn_create(mediafirefs_user_options.server,
+            mediafirefs_user_options.username,
+            mediafirefs_user_options.password,
+            mediafirefs_user_options.app_id,
+            mediafirefs_user_options.api_key);
+
+    if (conn == NULL) {
+        fprintf(stderr, "Cannot establish connection\n");
+        exit(1);
+    }
+
     return fuse_main(args.argc, args.argv, &mediafirefs_oper, NULL);
 }
