@@ -65,11 +65,11 @@ mfconn_api_user_get_session_token(mfconn * conn, const char *server,
 
     post_args = strdup_printf("email=%s"
                               "&password=%s"
-                              "&application_id=35860"
+                              "&application_id=%d"
                               "&signature=%s"
                               "&token_version=2"
                               "&response_format=json",
-                              username, password, user_signature);
+                              username, password, app_id, user_signature);
     free((void *)user_signature);
 
     http = http_create();
