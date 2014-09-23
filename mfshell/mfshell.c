@@ -56,8 +56,6 @@ mfshell        *mfshell_create(int app_id, char *app_key, char *server)
 
     if (app_id <= 0)
         return NULL;
-    if (app_key == NULL)
-        return NULL;
     if (server == NULL)
         return NULL;
 
@@ -72,7 +70,11 @@ mfshell        *mfshell_create(int app_id, char *app_key, char *server)
     shell = (mfshell *) calloc(1, sizeof(mfshell));
 
     shell->app_id = app_id;
-    shell->app_key = strdup(app_key);
+    if (app_key == NULL) {
+        shell->app_key = NULL;
+    } else {
+        shell->app_key = strdup(app_key);
+    }
     shell->server = strdup(server);
 
     // object to track folder location
@@ -88,6 +90,9 @@ mfshell        *mfshell_create(int app_id, char *app_key, char *server)
 int mfshell_exec(mfshell * shell, int argc, char *const argv[])
 {
     mfcmd          *curr_cmd;
+
+    if (shell == NULL)
+        return -1;
 
     for (curr_cmd = shell->commands; curr_cmd->name != NULL; curr_cmd++) {
         if (strcmp(argv[0], curr_cmd->name) == 0) {
@@ -222,7 +227,8 @@ void mfshell_run(mfshell * shell)
 
 void mfshell_destroy(mfshell * shell)
 {
-    free(shell->app_key);
+    if (shell->app_key != NULL)
+        free(shell->app_key);
     free(shell->server);
     free(shell->local_working_dir);
     folder_free(shell->folder_curr);

@@ -94,8 +94,13 @@ const char     *mfconn_create_user_signature(mfconn * conn,
     if (conn == NULL)
         return NULL;
 
-    signature_raw = strdup_printf("%s%s%d%s",
-                                  username, password, app_id, app_key);
+    if (app_key == NULL) {
+        signature_raw = strdup_printf("%s%s%d",
+                                      username, password, app_id);
+    } else {
+        signature_raw = strdup_printf("%s%s%d%s",
+                                      username, password, app_id, app_key);
+    }
 
     SHA1((const unsigned char *)signature_raw,
          strlen(signature_raw), signature_enc);

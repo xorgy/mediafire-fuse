@@ -21,6 +21,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "../utils/strings.h"
 #include "mfshell.h"
@@ -51,8 +52,12 @@ int main(int argc, char *const argv[])
         opts.server = strdup("www.mediafire.com");
     }
 
-    shell = mfshell_create(35860, "2c6dq0gb2sr8rgsue5a347lzpjnaay46yjazjcjg",
+    shell = mfshell_create(35860, NULL,
                            opts.server);
+    if (shell == NULL) {
+        fprintf(stderr, "cannot create shell\n");
+        exit(1);
+    }
 
     // if at least username was set, authenticate automatically
     if (opts.username != NULL) {
