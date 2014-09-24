@@ -101,6 +101,7 @@ int mfshell_exec(mfshell * shell, int argc, char *const argv[])
             return curr_cmd->handler(shell, argc, argv);
         }
     }
+    fprintf(stderr, "Invalid command: %s", argv[0]);
     return -1;
 }
 

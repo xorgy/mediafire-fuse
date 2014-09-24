@@ -128,7 +128,7 @@ http_get_buf(mfhttp * conn, const char *url,
     curl_easy_setopt(conn->curl_handle, CURLOPT_WRITEFUNCTION,
                      http_write_buf_cb);
     curl_easy_setopt(conn->curl_handle, CURLOPT_WRITEDATA, (void *)conn);
-    //fprintf(stderr, "GET: %s\n", url);
+    fprintf(stderr, "GET: %s\n", url);
     retval = curl_easy_perform(conn->curl_handle);
     if (retval != CURLE_OK) {
         fprintf(stderr, "error curl_easy_perform %s\n\r", conn->error_buf);
@@ -172,7 +172,7 @@ http_write_buf_cb(char *data, size_t size, size_t nmemb, void *user_ptr)
     data_len = size * nmemb;
 
     if (data_len > 0) {
-        //fwrite(data, size, nmemb, stderr);
+        fwrite(data, size, nmemb, stderr);
         conn->write_buf = (char *)realloc(conn->write_buf,
                                           conn->write_buf_len + data_len);
         memcpy(conn->write_buf + conn->write_buf_len, data, data_len);

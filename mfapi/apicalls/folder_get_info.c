@@ -17,10 +17,12 @@
  *
  */
 
+#define _XOPEN_SOURCE // for strptime
 #include <jansson.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "../../utils/http.h"
 #include "../../utils/json.h"
@@ -74,9 +76,14 @@ static int _decode_folder_get_info(mfhttp * conn, void *data)
     json_t         *node;
     json_t         *folderkey;
     json_t         *folder_name;
+    json_t         *revision;
+    json_t         *epoch;
+    json_t         *created;
     json_t         *parent_folder;
     int             retval = 0;
     mffolder       *folder;
+    char           *ret;
+    struct tm       tm;
 
     if (data == NULL)
         return -1;
@@ -102,6 +109,27 @@ static int _decode_folder_get_info(mfhttp * conn, void *data)
     // infer that the parent folder must be root
     if (parent_folder == NULL && folderkey != NULL)
         folder_set_parent(folder, NULL);
+
+    revision = json_object_get(node, "revision");
+    if (revision != NULL) {
+        folder_set_revision(folder, atol(json_string_value(revision)));
+    }
+
+    epoch = json_object_get(node, "epoch");
+    if (epoch != NULL) {
+        folder_set_epoch(folder, atol(json_string_value(epoch)));
+    }
+
+    created = json_object_get(node, "created");
+    if (created != NULL) {
+        memset(&tm, 0, sizeof(struct tm));
+        ret = strptime(json_string_value(created), "%F %T", &tm);
+        if (ret[0] != '\0') {
+            fprintf(stderr, "cannot parse time\n");
+        } else {
+            folder_set_created(folder, mktime(&tm));
+        }
+    }
 
     if (folderkey == NULL)
         retval = -1;

@@ -20,6 +20,9 @@
 #ifndef __MFAPI_FOLDER_H__
 #define __MFAPI_FOLDER_H__
 
+#include <stdint.h>
+#include <time.h>
+
 typedef struct mffolder mffolder;
 
 mffolder       *folder_alloc(void);
@@ -37,5 +40,17 @@ const char     *folder_get_parent(mffolder * folder);
 int             folder_set_name(mffolder * folder, const char *name);
 
 const char     *folder_get_name(mffolder * folder);
+
+int             folder_set_revision(mffolder * folder, uint64_t revision);
+
+uint64_t        folder_get_revision(mffolder * folder);
+
+int             folder_set_epoch(mffolder * folder, time_t epoch);
+
+time_t          folder_get_epoch(mffolder * folder);
+
+int             folder_set_created(mffolder * folder, time_t created);
+
+time_t          folder_get_created(mffolder * folder);
 
 #endif

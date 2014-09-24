@@ -30,6 +30,8 @@ struct mffolder {
     uint64_t        revision;
     uint32_t        folder_count;
     uint32_t        file_count;
+    time_t          epoch;
+    time_t          created;
 };
 
 mffolder       *folder_alloc(void)
@@ -130,4 +132,55 @@ const char     *folder_get_name(mffolder * folder)
         return NULL;
 
     return folder->name;
+}
+
+int folder_set_revision(mffolder * folder, uint64_t revision)
+{
+    if (folder == NULL)
+        return -1;
+
+    folder->revision = revision;
+    return 0;
+}
+
+uint64_t folder_get_revision(mffolder * folder)
+{
+    if (folder == NULL)
+        return -1;
+
+    return folder->revision;
+}
+
+int folder_set_epoch(mffolder * folder, time_t epoch)
+{
+    if (folder == NULL)
+        return -1;
+
+    folder->epoch = epoch;
+    return 0;
+}
+
+time_t folder_get_epoch(mffolder * folder)
+{
+    if (folder == NULL)
+        return -1;
+
+    return folder->epoch;
+}
+
+int folder_set_created(mffolder * folder, time_t created)
+{
+    if (folder == NULL)
+        return -1;
+
+    folder->created = created;
+    return 0;
+}
+
+time_t folder_get_created(mffolder * folder)
+{
+    if (folder == NULL)
+        return -1;
+
+    return folder->created;
 }
