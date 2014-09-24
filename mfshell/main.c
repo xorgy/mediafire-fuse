@@ -32,6 +32,7 @@ int main(int argc, char *const argv[])
 {
     mfshell        *shell;
     char           *auth_cmd;
+
     struct mfshell_user_options opts = {
         .username = NULL,
         .password = NULL,
@@ -53,25 +54,21 @@ int main(int argc, char *const argv[])
     if (opts.server == NULL) {
         opts.server = strdup("www.mediafire.com");
     }
-
     // if app_id was neither set on the commandline nor in the config, set it
     // to the default value
     if (opts.app_id == -1)
         opts.app_id = 42709;
 
-    shell = mfshell_create(opts.app_id, opts.api_key,
-                           opts.server);
+    shell = mfshell_create(opts.app_id, opts.api_key, opts.server);
     if (shell == NULL) {
         fprintf(stderr, "cannot create shell\n");
         exit(1);
     }
-
     // if at least username was set, authenticate automatically
     if (opts.username != NULL) {
         if (opts.password != NULL) {
             auth_cmd = strdup_printf("auth %s %s",
-                                     opts.username,
-                                     opts.password);
+                                     opts.username, opts.password);
         } else {
             auth_cmd = strdup_printf("auth %s", opts.username);
         }

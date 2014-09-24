@@ -33,7 +33,8 @@ struct mfcmd {
     char           *name;
     char           *argstring;
     char           *help;
-    int             (*handler) (mfshell * mfshell, int argc, char *const argv[]);
+    int             (*handler) (mfshell * mfshell, int argc,
+                                char *const argv[]);
 };
 
 struct mfshell {

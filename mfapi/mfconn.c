@@ -109,8 +109,7 @@ const char     *mfconn_create_user_signature(mfconn * conn,
         return NULL;
 
     if (app_key == NULL) {
-        signature_raw = strdup_printf("%s%s%d",
-                                      username, password, app_id);
+        signature_raw = strdup_printf("%s%s%d", username, password, app_id);
     } else {
         signature_raw = strdup_printf("%s%s%d%s",
                                       username, password, app_id, app_key);
@@ -170,8 +169,7 @@ const char     *mfconn_create_call_signature(mfconn * conn, const char *url,
 }
 
 const char     *mfconn_create_signed_get(mfconn * conn, int ssl,
-                                         const char *api,
-                                         const char *fmt, ...)
+                                         const char *api, const char *fmt, ...)
 {
     char           *api_request = NULL;
     char           *api_args = NULL;

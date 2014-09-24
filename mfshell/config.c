@@ -30,27 +30,25 @@
 
 void parse_config(struct mfshell_user_options *opts)
 {
-    FILE *fp;
-    char *homedir;
+    FILE           *fp;
+    char           *homedir;
+
     // parse the configuration file
     // if a value is not set (it is NULL) then it has not been set by the
     // commandline and should be set by the configuration file
 
     // try set config file first if set
-    if (opts->config != NULL &&
-        (fp = fopen(opts->config, "r")) != NULL) {
+    if (opts->config != NULL && (fp = fopen(opts->config, "r")) != NULL) {
         parse_config_file(fp, opts);
         fclose(fp);
         return;
     }
-
     // try "./.mediafire-tools.conf" second
     if ((fp = fopen("./.mediafire-tools.conf", "r")) != NULL) {
         parse_config_file(fp, opts);
         fclose(fp);
         return;
     }
-
     // try "~/.mediafire-tools.conf" third
     if ((homedir = getenv("HOME")) == NULL) {
         homedir = getpwuid(getuid())->pw_dir;
@@ -63,17 +61,18 @@ void parse_config(struct mfshell_user_options *opts)
     free(homedir);
 }
 
-void parse_config_file(FILE *fp, struct mfshell_user_options *opts)
+void parse_config_file(FILE * fp, struct mfshell_user_options *opts)
 {
     // read the config file line by line and pass each line to wordexp to
     // retain proper quoting
-    char *line = NULL;
-    size_t len = 0;
-    ssize_t read;
-    wordexp_t p;
-    int ret, i;
-    int argc;
-    char **argv;
+    char           *line = NULL;
+    size_t          len = 0;
+    ssize_t         read;
+    wordexp_t       p;
+    int             ret,
+                    i;
+    int             argc;
+    char          **argv;
 
     while ((read = getline(&line, &len, fp)) != -1) {
         if (line[0] == '#')
@@ -108,10 +107,10 @@ void parse_config_file(FILE *fp, struct mfshell_user_options *opts)
         // parse it
         argc = p.we_wordc + 1;
         // allocate one more than argc for trailing NULL
-        argv = (char **)malloc(sizeof(char*)*(argc+1));
-        argv[0] = ""; // dummy program name
+        argv = (char **)malloc(sizeof(char *) * (argc + 1));
+        argv[0] = "";           // dummy program name
         for (i = 1; i < argc; i++)
-            argv[i] = p.we_wordv[i-1];
+            argv[i] = p.we_wordv[i - 1];
         argv[argc] = NULL;
         parse_argv(argc, argv, opts);
         free(argv);

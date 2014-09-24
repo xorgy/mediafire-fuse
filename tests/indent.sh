@@ -13,7 +13,6 @@ case $# in
 		;;
 esac
 
-ret=0
 find "$source_dir" -name "*.c" -o -name "*.h" | while read f; do
 	case $f in
 		${source_dir}/*/CMakeFiles/*)
@@ -21,10 +20,11 @@ find "$source_dir" -name "*.c" -o -name "*.h" | while read f; do
 		${source_dir}/CMakeFiles/*)
 			;;
 		*)
-			INDENT_PROFILE="${source_dir}/.indent.pro" indent -st "$f" | diff -u "$f" -
+			INDENT_PROFILE="${source_dir}/.indent.pro" indent -st "$f" | diff -u "$f" - >&2
 			ret=$((ret+$?))
+			echo $ret
 			;;
 	esac
+done | sort -n | tail --lines=1 | while read ret; do
+	exit $ret
 done
-
-exit $ret

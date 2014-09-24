@@ -136,8 +136,7 @@ void parse_argv(int argc, char *const argv[], struct mfshell_user_options *opts)
         exit(1);
     }
 
-    if (opts->password != NULL &&
-        opts->username == NULL) {
+    if (opts->password != NULL && opts->username == NULL) {
         fprintf(stderr, "You cannot pass the password without the username\n");
         exit(1);
     }

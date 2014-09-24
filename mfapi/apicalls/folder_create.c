@@ -25,7 +25,8 @@
 #include "../mfconn.h"
 #include "../apicalls.h"        // IWYU pragma: keep
 
-int mfconn_api_folder_create(mfconn * conn, const char *parent, const char *name)
+int mfconn_api_folder_create(mfconn * conn, const char *parent,
+                             const char *name)
 {
     const char     *api_call;
     int             retval;

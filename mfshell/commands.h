@@ -56,7 +56,7 @@ int             mfshell_cmd_file(mfshell * mfshell, int argc,
                                  char *const argv[]);
 
 int             mfshell_cmd_folder(mfshell * mfshell, int argc,
-                                 char *const argv[]);
+                                   char *const argv[]);
 
 int             mfshell_cmd_links(mfshell * mfshell, int argc,
                                   char *const argv[]);

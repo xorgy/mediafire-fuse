@@ -34,7 +34,7 @@
 
 int mfshell_cmd_folder(mfshell * mfshell, int argc, char *const argv[])
 {
-    mffolder         *folder;
+    mffolder       *folder;
     int             retval;
     const char     *folderkey;
     const char     *name;
@@ -93,7 +93,7 @@ int mfshell_cmd_folder(mfshell * mfshell, int argc, char *const argv[])
         printf("   %-15.15s   %s\n\r", "parent:", parent);
 
     if (revision != 0)
-        printf("   %-15.15s   %"PRIu32"\n\r", "revision:", revision);
+        printf("   %-15.15s   %" PRIu32 "\n\r", "revision:", revision);
 
     if (epoch != 0) {
         memset(&tm, 0, sizeof(struct tm));

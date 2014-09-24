@@ -42,8 +42,7 @@ mfconn_api_user_get_session_token(mfconn * conn, const char *server,
                                   const char *username, const char *password,
                                   int app_id, const char *app_key,
                                   uint32_t * secret_key,
-                                  char **secret_time,
-                                  char **session_token)
+                                  char **secret_time, char **session_token)
 {
     char           *login_url;
     char           *post_args;

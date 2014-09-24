@@ -52,15 +52,15 @@ mfconn_api_folder_get_content(mfconn * conn, int mode, mffolder * folder_curr)
     folderkey = folder_get_key(folder_curr);
     if (folderkey == NULL) {
         api_call = mfconn_create_signed_get(conn, 0, "folder/get_content.php",
-                                        "?content_type=%s"
-                                        "&response_format=json",
-                                        content_type);
+                                            "?content_type=%s"
+                                            "&response_format=json",
+                                            content_type);
     } else {
         api_call = mfconn_create_signed_get(conn, 0, "folder/get_content.php",
-                                        "?folder_key=%s"
-                                        "&content_type=%s"
-                                        "&response_format=json",
-                                        folderkey, content_type);
+                                            "?folder_key=%s"
+                                            "&content_type=%s"
+                                            "&response_format=json",
+                                            folderkey, content_type);
     }
 
     http = http_create();

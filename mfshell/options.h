@@ -20,17 +20,18 @@
 #define _MFSHELL_OPTIONS_H_
 
 struct mfshell_user_options {
-    char *username;
-    char *password;
-    char *command;
-    char *server;
-    char *config;
-    int app_id;
-    char *api_key;
+    char           *username;
+    char           *password;
+    char           *command;
+    char           *server;
+    char           *config;
+    int             app_id;
+    char           *api_key;
 };
 
-void print_help(const char *cmd);
+void            print_help(const char *cmd);
 
-void parse_argv(int argc, char *const argv[], struct mfshell_user_options *opts);
+void            parse_argv(int argc, char *const argv[],
+                           struct mfshell_user_options *opts);
 
 #endif

@@ -17,7 +17,7 @@
  *
  */
 
-#define _XOPEN_SOURCE // for strptime
+#define _XOPEN_SOURCE           // for strptime
 #include <jansson.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,7 +33,8 @@
 static int      _decode_folder_get_info(mfhttp * conn, void *data);
 
 int
-mfconn_api_folder_get_info(mfconn * conn, mffolder * folder, const char *folderkey)
+mfconn_api_folder_get_info(mfconn * conn, mffolder * folder,
+                           const char *folderkey)
 {
     const char     *api_call;
     int             retval;
@@ -56,8 +57,7 @@ mfconn_api_folder_get_info(mfconn * conn, mffolder * folder, const char *folderk
     } else {
         api_call = mfconn_create_signed_get(conn, 0, "folder/get_info.php",
                                             "?folder_key=%s"
-                                            "&response_format=json",
-                                            folderkey);
+                                            "&response_format=json", folderkey);
     }
 
     http = http_create();

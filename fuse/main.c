@@ -30,24 +30,22 @@
 
 #include "../mfapi/mfconn.h"
 
-enum
-{
+enum {
     KEY_HELP,
     KEY_VERSION,
 };
 
-mfconn *conn;
+mfconn         *conn;
 
 struct mediafirefs_user_options {
-    char *username;
-    char *password;
-    char *configfile;
-    char *server;
-    int app_id;
-    char *api_key;
+    char           *username;
+    char           *password;
+    char           *configfile;
+    char           *server;
+    int             app_id;
+    char           *api_key;
 } mediafirefs_user_options = {
-    NULL, NULL, NULL, NULL, -1, NULL
-};
+NULL, NULL, NULL, NULL, -1, NULL};
 
 static struct fuse_opt mediafirefs_opts[] = {
     FUSE_OPT_KEY("-h", KEY_HELP),
@@ -86,8 +84,7 @@ static void usage(const char *progname)
             "    -k, --api-key key      API Key\n"
             "\n"
             "Notice that long options are separated from their arguments by\n"
-            "a space and not an equal sign.\n"
-            "\n", progname);
+            "a space and not an equal sign.\n" "\n", progname);
 }
 
 static int mediafirefs_getattr(const char *path, struct stat *stbuf)
@@ -105,7 +102,8 @@ static int mediafirefs_getattr(const char *path, struct stat *stbuf)
 }
 
 static int mediafirefs_readdir(const char *path, void *buf,
-        fuse_fill_dir_t filldir, off_t offset, struct fuse_file_info *info)
+                               fuse_fill_dir_t filldir, off_t offset,
+                               struct fuse_file_info *info)
 {
     (void)path;
     (void)offset;
@@ -144,19 +142,17 @@ static int
 mediafirefs_opt_proc(void *data, const char *arg, int key,
                      struct fuse_args *outargs)
 {
-    (void)data; // unused
-    (void)arg; // unused
+    (void)data;                 // unused
+    (void)arg;                  // unused
 
-    if(key == KEY_HELP)
-    {
+    if (key == KEY_HELP) {
         usage(outargs->argv[0]);
         fuse_opt_add_arg(outargs, "-ho");
         fuse_main(outargs->argc, outargs->argv, &mediafirefs_oper, NULL);
         exit(0);
     }
 
-    if(key == KEY_VERSION)
-    {
+    if (key == KEY_VERSION) {
         fuse_opt_add_arg(outargs, "--version");
         fuse_main(outargs->argc, outargs->argv, &mediafirefs_oper, NULL);
         exit(0);
@@ -165,14 +161,13 @@ mediafirefs_opt_proc(void *data, const char *arg, int key,
     return 1;
 }
 
-int
-main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
     struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
-    if(fuse_opt_parse
-       (&args, &mediafirefs_user_options, mediafirefs_opts,
-        mediafirefs_opt_proc) == -1)
-    {
+
+    if (fuse_opt_parse
+        (&args, &mediafirefs_user_options, mediafirefs_opts,
+         mediafirefs_opt_proc) == -1) {
         exit(1);
     }
 
@@ -191,10 +186,10 @@ main(int argc, char *argv[])
     }
 
     conn = mfconn_create(mediafirefs_user_options.server,
-            mediafirefs_user_options.username,
-            mediafirefs_user_options.password,
-            mediafirefs_user_options.app_id,
-            mediafirefs_user_options.api_key);
+                         mediafirefs_user_options.username,
+                         mediafirefs_user_options.password,
+                         mediafirefs_user_options.app_id,
+                         mediafirefs_user_options.api_key);
 
     if (conn == NULL) {
         fprintf(stderr, "Cannot establish connection\n");
