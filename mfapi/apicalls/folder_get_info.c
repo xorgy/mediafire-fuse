@@ -77,7 +77,6 @@ static int _decode_folder_get_info(mfhttp * conn, void *data)
     json_t         *folderkey;
     json_t         *folder_name;
     json_t         *revision;
-    json_t         *epoch;
     json_t         *created;
     json_t         *parent_folder;
     int             retval = 0;
@@ -113,11 +112,6 @@ static int _decode_folder_get_info(mfhttp * conn, void *data)
     revision = json_object_get(node, "revision");
     if (revision != NULL) {
         folder_set_revision(folder, atol(json_string_value(revision)));
-    }
-
-    epoch = json_object_get(node, "epoch");
-    if (epoch != NULL) {
-        folder_set_epoch(folder, atol(json_string_value(epoch)));
     }
 
     created = json_object_get(node, "created");

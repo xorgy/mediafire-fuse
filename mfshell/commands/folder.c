@@ -40,7 +40,6 @@ int mfshell_cmd_folder(mfshell * mfshell, int argc, char *const argv[])
     const char     *name;
     const char     *parent;
     uint32_t        revision;
-    time_t          epoch;
     time_t          created;
     char            ftime[max_time_len];
     size_t          ftime_ret;
@@ -80,7 +79,6 @@ int mfshell_cmd_folder(mfshell * mfshell, int argc, char *const argv[])
     name = folder_get_name(folder);
     parent = folder_get_parent(folder);
     revision = folder_get_revision(folder);
-    epoch = folder_get_epoch(folder);
     created = folder_get_created(folder);
 
     if (name != NULL && name[0] != '\0')
@@ -94,15 +92,6 @@ int mfshell_cmd_folder(mfshell * mfshell, int argc, char *const argv[])
 
     if (revision != 0)
         printf("   %-15.15s   %" PRIu32 "\n\r", "revision:", revision);
-
-    if (epoch != 0) {
-        memset(&tm, 0, sizeof(struct tm));
-        gmtime_r(&epoch, &tm);
-        // print ISO-8601 date followed by 24-hour time
-        ftime_ret = strftime(ftime, max_time_len, "%F %T", &tm);
-        if (ftime_ret != 0)
-            printf("   %-15.15s   %s\n\r", "epoch:", ftime);
-    }
 
     if (created != 0) {
         gmtime_r(&created, &tm);

@@ -37,7 +37,6 @@ int mfshell_cmd_status(mfshell * mfshell, int argc, char *const argv[])
         fprintf(stderr, "Invalid number of arguments\n");
         return -1;
     }
-
     // then files
     retval = mfconn_api_device_get_status(mfshell->conn);
     mfconn_update_secret_key(mfshell->conn);

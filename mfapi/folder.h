@@ -45,10 +45,6 @@ int             folder_set_revision(mffolder * folder, uint64_t revision);
 
 uint64_t        folder_get_revision(mffolder * folder);
 
-int             folder_set_epoch(mffolder * folder, time_t epoch);
-
-time_t          folder_get_epoch(mffolder * folder);
-
 int             folder_set_created(mffolder * folder, time_t created);
 
 time_t          folder_get_created(mffolder * folder);

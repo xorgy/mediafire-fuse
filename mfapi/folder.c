@@ -148,23 +148,6 @@ uint64_t folder_get_revision(mffolder * folder)
     return folder->revision;
 }
 
-int folder_set_epoch(mffolder * folder, time_t epoch)
-{
-    if (folder == NULL)
-        return -1;
-
-    folder->epoch = epoch;
-    return 0;
-}
-
-time_t folder_get_epoch(mffolder * folder)
-{
-    if (folder == NULL)
-        return -1;
-
-    return folder->epoch;
-}
-
 int folder_set_created(mffolder * folder, time_t created)
 {
     if (folder == NULL)
