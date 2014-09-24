@@ -35,7 +35,7 @@ struct mfcmd    commands[] = {
     {"whoami", "", "show basic user info", mfshell_cmd_whoami},
     {"ls", "", "show contents of active folder",
      mfshell_cmd_list},
-    {"cd", "[folderkey]", "change active folder", mfshell_cmd_chdir},
+    {"cd", "<folderkey>", "change active folder (default: root)", mfshell_cmd_chdir},
     {"pwd", "", "show the active folder", mfshell_cmd_pwd},
     {"lpwd", "", "show the local working directory",
      mfshell_cmd_lpwd},
@@ -43,6 +43,7 @@ struct mfcmd    commands[] = {
      mfshell_cmd_lcd},
     {"mkdir", "[folder name]", "create a new folder", mfshell_cmd_mkdir},
     {"file", "[quickkey]", "show file information", mfshell_cmd_file},
+    {"folder", "<folderkey>", "show folder information (default:root)", mfshell_cmd_folder},
     {"links", "[quickkey]", "show access urls for the file",
      mfshell_cmd_links},
     {"get", "[quickkey]", "download a file", mfshell_cmd_get},
@@ -79,7 +80,8 @@ mfshell        *mfshell_create(int app_id, char *app_key, char *server)
 
     // object to track folder location
     shell->folder_curr = folder_alloc();
-    folder_set_key(shell->folder_curr, "myfiles");
+    // set current folder to root
+    folder_set_key(shell->folder_curr, NULL);
 
     // shell commands
     shell->commands = commands;

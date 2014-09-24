@@ -41,14 +41,6 @@ int mfshell_cmd_list(mfshell * mfshell, int argc, char *const argv[])
 
     folder_curr = folder_get_key(mfshell->folder_curr);
 
-    // safety check... this should never happen
-    if (folder_curr == NULL)
-        folder_set_key(mfshell->folder_curr, "myfiles");
-
-    // safety check... this should never happen
-    if (folder_curr[0] == '\0')
-        folder_set_key(mfshell->folder_curr, "myfiles");
-
     // first folders
     retval =
         mfconn_api_folder_get_content(mfshell->conn, 0, mfshell->folder_curr);

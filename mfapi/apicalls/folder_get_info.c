@@ -31,7 +31,7 @@
 static int      _decode_folder_get_info(mfhttp * conn, void *data);
 
 int
-mfconn_api_folder_get_info(mfconn * conn, mffolder * folder, char *folderkey)
+mfconn_api_folder_get_info(mfconn * conn, mffolder * folder, const char *folderkey)
 {
     const char     *api_call;
     int             retval;
@@ -42,18 +42,21 @@ mfconn_api_folder_get_info(mfconn * conn, mffolder * folder, char *folderkey)
 
     if (folder == NULL)
         return -1;
-    if (folderkey == NULL)
-        return -1;
 
-    // key must either be 11 chars or "myfiles"
-    if (strlen(folderkey) != 13) {
-        if (strcmp(folderkey, "myfiles") == 0)
-            return -1;
+    // key must either be 13 chars or NULL
+    if (folderkey != NULL && strlen(folderkey) != 13) {
+        return -1;
     }
 
-    api_call = mfconn_create_signed_get(conn, 0, "folder/get_info.php",
-                                        "?folder_key=%s&response_format=json",
-                                        folderkey);
+    if (folderkey == NULL) {
+        api_call = mfconn_create_signed_get(conn, 0, "folder/get_info.php",
+                                            "?response_format=json");
+    } else {
+        api_call = mfconn_create_signed_get(conn, 0, "folder/get_info.php",
+                                            "?folder_key=%s"
+                                            "&response_format=json",
+                                            folderkey);
+    }
 
     http = http_create();
     retval = http_get_buf(http, api_call, _decode_folder_get_info, folder);
@@ -96,9 +99,9 @@ static int _decode_folder_get_info(mfhttp * conn, void *data)
     if (parent_folder != NULL) {
         folder_set_parent(folder, json_string_value(parent_folder));
     }
-    // infer that the parent folder must be "myfiles" root
+    // infer that the parent folder must be root
     if (parent_folder == NULL && folderkey != NULL)
-        folder_set_parent(folder, "myfiles");
+        folder_set_parent(folder, NULL);
 
     if (folderkey == NULL)
         retval = -1;

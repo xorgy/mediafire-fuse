@@ -37,18 +37,17 @@ int mfshell_cmd_chdir(mfshell * mfshell, int argc, char *const argv[])
     if (mfshell == NULL)
         return -1;
 
-    if (argc != 2) {
-        fprintf(stderr, "Invalid number of arguments\n");
-        return -1;
+    switch (argc) {
+        case 1:
+            folderkey = NULL;
+            break;
+        case 2:
+            folderkey = argv[1];
+            break;
+        default:
+            fprintf(stderr, "Invalid number of arguments\n");
+            return -1;
     }
-
-    folderkey = argv[1];
-    if (folderkey == NULL)
-        return -1;
-
-    // change to root
-    if (strcmp(folderkey, "/") == 0)
-        folderkey = "myfiles";
 
     // user wants to navigate up a level
     if (strcmp(folderkey, "..") == 0) {
@@ -56,8 +55,6 @@ int mfshell_cmd_chdir(mfshell * mfshell, int argc, char *const argv[])
         folder_curr = folder_get_key(mfshell->folder_curr);
 
         if (folder_curr == NULL)
-            return 0;
-        if (strcmp(folder_curr, "myfiles") == 0)
             return 0;
 
         folder_parent = folder_get_parent(mfshell->folder_curr);
@@ -69,17 +66,15 @@ int mfshell_cmd_chdir(mfshell * mfshell, int argc, char *const argv[])
         folderkey = folder_parent;
     }
     // check the lenght of the key
-    if (strlen(folderkey) != 13) {
-        // as a folder moniker, "myfiles" is an exception
-        if (strcmp(folderkey, "myfiles") != 0)
-            return -1;
+    if (folderkey != NULL && strlen(folderkey) != 13) {
+        return -1;
     }
     // create a new folder object to store the results
     folder_new = folder_alloc();
 
     // navigate to root is a special case
-    if (strcmp(folderkey, "myfiles") == 0) {
-        folder_set_key(folder_new, "myfiles");
+    if (folderkey == NULL) {
+        folder_set_key(folder_new, NULL);
         retval = 0;
     } else {
         retval = mfconn_api_folder_get_info(mfshell->conn,

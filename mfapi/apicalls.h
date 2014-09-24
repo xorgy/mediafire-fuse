@@ -32,14 +32,14 @@ int             mfconn_api_file_get_info(mfconn * conn, mffile * file,
 int             mfconn_api_file_get_links(mfconn * conn, mffile * file,
                                           char *quickkey);
 
-int             mfconn_api_folder_create(mfconn * conn, char *parent,
-                                         char *name);
+int             mfconn_api_folder_create(mfconn * conn, const char *parent,
+                                         const char *name);
 
 long            mfconn_api_folder_get_content(mfconn * conn, int mode,
                                               mffolder * folder_curr);
 
 int             mfconn_api_folder_get_info(mfconn * conn, mffolder * folder,
-                                           char *folderkey);
+                                           const char *folderkey);
 
 int             mfconn_api_user_get_info(mfconn * conn);
 

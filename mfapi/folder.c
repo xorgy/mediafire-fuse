@@ -55,14 +55,16 @@ int folder_set_key(mffolder * folder, const char *key)
 {
     if (folder == NULL)
         return -1;
-    if (key == NULL)
-        return -1;
 
-    if (strlen(key) != 13)
-        return -1;
+    if (key == NULL) {
+        memset(folder->folderkey, 0, sizeof(folder->folderkey));
+    } else {
+        if (strlen(key) != 13)
+            return -1;
 
-    memset(folder->folderkey, 0, sizeof(folder->folderkey));
-    strncpy(folder->folderkey, key, sizeof(folder->folderkey) - 1);
+        memset(folder->folderkey, 0, sizeof(folder->folderkey));
+        strncpy(folder->folderkey, key, sizeof(folder->folderkey) - 1);
+    }
 
     return 0;
 }
@@ -72,23 +74,28 @@ const char     *folder_get_key(mffolder * folder)
     if (folder == NULL)
         return NULL;
 
-    return folder->folderkey;
+    if (folder->folderkey[0] == '\0') {
+        return NULL;
+    } else {
+        return folder->folderkey;
+    }
 }
 
 int folder_set_parent(mffolder * folder, const char *parent_key)
 {
     if (folder == NULL)
         return -1;
-    if (parent_key == NULL)
-        return -1;
 
-    if (strlen(parent_key) != 13) {
-        if (strcmp(parent_key, "myfiles") != 0)
+    if (parent_key == NULL) {
+        memset(folder->parent, 0, sizeof(folder->parent));
+    } else {
+        if (strlen(parent_key) != 13) {
             return -1;
-    }
+        }
 
-    memset(folder->parent, 0, sizeof(folder->parent));
-    strncpy(folder->parent, parent_key, sizeof(folder->parent) - 1);
+        memset(folder->parent, 0, sizeof(folder->parent));
+        strncpy(folder->parent, parent_key, sizeof(folder->parent) - 1);
+    }
 
     return 0;
 }

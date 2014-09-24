@@ -25,7 +25,7 @@
 #include "../mfconn.h"
 #include "../apicalls.h"        // IWYU pragma: keep
 
-int mfconn_api_folder_create(mfconn * conn, char *parent, char *name)
+int mfconn_api_folder_create(mfconn * conn, const char *parent, const char *name)
 {
     const char     *api_call;
     int             retval;
@@ -39,19 +39,15 @@ int mfconn_api_folder_create(mfconn * conn, char *parent, char *name)
     if (strlen(name) < 1)
         return -1;
 
-    // key must either be 11 chars or "myfiles"
-    if (parent != NULL) {
-        if (strlen(parent) != 13) {
-            // if it is myfiles, set paret to NULL
-            if (strcmp(parent, "myfiles") == 0)
-                parent = NULL;
-        }
+    // key must either be 13 chars or NULL
+    if (parent != NULL && strlen(parent) != 13) {
+        return -1;
     }
 
     if (parent != NULL) {
         api_call =
             mfconn_create_signed_get(conn, 0, "folder/create.php",
-                                     "?parent_key=%s" "&foldername=%s"
+                                     "?parent_key=%s&foldername=%s"
                                      "&response_format=json", parent, name);
     } else {
         api_call =
