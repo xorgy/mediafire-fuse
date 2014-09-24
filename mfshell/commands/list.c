@@ -21,7 +21,6 @@
 
 #include "../../mfapi/apicalls.h"
 #include "../mfshell.h"
-#include "../../mfapi/folder.h"
 #include "../../mfapi/mfconn.h"
 #include "../commands.h"        // IWYU pragma: keep
 
@@ -37,7 +36,6 @@ int mfshell_cmd_list(mfshell * mfshell, int argc, char *const argv[])
         fprintf(stderr, "Invalid number of arguments\n");
         return -1;
     }
-
     // first folders
     retval =
         mfconn_api_folder_get_content(mfshell->conn, 0, mfshell->folder_curr);
