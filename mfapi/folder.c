@@ -28,9 +28,6 @@ struct mffolder {
     char            name[41];
     char            parent[20];
     uint64_t        revision;
-    uint32_t        folder_count;
-    uint32_t        file_count;
-    time_t          epoch;
     time_t          created;
 };
 
