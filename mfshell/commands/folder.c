@@ -100,14 +100,16 @@ int mfshell_cmd_folder(mfshell * mfshell, int argc, char *const argv[])
         gmtime_r(&epoch, &tm);
         // print ISO-8601 date followed by 24-hour time
         ftime_ret = strftime(ftime, max_time_len, "%F %T", &tm);
-        printf("   %-15.15s   %s\n\r", "epoch:", ftime);
+        if (ftime_ret != 0)
+            printf("   %-15.15s   %s\n\r", "epoch:", ftime);
     }
 
     if (created != 0) {
         gmtime_r(&created, &tm);
         // print ISO-8601 date followed by 24-hour time
         ftime_ret = strftime(ftime, max_time_len, "%F %T", &tm);
-        printf("   %-15.15s   %s\n\r", "created:", ftime);
+        if (ftime_ret != 0)
+            printf("   %-15.15s   %s\n\r", "created:", ftime);
     }
 
     folder_free(folder);
