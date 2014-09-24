@@ -14,12 +14,14 @@ set_target_properties(mfutils PROPERTIES COMPILE_FLAGS "-Wall -Wextra -Werror")
 
 add_executable(mediafire-shell mfshell/main.c mfshell/mfshell.c mfshell/commands/folder.c mfshell/commands/auth.c mfshell/commands/chdir.c mfshell/commands/debug.c mfshell/commands/file.c mfshell/commands/get.c mfshell/commands/help.c mfshell/commands/host.c mfshell/commands/lcd.c mfshell/commands/links.c mfshell/commands/list.c mfshell/commands/lpwd.c mfshell/commands/mkdir.c mfshell/commands/pwd.c mfshell/commands/whoami.c mfshell/commands/rmdir.c mfshell/commands/status.c mfshell/config.c mfshell/options.c)
 set_target_properties(mediafire-shell PROPERTIES COMPILE_FLAGS "-Wall -Wextra -Werror")
+set_target_properties(mediafire-shell PROPERTIES LINK_FLAGS "-Wl,--no-as-needed")
 target_link_libraries(mediafire-shell curl ssl crypto jansson mfapi mfutils)
 
 enable_testing()
 
 add_executable(mediafire-fuse fuse/main.c)
 set_target_properties(mediafire-fuse PROPERTIES COMPILE_FLAGS "-Wall -Wextra -Werror -D_FILE_OFFSET_BITS=64")
+set_target_properties(mediafire-fuse PROPERTIES LINK_FLAGS "-Wl,--no-as-needed")
 target_link_libraries(mediafire-fuse curl ssl fuse jansson mfapi mfutils)
 
 add_test(iwyu ${CMAKE_SOURCE_DIR}/tests/iwyu.py ${CMAKE_BINARY_DIR})
