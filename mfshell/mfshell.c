@@ -50,6 +50,7 @@ struct mfcmd    commands[] = {
      mfshell_cmd_links},
     {"get", "[quickkey]", "download a file", mfshell_cmd_get},
     {"rmdir", "[folderkey]", "remove directory", mfshell_cmd_rmdir},
+    {"status", "", "device status", mfshell_cmd_status},
     {NULL, NULL, NULL, NULL}
 };
 

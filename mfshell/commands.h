@@ -73,4 +73,7 @@ int             mfshell_cmd_whoami(mfshell * mfshell, int argc,
 int             mfshell_cmd_rmdir(mfshell * mfshell, int argc,
                                   char *const argv[]);
 
+int             mfshell_cmd_status(mfshell * mfshell, int argc,
+                                   char *const argv[]);
+
 #endif
