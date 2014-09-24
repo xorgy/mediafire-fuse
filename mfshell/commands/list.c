@@ -29,7 +29,6 @@ int mfshell_cmd_list(mfshell * mfshell, int argc, char *const argv[])
 {
     (void)argv;
     int             retval;
-    const char     *folder_curr;
 
     if (mfshell == NULL)
         return -1;
@@ -38,8 +37,6 @@ int mfshell_cmd_list(mfshell * mfshell, int argc, char *const argv[])
         fprintf(stderr, "Invalid number of arguments\n");
         return -1;
     }
-
-    folder_curr = folder_get_key(mfshell->folder_curr);
 
     // first folders
     retval =
