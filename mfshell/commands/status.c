@@ -18,6 +18,7 @@
  */
 
 #include <stdio.h>
+#include <inttypes.h>
 
 #include "../../mfapi/apicalls.h"
 #include "../mfshell.h"
@@ -28,6 +29,7 @@ int mfshell_cmd_status(mfshell * mfshell, int argc, char *const argv[])
 {
     (void)argv;
     int             retval;
+    uint64_t        revision;
 
     if (mfshell == NULL)
         return -1;
@@ -37,8 +39,13 @@ int mfshell_cmd_status(mfshell * mfshell, int argc, char *const argv[])
         return -1;
     }
     // then files
-    retval = mfconn_api_device_get_status(mfshell->conn);
+    retval = mfconn_api_device_get_status(mfshell->conn, &revision);
     mfconn_update_secret_key(mfshell->conn);
+    if (retval == 0) {
+        printf("device_revision: %" PRIu64 "\n", revision);
+    } else {
+        fprintf(stderr, "device/get_status() unsuccessful\n");
+    }
 
     return retval;
 }

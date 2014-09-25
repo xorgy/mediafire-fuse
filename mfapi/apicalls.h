@@ -36,7 +36,9 @@ int             mfconn_api_folder_create(mfconn * conn, const char *parent,
                                          const char *name);
 
 long            mfconn_api_folder_get_content(mfconn * conn, int mode,
-                                              mffolder * folder_curr);
+                                              mffolder * folder_curr,
+                                              mffolder ***folder_result,
+                                              mffile ***file_result);
 
 int             mfconn_api_folder_get_info(mfconn * conn, mffolder * folder,
                                            const char *folderkey);

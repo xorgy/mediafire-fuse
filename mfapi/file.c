@@ -32,8 +32,9 @@ struct mffile {
     char            quickkey[18];
     char            hash[65];
     char            name[256];
-    char            mtime[16];
+    time_t          created;
     uint64_t        revision;
+    uint64_t        size;
 
     char           *share_link;
     char           *direct_link;
@@ -140,6 +141,60 @@ const char     *file_get_name(mffile * file)
         return NULL;
 
     return file->name;
+}
+
+int file_set_size(mffile * file, uint64_t size)
+{
+    if (file == NULL)
+        return -1;
+
+    file->size = size;
+
+    return 0;
+}
+
+uint64_t file_get_size(mffile * file)
+{
+    if (file == NULL)
+        return -1;
+
+    return file->size;
+}
+
+int file_set_revision(mffile * file, uint64_t revision)
+{
+    if (file == NULL)
+        return -1;
+
+    file->revision = revision;
+
+    return 0;
+}
+
+uint64_t file_get_revision(mffile * file)
+{
+    if (file == NULL)
+        return -1;
+
+    return file->revision;
+}
+
+int file_set_created(mffile * file, time_t created)
+{
+    if (file == NULL)
+        return -1;
+
+    file->created = created;
+
+    return 0;
+}
+
+time_t file_get_created(mffile * file)
+{
+    if (file == NULL)
+        return -1;
+
+    return file->created;
 }
 
 int file_set_share_link(mffile * file, const char *share_link)

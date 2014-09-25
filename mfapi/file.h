@@ -54,4 +54,16 @@ const char     *file_get_onetime_link(mffile * file);
 
 ssize_t         file_download_direct(mffile * file, const char *local_dir);
 
+int             file_set_size(mffile * file, uint64_t size);
+
+uint64_t        file_get_size(mffile * file);
+
+int             file_set_revision(mffile * file, uint64_t revision);
+
+uint64_t        file_get_revision(mffile * file);
+
+int             file_set_created(mffile * file, time_t created);
+
+time_t          file_get_created(mffile * file);
+
 #endif
