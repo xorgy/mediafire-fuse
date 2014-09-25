@@ -15,7 +15,7 @@ case $# in
 		;;
 esac
 
-cmd="valgrind --suppressions="${source_dir}/valgrind.supp" --fullpath-after="$source_dir" --tool=memcheck --leak-check=yes --show-reachable=yes --num-callers=20 --track-fds=yes --track-origins=yes"
+cmd="valgrind --suppressions="${source_dir}/valgrind.supp" --fullpath-after="$source_dir" --tool=memcheck --leak-check=yes --show-reachable=yes --num-callers=20 --track-fds=yes --track-origins=yes --error-exitcode=1 --quiet"
 
 if [ ! -f "./.mediafire-tools.conf" -a ! -f "~/.mediafire-tools.conf" ]; then
 	echo "no configuration file found" >&2
