@@ -20,14 +20,14 @@
 #define _XOPEN_SOURCE           // for strptime
 #include <time.h>
 #include <jansson.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stddef.h>
 
 #include "../../utils/http.h"
 #include "../../utils/json.h"
-#include "../../utils/strings.h"
 #include "../folder.h"
+#include "../file.h"
 #include "../mfconn.h"
 #include "../apicalls.h"        // IWYU pragma: keep
 

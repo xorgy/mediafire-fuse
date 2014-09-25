@@ -19,6 +19,7 @@
 
 #include <stdio.h>
 #include <inttypes.h>
+#include <stdint.h>
 
 #include "../../mfapi/apicalls.h"
 #include "../mfshell.h"

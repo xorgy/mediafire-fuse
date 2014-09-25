@@ -21,11 +21,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <inttypes.h>
+#include <stdint.h>
 
 #include "../../utils/http.h"
 #include "../../utils/json.h"
-#include "../../utils/strings.h"
-#include "../folder.h"
 #include "../mfconn.h"
 #include "../apicalls.h"        // IWYU pragma: keep
 

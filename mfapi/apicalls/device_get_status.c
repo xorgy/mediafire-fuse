@@ -20,6 +20,7 @@
 #include <jansson.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 #include "../../utils/http.h"
 #include "../../utils/json.h"
