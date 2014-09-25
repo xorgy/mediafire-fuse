@@ -42,15 +42,16 @@ int mfshell_cmd_list(mfshell * mfshell, int argc, char *const argv[])
         fprintf(stderr, "Invalid number of arguments\n");
         return -1;
     }
-
     // first folders
     folder_result = NULL;
     retval =
-        mfconn_api_folder_get_content(mfshell->conn, 0, mfshell->folder_curr, &folder_result, NULL);
+        mfconn_api_folder_get_content(mfshell->conn, 0, mfshell->folder_curr,
+                                      &folder_result, NULL);
     mfconn_update_secret_key(mfshell->conn);
 
     for (i = 0; folder_result[i] != NULL; i++) {
-        printf("%s %s\n", folder_get_name(folder_result[i]), folder_get_key(folder_result[i]));
+        printf("%s %s\n", folder_get_name(folder_result[i]),
+               folder_get_key(folder_result[i]));
     }
 
     for (i = 0; folder_result[i] != NULL; i++) {
@@ -61,11 +62,13 @@ int mfshell_cmd_list(mfshell * mfshell, int argc, char *const argv[])
     // then files
     file_result = NULL;
     retval =
-        mfconn_api_folder_get_content(mfshell->conn, 1, mfshell->folder_curr, NULL, &file_result);
+        mfconn_api_folder_get_content(mfshell->conn, 1, mfshell->folder_curr,
+                                      NULL, &file_result);
     mfconn_update_secret_key(mfshell->conn);
 
     for (i = 0; file_result[i] != NULL; i++) {
-        printf("%s %s\n", file_get_name(file_result[i]), file_get_key(file_result[i]));
+        printf("%s %s\n", file_get_name(file_result[i]),
+               file_get_key(file_result[i]));
     }
 
     for (i = 0; file_result[i] != NULL; i++) {

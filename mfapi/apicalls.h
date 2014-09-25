@@ -37,8 +37,8 @@ int             mfconn_api_folder_create(mfconn * conn, const char *parent,
 
 long            mfconn_api_folder_get_content(mfconn * conn, int mode,
                                               mffolder * folder_curr,
-                                              mffolder ***folder_result,
-                                              mffile ***file_result);
+                                              mffolder *** folder_result,
+                                              mffile *** file_result);
 
 int             mfconn_api_folder_get_info(mfconn * conn, mffolder * folder,
                                            const char *folderkey);
@@ -57,7 +57,8 @@ int             mfconn_api_user_get_session_token(mfconn * conn,
 
 int             mfconn_api_folder_delete(mfconn * conn, const char *folderkey);
 
-int             mfconn_api_device_get_status(mfconn * conn, uint64_t *revision);
+int             mfconn_api_device_get_status(mfconn * conn,
+                                             uint64_t * revision);
 
 int             mfconn_api_device_get_changes(mfconn * conn, uint64_t revision);
 

@@ -88,7 +88,7 @@ static int _decode_device_get_changes(mfhttp * conn, void *user_ptr)
                 revision = json_object_get(data, "revision");
 
                 printf("   %s   %s    %s\n\r", json_string_value(key),
-                        json_string_value(parent), json_string_value(revision));
+                       json_string_value(parent), json_string_value(revision));
             }
         }
         printf("\n");
@@ -109,7 +109,7 @@ static int _decode_device_get_changes(mfhttp * conn, void *user_ptr)
                 revision = json_object_get(data, "revision");
 
                 printf("   %s   %s    %s\n\r", json_string_value(key),
-                        json_string_value(parent), json_string_value(revision));
+                       json_string_value(parent), json_string_value(revision));
             }
         }
         printf("\n");
@@ -130,7 +130,7 @@ static int _decode_device_get_changes(mfhttp * conn, void *user_ptr)
                 revision = json_object_get(data, "revision");
 
                 printf("   %s   %s    %s\n\r", json_string_value(key),
-                        json_string_value(parent), json_string_value(revision));
+                       json_string_value(parent), json_string_value(revision));
             }
         }
         printf("\n");
@@ -151,7 +151,7 @@ static int _decode_device_get_changes(mfhttp * conn, void *user_ptr)
                 revision = json_object_get(data, "revision");
 
                 printf("   %s   %s    %s\n\r", json_string_value(key),
-                        json_string_value(parent), json_string_value(revision));
+                       json_string_value(parent), json_string_value(revision));
             }
         }
         printf("\n");

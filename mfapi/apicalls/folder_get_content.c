@@ -42,7 +42,9 @@ static int      _decode_folder_get_content_files(mfhttp * conn, void *data);
  * values.
  */
 long
-mfconn_api_folder_get_content(mfconn * conn, int mode, mffolder * folder_curr, mffolder ***mffolder_result, mffile ***mffile_result)
+mfconn_api_folder_get_content(mfconn * conn, int mode, mffolder * folder_curr,
+                              mffolder *** mffolder_result,
+                              mffile *** mffile_result)
 {
     const char     *api_call;
     int             retval;
@@ -76,11 +78,13 @@ mfconn_api_folder_get_content(mfconn * conn, int mode, mffolder * folder_curr, m
     if (mode == 0)
         retval =
             http_get_buf(http, api_call,
-                         _decode_folder_get_content_folders, (void *)mffolder_result);
+                         _decode_folder_get_content_folders,
+                         (void *)mffolder_result);
     else
         retval =
             http_get_buf(http, api_call,
-                         _decode_folder_get_content_files, (void *)mffile_result);
+                         _decode_folder_get_content_files,
+                         (void *)mffile_result);
     http_destroy(http);
 
     free((void *)api_call);
@@ -110,7 +114,7 @@ static int _decode_folder_get_content_folders(mfhttp * conn, void *user_ptr)
     mffolder       *tmp_folder;
     size_t          len_mffolder_result;
 
-    mffolder_result = (mffolder ***)user_ptr;
+    mffolder_result = (mffolder ***) user_ptr;
     if (mffolder_result == NULL)
         return -1;
 
@@ -145,7 +149,8 @@ static int _decode_folder_get_content_folders(mfhttp * conn, void *user_ptr)
 
                 j_obj = json_object_get(data, "revision");
                 if (j_obj != NULL) {
-                    folder_set_revision(tmp_folder, atoll(json_string_value(j_obj)));
+                    folder_set_revision(tmp_folder,
+                                        atoll(json_string_value(j_obj)));
                 }
 
                 j_obj = json_object_get(data, "parent");
@@ -164,8 +169,9 @@ static int _decode_folder_get_content_folders(mfhttp * conn, void *user_ptr)
 
                 len_mffolder_result++;
                 *mffolder_result =
-                    (mffolder**)realloc(*mffolder_result,
-                                        len_mffolder_result*sizeof(mffolder*));
+                    (mffolder **) realloc(*mffolder_result,
+                                          len_mffolder_result *
+                                          sizeof(mffolder *));
                 (*mffolder_result)[len_mffolder_result - 1] = tmp_folder;
             }
         }
@@ -173,9 +179,11 @@ static int _decode_folder_get_content_folders(mfhttp * conn, void *user_ptr)
 
     // append an terminating empty mffolder
     len_mffolder_result++;
-    *mffolder_result = (mffolder**)realloc(*mffolder_result, len_mffolder_result*sizeof(mffolder*));
+    *mffolder_result =
+        (mffolder **) realloc(*mffolder_result,
+                              len_mffolder_result * sizeof(mffolder *));
     // write an empty last element
-    (*mffolder_result)[len_mffolder_result-1] = NULL;
+    (*mffolder_result)[len_mffolder_result - 1] = NULL;
 
     if (root != NULL)
         json_decref(root);
@@ -205,7 +213,7 @@ static int _decode_folder_get_content_files(mfhttp * conn, void *user_ptr)
     mffile         *tmp_file;
     size_t          len_mffile_result;
 
-    mffile_result = (mffile ***)user_ptr;
+    mffile_result = (mffile ***) user_ptr;
     if (mffile_result == NULL)
         return -1;
 
@@ -241,7 +249,7 @@ static int _decode_folder_get_content_files(mfhttp * conn, void *user_ptr)
                 }
 
                 j_obj = json_object_get(data, "created");
-                if (j_obj != NULL ) {
+                if (j_obj != NULL) {
                     memset(&tm, 0, sizeof(struct tm));
                     ret = strptime(json_string_value(j_obj), "%F %T", &tm);
                     if (ret[0] == '\0') {
@@ -251,9 +259,9 @@ static int _decode_folder_get_content_files(mfhttp * conn, void *user_ptr)
 
                 j_obj = json_object_get(data, "revision");
                 if (j_obj != NULL) {
-                    file_set_revision(tmp_file, atoll(json_string_value(j_obj)));
+                    file_set_revision(tmp_file,
+                                      atoll(json_string_value(j_obj)));
                 }
-
                 // FIXME don't save hex ascii string but binary chars instead
                 j_obj = json_object_get(data, "hash");
                 if (j_obj != NULL) {
@@ -262,8 +270,8 @@ static int _decode_folder_get_content_files(mfhttp * conn, void *user_ptr)
 
                 len_mffile_result++;
                 *mffile_result =
-                    (mffile**)realloc(*mffile_result,
-                                      len_mffile_result*sizeof(mffile*));
+                    (mffile **) realloc(*mffile_result,
+                                        len_mffile_result * sizeof(mffile *));
                 (*mffile_result)[len_mffile_result - 1] = tmp_file;
             }
         }
@@ -271,7 +279,9 @@ static int _decode_folder_get_content_files(mfhttp * conn, void *user_ptr)
 
     // append a terminating empty file
     len_mffile_result++;
-    *mffile_result = (mffile**)realloc(*mffile_result, len_mffile_result*sizeof(mffile*));
+    *mffile_result =
+        (mffile **) realloc(*mffile_result,
+                            len_mffile_result * sizeof(mffile *));
     // write an empty last element
     (*mffile_result)[len_mffile_result - 1] = NULL;
 

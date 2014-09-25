@@ -28,7 +28,7 @@
 
 static int      _decode_device_get_status(mfhttp * conn, void *data);
 
-int mfconn_api_device_get_status(mfconn * conn, uint64_t *revision)
+int mfconn_api_device_get_status(mfconn * conn, uint64_t * revision)
 {
     const char     *api_call;
     int             retval;
@@ -43,7 +43,9 @@ int mfconn_api_device_get_status(mfconn * conn, uint64_t *revision)
                                         "?response_format=json");
 
     http = http_create();
-    retval = http_get_buf(http, api_call, _decode_device_get_status, (void *)revision);
+    retval =
+        http_get_buf(http, api_call, _decode_device_get_status,
+                     (void *)revision);
     http_destroy(http);
 
     free((void *)api_call);
@@ -59,7 +61,7 @@ static int _decode_device_get_status(mfhttp * conn, void *data)
     json_t         *device_revision;
     uint64_t       *revision;
 
-    revision = (uint64_t*)data;
+    revision = (uint64_t *) data;
     if (data == NULL)
         return -1;
 
@@ -69,7 +71,8 @@ static int _decode_device_get_status(mfhttp * conn, void *data)
 
     device_revision = json_object_get(node, "device_revision");
     if (device_revision != NULL) {
-        fprintf(stderr, "device_revision: %s\n", json_string_value(device_revision));
+        fprintf(stderr, "device_revision: %s\n",
+                json_string_value(device_revision));
         *revision = atoll(json_string_value(device_revision));
     }
 
