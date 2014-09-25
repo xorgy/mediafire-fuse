@@ -46,7 +46,7 @@ static int      _decode_folder_get_content_files(mfhttp * conn, void *data);
  * pointers to them.
  */
 long
-mfconn_api_folder_get_content(mfconn * conn, int mode, mffolder * folder_curr,
+mfconn_api_folder_get_content(mfconn * conn, int mode, const char *folderkey,
                               mffolder *** mffolder_result,
                               mffile *** mffile_result)
 {
@@ -54,7 +54,6 @@ mfconn_api_folder_get_content(mfconn * conn, int mode, mffolder * folder_curr,
     int             retval;
     char           *content_type;
     mfhttp         *http;
-    const char     *folderkey;
 
     if (conn == NULL)
         return -1;
@@ -64,7 +63,6 @@ mfconn_api_folder_get_content(mfconn * conn, int mode, mffolder * folder_curr,
     else
         content_type = "files";
 
-    folderkey = folder_get_key(folder_curr);
     if (folderkey == NULL) {
         api_call = mfconn_create_signed_get(conn, 0, "folder/get_content.php",
                                             "?content_type=%s"

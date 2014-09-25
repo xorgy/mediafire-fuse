@@ -45,7 +45,8 @@ int mfshell_cmd_list(mfshell * mfshell, int argc, char *const argv[])
     // first folders
     folder_result = NULL;
     retval =
-        mfconn_api_folder_get_content(mfshell->conn, 0, mfshell->folder_curr,
+        mfconn_api_folder_get_content(mfshell->conn, 0,
+                                      folder_get_key(mfshell->folder_curr),
                                       &folder_result, NULL);
     mfconn_update_secret_key(mfshell->conn);
 
@@ -62,7 +63,8 @@ int mfshell_cmd_list(mfshell * mfshell, int argc, char *const argv[])
     // then files
     file_result = NULL;
     retval =
-        mfconn_api_folder_get_content(mfshell->conn, 1, mfshell->folder_curr,
+        mfconn_api_folder_get_content(mfshell->conn, 1,
+                                      folder_get_key(mfshell->folder_curr),
                                       NULL, &file_result);
     mfconn_update_secret_key(mfshell->conn);
 

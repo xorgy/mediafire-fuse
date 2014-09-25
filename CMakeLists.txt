@@ -19,7 +19,7 @@ target_link_libraries(mediafire-shell curl ssl crypto jansson mfapi mfutils)
 
 enable_testing()
 
-add_executable(mediafire-fuse fuse/main.c)
+add_executable(mediafire-fuse fuse/main.c fuse/hashtbl.c)
 set_target_properties(mediafire-fuse PROPERTIES COMPILE_FLAGS "-Wall -Wextra -Werror -D_FILE_OFFSET_BITS=64")
 set_target_properties(mediafire-fuse PROPERTIES LINK_FLAGS "-Wl,--no-as-needed")
 target_link_libraries(mediafire-fuse curl ssl fuse jansson mfapi mfutils)

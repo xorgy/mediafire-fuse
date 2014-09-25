@@ -29,6 +29,7 @@
 #include <unistd.h>
 
 #include "../mfapi/mfconn.h"
+#include "hashtbl.h"
 
 enum {
     KEY_HELP,
@@ -163,6 +164,8 @@ mediafirefs_opt_proc(void *data, const char *arg, int key,
 
 int main(int argc, char *argv[])
 {
+    folder_tree    *tree;
+    int             ret;
     struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
 
     if (fuse_opt_parse
@@ -196,5 +199,15 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-    return fuse_main(args.argc, args.argv, &mediafirefs_oper, NULL);
+    tree = folder_tree_create();
+
+    ret = folder_tree_rebuild(tree, conn);
+
+    //folder_tree_housekeep(tree);
+
+    folder_tree_debug(tree, NULL, 0);
+
+    folder_tree_destroy(tree);
+
+    //return fuse_main(args.argc, args.argv, &mediafirefs_oper, NULL);
 }

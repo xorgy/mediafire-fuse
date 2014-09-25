@@ -199,6 +199,7 @@ http_post_buf(mfhttp * conn, const char *url, const char *post_args,
     curl_easy_setopt(conn->curl_handle, CURLOPT_WRITEDATA, (void *)conn);
     curl_easy_setopt(conn->curl_handle, CURLOPT_POSTFIELDS, post_args);
     retval = curl_easy_perform(conn->curl_handle);
+    fprintf(stderr, "POST: %s\n", url);
     if (retval != CURLE_OK) {
         fprintf(stderr, "error curl_easy_perform %s\n\r", conn->error_buf);
         return retval;
