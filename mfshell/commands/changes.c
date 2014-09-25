@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <inttypes.h>
 
 #include "../../mfapi/apicalls.h"
 #include "../mfshell.h"
@@ -31,6 +32,8 @@ int mfshell_cmd_changes(mfshell * mfshell, int argc, char *const argv[])
     (void)argv;
     int             retval;
     uint64_t        revision;
+    struct mfconn_device_change *changes;
+    int             i;
 
     if (mfshell == NULL)
         return -1;
@@ -47,8 +50,32 @@ int mfshell_cmd_changes(mfshell * mfshell, int argc, char *const argv[])
             return -1;
     }
 
-    retval = mfconn_api_device_get_changes(mfshell->conn, revision);
+    changes = NULL;
+    retval = mfconn_api_device_get_changes(mfshell->conn, revision, &changes);
     mfconn_update_secret_key(mfshell->conn);
+
+    for (i = 0; changes[i].revision != 0; i++) {
+        switch (changes[i].change) {
+            case MFCONN_DEVICE_CHANGE_DELETED_FOLDER:
+                printf("%" PRIu64 " deleted folder: %s\n", changes[i].revision,
+                       changes[i].key);
+                break;
+            case MFCONN_DEVICE_CHANGE_DELETED_FILE:
+                printf("%" PRIu64 " deleted file:   %s\n", changes[i].revision,
+                       changes[i].key);
+                break;
+            case MFCONN_DEVICE_CHANGE_UPDATED_FOLDER:
+                printf("%" PRIu64 " updated folder: %s\n", changes[i].revision,
+                       changes[i].key);
+                break;
+            case MFCONN_DEVICE_CHANGE_UPDATED_FILE:
+                printf("%" PRIu64 " updated file:   %s\n", changes[i].revision,
+                       changes[i].key);
+                break;
+        }
+    }
+
+    free(changes);
 
     return retval;
 }

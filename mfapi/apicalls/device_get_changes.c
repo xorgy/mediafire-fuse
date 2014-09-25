@@ -18,10 +18,11 @@
  */
 
 #include <jansson.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <inttypes.h>
 #include <stdint.h>
+#include <string.h>
+#include <stddef.h>
 
 #include "../../utils/http.h"
 #include "../../utils/json.h"
@@ -30,7 +31,14 @@
 
 static int      _decode_device_get_changes(mfhttp * conn, void *data);
 
-int mfconn_api_device_get_changes(mfconn * conn, uint64_t revision)
+/*
+ * the mfconn_device_change array will be realloc'ed so it must either point
+ * to a malloc'ed memory or be NULL
+ *
+ * the returned array will be sorted by revision
+ */
+int mfconn_api_device_get_changes(mfconn * conn, uint64_t revision,
+                                  struct mfconn_device_change **changes)
 {
     const char     *api_call;
     int             retval;
@@ -44,12 +52,38 @@ int mfconn_api_device_get_changes(mfconn * conn, uint64_t revision)
                                         "&response_format=json", revision);
 
     http = http_create();
-    retval = http_get_buf(http, api_call, _decode_device_get_changes, NULL);
+    retval =
+        http_get_buf(http, api_call, _decode_device_get_changes,
+                     (void *)changes);
     http_destroy(http);
 
     free((void *)api_call);
 
     return retval;
+}
+
+static void aux(json_t * key, json_t * revision,
+                enum mfconn_device_change_type change,
+                struct mfconn_device_change **changes, size_t * len_changes)
+{
+    struct mfconn_device_change *tmp_change;
+
+    if (key == NULL || revision == NULL)
+        return;
+    (*len_changes)++;
+    *changes = (struct mfconn_device_change *)
+        realloc(*changes,
+                (*len_changes) * sizeof(struct mfconn_device_change));
+    tmp_change = *changes + (*len_changes) - 1;
+    tmp_change->change = change;
+    strncpy(tmp_change->key, json_string_value(key), sizeof(tmp_change->key));
+    tmp_change->revision = atoll(json_string_value(revision));
+}
+
+static int change_compare(const void *a, const void *b)
+{
+    return ((struct mfconn_device_change *)a)->revision
+        - ((struct mfconn_device_change *)b)->revision;
 }
 
 static int _decode_device_get_changes(mfhttp * conn, void *user_ptr)
@@ -61,57 +95,50 @@ static int _decode_device_get_changes(mfhttp * conn, void *user_ptr)
 
     json_t         *obj_array;
     json_t         *key;
-    json_t         *parent;
     json_t         *revision;
 
     int             array_sz;
     int             i = 0;
 
-    if (user_ptr != NULL)
+    struct mfconn_device_change **changes;
+    size_t          len_changes;
+
+    changes = (struct mfconn_device_change **)user_ptr;
+    if (changes == NULL)
         return -1;
 
     root = http_parse_buf_json(conn, 0, &error);
 
+    len_changes = 0;
+
     node = json_object_by_path(root, "response/updated");
 
     obj_array = json_object_get(node, "files");
     if (json_is_array(obj_array)) {
         array_sz = json_array_size(obj_array);
-        printf("updated files:\n");
         for (i = 0; i < array_sz; i++) {
             data = json_array_get(obj_array, i);
-
-            if (json_is_object(data)) {
-                key = json_object_get(data, "quickkey");
-                parent = json_object_get(data, "parent_folderkey");
-                revision = json_object_get(data, "revision");
-
-                printf("   %s   %s    %s\n\r", json_string_value(key),
-                       json_string_value(parent), json_string_value(revision));
-            }
+            if (!json_is_object(data))
+                continue;
+            key = json_object_get(data, "quickkey");
+            revision = json_object_get(data, "revision");
+            aux(key, revision, MFCONN_DEVICE_CHANGE_UPDATED_FILE, changes,
+                &len_changes);
         }
-        printf("\n");
     }
-
-    node = json_object_by_path(root, "response/updated");
 
     obj_array = json_object_get(node, "folders");
     if (json_is_array(obj_array)) {
         array_sz = json_array_size(obj_array);
-        printf("updated folders:\n");
         for (i = 0; i < array_sz; i++) {
             data = json_array_get(obj_array, i);
-
-            if (json_is_object(data)) {
-                key = json_object_get(data, "folderkey");
-                parent = json_object_get(data, "parent_folderkey");
-                revision = json_object_get(data, "revision");
-
-                printf("   %s   %s    %s\n\r", json_string_value(key),
-                       json_string_value(parent), json_string_value(revision));
-            }
+            if (!json_is_object(data))
+                continue;
+            key = json_object_get(data, "folderkey");
+            revision = json_object_get(data, "revision");
+            aux(key, revision, MFCONN_DEVICE_CHANGE_UPDATED_FOLDER, changes,
+                &len_changes);
         }
-        printf("\n");
     }
 
     node = json_object_by_path(root, "response/deleted");
@@ -119,42 +146,39 @@ static int _decode_device_get_changes(mfhttp * conn, void *user_ptr)
     obj_array = json_object_get(node, "files");
     if (json_is_array(obj_array)) {
         array_sz = json_array_size(obj_array);
-        printf("deleted files:\n");
         for (i = 0; i < array_sz; i++) {
             data = json_array_get(obj_array, i);
-
-            if (json_is_object(data)) {
-                key = json_object_get(data, "quickkey");
-                parent = json_object_get(data, "parent_folderkey");
-                revision = json_object_get(data, "revision");
-
-                printf("   %s   %s    %s\n\r", json_string_value(key),
-                       json_string_value(parent), json_string_value(revision));
-            }
+            if (!json_is_object(data))
+                continue;
+            key = json_object_get(data, "quickkey");
+            revision = json_object_get(data, "revision");
+            aux(key, revision, MFCONN_DEVICE_CHANGE_DELETED_FILE, changes,
+                &len_changes);
         }
-        printf("\n");
     }
-
-    node = json_object_by_path(root, "response/deleted");
 
     obj_array = json_object_get(node, "folders");
     if (json_is_array(obj_array)) {
         array_sz = json_array_size(obj_array);
-        printf("deleted folders:\n");
         for (i = 0; i < array_sz; i++) {
             data = json_array_get(obj_array, i);
-
-            if (json_is_object(data)) {
-                key = json_object_get(data, "folderkey");
-                parent = json_object_get(data, "parent_folderkey");
-                revision = json_object_get(data, "revision");
-
-                printf("   %s   %s    %s\n\r", json_string_value(key),
-                       json_string_value(parent), json_string_value(revision));
-            }
+            if (!json_is_object(data))
+                continue;
+            key = json_object_get(data, "folderkey");
+            revision = json_object_get(data, "revision");
+            aux(key, revision, MFCONN_DEVICE_CHANGE_DELETED_FOLDER, changes,
+                &len_changes);
         }
-        printf("\n");
     }
+    // sort
+    qsort(*changes, len_changes, sizeof(struct mfconn_device_change),
+          change_compare);
+
+    // put a zero valued entry at the end
+    len_changes++;
+    *changes = (struct mfconn_device_change *)
+        realloc(*changes, len_changes * sizeof(struct mfconn_device_change));
+    memset(*changes + len_changes - 1, 0, sizeof(struct mfconn_device_change));
 
     if (root != NULL)
         json_decref(root);

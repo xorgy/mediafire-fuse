@@ -40,6 +40,10 @@ static int      _decode_folder_get_content_files(mfhttp * conn, void *data);
  * mffolder_result and mffile_result so make sure that those are either NULL
  * or values of already malloc'ed regions. They must not be uninitialized
  * values.
+ *
+ * results are triple pointers because we cannot create an array of mffolder
+ * or mffile as we do not know their sizes. We can only create an array of
+ * pointers to them.
  */
 long
 mfconn_api_folder_get_content(mfconn * conn, int mode, mffolder * folder_curr,

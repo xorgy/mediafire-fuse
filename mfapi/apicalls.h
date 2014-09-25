@@ -26,6 +26,19 @@
 #include "folder.h"
 #include "mfconn.h"
 
+enum mfconn_device_change_type {
+    MFCONN_DEVICE_CHANGE_DELETED_FOLDER,
+    MFCONN_DEVICE_CHANGE_DELETED_FILE,
+    MFCONN_DEVICE_CHANGE_UPDATED_FOLDER,
+    MFCONN_DEVICE_CHANGE_UPDATED_FILE
+};
+
+struct mfconn_device_change {
+    enum mfconn_device_change_type change;
+    char            key[20];
+    uint64_t        revision;
+};
+
 int             mfconn_api_file_get_info(mfconn * conn, mffile * file,
                                          char *quickkey);
 
@@ -60,7 +73,7 @@ int             mfconn_api_folder_delete(mfconn * conn, const char *folderkey);
 int             mfconn_api_device_get_status(mfconn * conn,
                                              uint64_t * revision);
 
-int             mfconn_api_device_get_changes(mfconn * conn,
-                                              uint64_t revision);
+int             mfconn_api_device_get_changes(mfconn * conn, uint64_t revision, struct mfconn_device_change
+                                              **changes);
 
 #endif

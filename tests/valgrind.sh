@@ -21,4 +21,4 @@ if [ ! -f "./.mediafire-tools.conf" -a ! -f "~/.mediafire-tools.conf" ]; then
 	echo "no configuration file found" >&2
 	exit 1
 fi
-$cmd "${binary_dir}/mediafire-shell" -c "help; ls; whoami"
+$cmd "${binary_dir}/mediafire-shell" -c "help; ls; changes"
