@@ -16,7 +16,7 @@
 --dont-format-first-column-comments
 --indent-level4
 --parameter-indentation0
---line-length80
+--line-length79
 --continue-at-parentheses
 --no-space-after-function-call-names
 --no-space-after-parentheses

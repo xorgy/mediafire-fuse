@@ -57,7 +57,8 @@ mfconn_api_folder_get_info(mfconn * conn, mffolder * folder,
     } else {
         api_call = mfconn_create_signed_get(conn, 0, "folder/get_info.php",
                                             "?folder_key=%s"
-                                            "&response_format=json", folderkey);
+                                            "&response_format=json",
+                                            folderkey);
     }
 
     http = http_create();

@@ -123,7 +123,8 @@ http_get_buf(mfhttp * conn, const char *url,
 
     curl_easy_reset(conn->curl_handle);
     curl_easy_setopt(conn->curl_handle, CURLOPT_URL, url);
-    curl_easy_setopt(conn->curl_handle, CURLOPT_READFUNCTION, http_read_buf_cb);
+    curl_easy_setopt(conn->curl_handle, CURLOPT_READFUNCTION,
+                     http_read_buf_cb);
     curl_easy_setopt(conn->curl_handle, CURLOPT_READDATA, (void *)conn);
     curl_easy_setopt(conn->curl_handle, CURLOPT_WRITEFUNCTION,
                      http_write_buf_cb);
@@ -190,7 +191,8 @@ http_post_buf(mfhttp * conn, const char *url, const char *post_args,
 
     curl_easy_reset(conn->curl_handle);
     curl_easy_setopt(conn->curl_handle, CURLOPT_URL, url);
-    curl_easy_setopt(conn->curl_handle, CURLOPT_READFUNCTION, http_read_buf_cb);
+    curl_easy_setopt(conn->curl_handle, CURLOPT_READFUNCTION,
+                     http_read_buf_cb);
     curl_easy_setopt(conn->curl_handle, CURLOPT_READDATA, (void *)conn);
     curl_easy_setopt(conn->curl_handle, CURLOPT_WRITEFUNCTION,
                      http_write_buf_cb);
@@ -213,7 +215,8 @@ int http_get_file(mfhttp * conn, const char *url, const char *path)
 
     curl_easy_reset(conn->curl_handle);
     curl_easy_setopt(conn->curl_handle, CURLOPT_URL, url);
-    curl_easy_setopt(conn->curl_handle, CURLOPT_READFUNCTION, http_read_buf_cb);
+    curl_easy_setopt(conn->curl_handle, CURLOPT_READFUNCTION,
+                     http_read_buf_cb);
     curl_easy_setopt(conn->curl_handle, CURLOPT_READDATA, (void *)conn);
     curl_easy_setopt(conn->curl_handle, CURLOPT_WRITEFUNCTION,
                      http_write_file_cb);

@@ -25,6 +25,7 @@
 
 void            parse_config(struct mfshell_user_options *opts);
 
-void            parse_config_file(FILE * fp, struct mfshell_user_options *opts);
+void            parse_config_file(FILE * fp,
+                                  struct mfshell_user_options *opts);
 
 #endif

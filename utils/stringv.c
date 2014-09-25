@@ -114,7 +114,8 @@ char          **stringv_find(char *string, char *token, int limit)
             break;
 
         count++;
-        results = (char **)realloc((void *)results, sizeof(char *) * count + 1);
+        results =
+            (char **)realloc((void *)results, sizeof(char *) * count + 1);
 
         results[count - 1] = pos;
     }

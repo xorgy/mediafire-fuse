@@ -37,7 +37,8 @@ int mfshell_cmd_lpwd(mfshell * mfshell, int argc, char *const argv[])
     }
 
     if (mfshell->local_working_dir == NULL) {
-        mfshell->local_working_dir = (char *)calloc(PATH_MAX + 1, sizeof(char));
+        mfshell->local_working_dir =
+            (char *)calloc(PATH_MAX + 1, sizeof(char));
         getcwd(mfshell->local_working_dir, PATH_MAX);
     }
 

@@ -60,7 +60,8 @@ mfconn_api_user_get_session_token(mfconn * conn, const char *server,
 
     // create user signature
     user_signature =
-        mfconn_create_user_signature(conn, username, password, app_id, app_key);
+        mfconn_create_user_signature(conn, username, password, app_id,
+                                     app_key);
 
     post_args = strdup_printf("email=%s"
                               "&password=%s"

@@ -66,7 +66,8 @@ void print_help(const char *cmd)
             "Lines starting with a # (hash) are ignored\n");
 }
 
-void parse_argv(int argc, char *const argv[], struct mfshell_user_options *opts)
+void parse_argv(int argc, char *const argv[],
+                struct mfshell_user_options *opts)
 {
     static struct option long_options[] = {
         {"command", required_argument, 0, 'c'},

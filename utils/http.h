@@ -34,7 +34,8 @@ int             http_post_buf(mfhttp * conn, const char *url,
                               const char *post_args,
                               int (*data_handler) (mfhttp * conn, void *data),
                               void *data);
-int             http_get_file(mfhttp * conn, const char *url, const char *path);
+int             http_get_file(mfhttp * conn, const char *url,
+                              const char *path);
 int             http_post_file(mfhttp * conn, const char *url,
                                const char *post_args, FILE * fd);
 json_t         *http_parse_buf_json(mfhttp * conn, size_t flags,
