@@ -18,14 +18,11 @@
 
 #define FUSE_USE_VERSION 30
 
-#include <errno.h>
 #include <fuse/fuse.h>
 #include <fuse/fuse_opt.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <sys/stat.h>
 #include <unistd.h>
 
 #include "../mfapi/mfconn.h"
@@ -37,6 +34,7 @@ enum {
 };
 
 mfconn         *conn;
+folder_tree    *tree;
 
 struct mediafirefs_user_options {
     char           *username;
@@ -90,32 +88,17 @@ static void usage(const char *progname)
 
 static int mediafirefs_getattr(const char *path, struct stat *stbuf)
 {
-    // uid and gid are the one of the effective fuse user
-    stbuf->st_uid = geteuid();
-    stbuf->st_gid = getegid();
-    if (!strcmp(path, "/")) {
-        stbuf->st_mode = S_IFDIR | 0755;
-        // FIXME: calculate number of directory entries
-        stbuf->st_nlink = 2;
-        return 0;
-    }
-    return -ENOSYS;
+    return folder_tree_getattr(tree, path, stbuf);
 }
 
 static int mediafirefs_readdir(const char *path, void *buf,
                                fuse_fill_dir_t filldir, off_t offset,
                                struct fuse_file_info *info)
 {
-    (void)path;
     (void)offset;
     (void)info;
 
-    filldir(buf, ".", NULL, 0);
-    filldir(buf, "..", NULL, 0);
-
-    // FIXME: add entries for all files and directories
-
-    return 0;
+    return folder_tree_readdir(tree, path, buf, filldir);
 }
 
 static struct fuse_operations mediafirefs_oper = {
@@ -164,7 +147,6 @@ mediafirefs_opt_proc(void *data, const char *arg, int key,
 
 int main(int argc, char *argv[])
 {
-    folder_tree    *tree;
     int             ret;
     struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
 
@@ -207,7 +189,7 @@ int main(int argc, char *argv[])
 
     folder_tree_debug(tree, NULL, 0);
 
-    folder_tree_destroy(tree);
+    //folder_tree_destroy(tree);
 
-    //return fuse_main(args.argc, args.argv, &mediafirefs_oper, NULL);
+    return fuse_main(args.argc, args.argv, &mediafirefs_oper, NULL);
 }

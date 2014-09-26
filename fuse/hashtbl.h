@@ -19,6 +19,8 @@
 #ifndef _MFFUSE_HASHTBL_H_
 #define _MFFUSE_HASHTBL_H_
 
+#include <fuse/fuse.h>
+
 #include "../mfapi/mfconn.h"
 
 typedef struct folder_tree folder_tree;
@@ -34,5 +36,11 @@ void            folder_tree_housekeep(folder_tree * tree);
 
 void            folder_tree_debug(folder_tree * tree, h_entry * ent,
                                   int depth);
+
+int             folder_tree_getattr(folder_tree * tree, const char *path,
+                                    struct stat *stbuf);
+
+int             folder_tree_readdir(folder_tree * tree, const char *path,
+                                    void *buf, fuse_fill_dir_t filldir);
 
 #endif

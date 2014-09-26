@@ -16,11 +16,16 @@
  *
  */
 
+#include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <inttypes.h>
+#include <sys/stat.h>
+#include <fuse/fuse.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <stdint.h>
 
 #include "hashtbl.h"
 #include "../mfapi/mfconn.h"
@@ -204,16 +209,15 @@ static h_entry *folder_tree_lookup_key(folder_tree * tree, const char *key)
  *
  * the path must start with a slash
  */
-/*
-static h_entry *folder_tree_lookup_path(folder_tree *tree, const char *path)
+static h_entry *folder_tree_lookup_path(folder_tree * tree, const char *path)
 {
-    char *tmp_path;
-    char *new_path;
-    char *slash_pos;
-    h_entry *curr_dir;
-    h_entry *result;
-    uint64_t i;
-    bool success;
+    char           *tmp_path;
+    char           *new_path;
+    char           *slash_pos;
+    h_entry        *curr_dir;
+    h_entry        *result;
+    uint64_t        i;
+    bool            success;
 
     if (path[0] != '/') {
         fprintf(stderr, "Path must start with a slash\n");
@@ -226,9 +230,8 @@ static h_entry *folder_tree_lookup_path(folder_tree *tree, const char *path)
     if (strcmp(path, "/") == 0) {
         return curr_dir;
     }
-
     // strip off the leading slash
-    new_path = strdup(path+1);
+    new_path = strdup(path + 1);
     tmp_path = new_path;
     result = NULL;
 
@@ -265,10 +268,10 @@ static h_entry *folder_tree_lookup_path(folder_tree *tree, const char *path)
             if (strcmp(curr_dir->children[i]->name, tmp_path) == 0) {
                 // test if a file matched
                 if (curr_dir->children[i]->atime != 0) {
-                    fprintf(stderr, "A file can only be at the end of a path\n");
+                    fprintf(stderr,
+                            "A file can only be at the end of a path\n");
                     break;
                 }
-
                 // a directory matched, break out of this loop and recurse
                 // deeper in the next iteration
                 curr_dir = curr_dir->children[i];
@@ -282,7 +285,6 @@ static h_entry *folder_tree_lookup_path(folder_tree *tree, const char *path)
         if (!success) {
             break;
         }
-
         // point tmp_path to the character after the last found slash
         tmp_path = slash_pos + 1;
     }
@@ -291,7 +293,61 @@ static h_entry *folder_tree_lookup_path(folder_tree *tree, const char *path)
 
     return result;
 }
-*/
+
+int folder_tree_getattr(folder_tree * tree, const char *path,
+                        struct stat *stbuf)
+{
+    h_entry        *entry;
+
+    entry = folder_tree_lookup_path(tree, path);
+
+    if (entry == NULL) {
+        return -ENOENT;
+    }
+
+    stbuf->st_uid = geteuid();
+    stbuf->st_gid = getegid();
+    stbuf->st_ctime = entry->ctime;
+    stbuf->st_mtime = entry->ctime;
+    if (entry->atime == 0) {
+        /* folder */
+        stbuf->st_mode = S_IFDIR | 0755;
+        stbuf->st_nlink = entry->num_children + 2;
+        stbuf->st_atime = entry->ctime;
+        stbuf->st_size = 1024;
+    } else {
+        /* file */
+        stbuf->st_mode = S_IFREG | 0666;
+        stbuf->st_nlink = 1;
+        stbuf->st_atime = entry->atime;
+        stbuf->st_size = entry->fsize;
+    }
+
+    return 0;
+}
+
+int folder_tree_readdir(folder_tree * tree, const char *path, void *buf,
+                        fuse_fill_dir_t filldir)
+{
+    h_entry        *entry;
+    uint64_t        i;
+
+    entry = folder_tree_lookup_path(tree, path);
+
+    /* either directory not found or found entry is not a directory */
+    if (entry == NULL || entry->atime != 0) {
+        return -ENOENT;
+    }
+
+    filldir(buf, ".", NULL, 0);
+    filldir(buf, "..", NULL, 0);
+
+    for (i = 0; i < entry->num_children; i++) {
+        filldir(buf, entry->children[i]->name, NULL, 0);
+    }
+
+    return 0;
+}
 
 /*
  * When adding an existing key, the old key is overwritten.
@@ -326,6 +382,7 @@ static h_entry *folder_tree_add_file(folder_tree * tree, mffile * file)
     strncpy(entry->name, file_get_name(file), sizeof(entry->name));
     entry->revision = file_get_revision(file);
     entry->ctime = file_get_created(file);
+    entry->fsize = file_get_size(file);
 
     /* mark this h_entry as a file if its atime is not set yet */
     if (entry->atime == 0)
