@@ -20,6 +20,7 @@
 #define _MFFUSE_HASHTBL_H_
 
 #include <fuse/fuse.h>
+#include <stdio.h>
 
 #include "../mfapi/mfconn.h"
 
@@ -44,5 +45,9 @@ int             folder_tree_readdir(folder_tree * tree, const char *path,
                                     void *buf, fuse_fill_dir_t filldir);
 
 void            folder_tree_update(folder_tree * tree, mfconn * conn);
+
+int             folder_tree_store(folder_tree * tree, FILE * stream);
+
+folder_tree    *folder_tree_load(FILE * stream);
 
 #endif

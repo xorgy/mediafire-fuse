@@ -103,9 +103,25 @@ static int mediafirefs_readdir(const char *path, void *buf,
     return folder_tree_readdir(tree, path, buf, filldir);
 }
 
+static void mediafirefs_destroy()
+{
+    FILE           *fd;
+
+    fprintf(stderr, "storing hashtable\n");
+
+    fd = fopen("hashtable.dump", "w+");
+
+    folder_tree_store(tree, fd);
+
+    fclose(fd);
+
+    folder_tree_destroy(tree);
+}
+
 static struct fuse_operations mediafirefs_oper = {
     .getattr = mediafirefs_getattr,
     .readdir = mediafirefs_readdir,
+    .destroy = mediafirefs_destroy,
 /*    .create = mediafirefs_create,
     .fsync = mediafirefs_fsync,
     .getattr = mediafirefs_getattr,
@@ -151,6 +167,7 @@ int main(int argc, char *argv[])
 {
     int             ret;
     struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
+    FILE           *fd;
 
     if (fuse_opt_parse
         (&args, &mediafirefs_user_options, mediafirefs_opts,
@@ -183,15 +200,26 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-    tree = folder_tree_create();
+    if (access("hashtable.dump", F_OK) != -1) {
+        // file exists
+        fprintf(stderr, "loading hashtable\n");
+        fd = fopen("hashtable.dump", "r");
 
-    ret = folder_tree_rebuild(tree, conn);
+        tree = folder_tree_load(fd);
+
+        fclose(fd);
+
+        folder_tree_update(tree, conn);
+    } else {
+        // file doesn't exist
+        tree = folder_tree_create();
+
+        ret = folder_tree_rebuild(tree, conn);
+    }
 
     //folder_tree_housekeep(tree);
 
     //folder_tree_debug(tree, NULL, 0);
-
-    //folder_tree_destroy(tree);
 
     return fuse_main(args.argc, args.argv, &mediafirefs_oper, NULL);
 }

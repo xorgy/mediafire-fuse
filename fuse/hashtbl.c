@@ -26,6 +26,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <stdint.h>
+#include <stddef.h>
 
 #include "hashtbl.h"
 #include "../mfapi/mfconn.h"
@@ -79,16 +80,23 @@ struct h_entry {
     uint64_t        revision;
     /* creation time */
     uint64_t        ctime;
-    /* key of the containing folder */
-    h_entry        *parent;
+    /* the containing folder */
+    union {
+        /* during runtime this is a pointer to the containing h_entry */
+        h_entry        *parent;
+        /* when storing on disk, this is the offset of the stored h_entry */
+        uint64_t        parent_offs;
+    };
 
     /********************
      * only for folders *
      ********************/
-    /* number of children (files plus folders) */
+    /* number of children (number of files plus number of folders). Set to
+     * zero when storing on disk */
     uint64_t        num_children;
     /*
      * Array of pointers to its children. Set to zero when storing on disk.
+     *
      * This member could also be an array of keys which would not require
      * lookups on updating but we expect more reads than writes so we
      * sacrifice slower updates for faster lookups */
@@ -133,18 +141,243 @@ struct folder_tree {
  * byte 2: 0x53 -> ASCII S  --> MFS == MediaFire Storage
  * byte 3: 0x00 -> version information
  * bytes 4-11   -> last seen device revision
- * bytes 12-19  -> number of h_entry objects (num_hts)
- * bytes 20...  -> h_entry objects, each is 368 byte long
- * bytes xxx    -> immediately following the num_hts objects are arrays of the
- *                 children of the preceding h_entry objects in the same order
- *                 as the h_entry objects. The children are identified by
- *                 uint64_t numbers indicating the index of the objects in the
- *                 preceding array of h_entry objects. The number of children
- *                 per h_entry object is given in its num_children attribute
+ * bytes 12-19  -> number of h_entry objects including root (num_hts)
+ * bytes 20...  -> h_entry objects, the first one being root
  *
  * the children pointer member of the h_entry object is useless when stored,
  * should be set to zero and not used when reading the file
  */
+int folder_tree_store(folder_tree * tree, FILE * stream)
+{
+    /* to allow a quick mapping from keys to their offsets in the array that
+     * will be stored, we create a hashtable of the same structure as the
+     * folder_tree but instead of storing pointers to h_entries in the buckets
+     * we store their integer offset. This way, when one known in which bucket
+     * and in which position in a bucket a h_entry is, one can retrieve the
+     * associated integer offset. */
+
+    uint64_t      **integer_buckets;
+    uint64_t        i,
+                    j,
+                    k,
+                    num_hts;
+    size_t          ret;
+    h_entry        *tmp_parent;
+    int             bucket_id;
+    bool            found;
+
+    integer_buckets = (uint64_t **) malloc(NUM_BUCKETS * sizeof(uint64_t *));
+    if (integer_buckets == NULL) {
+        fprintf(stderr, "cannot malloc");
+        return -1;
+    }
+
+    /* start counting with one because the root is also stored */
+    num_hts = 1;
+    for (i = 0; i < NUM_BUCKETS; i++) {
+        if (tree->bucket_lens[i] == 0)
+            continue;
+
+        integer_buckets[i] =
+            (uint64_t *) malloc(tree->bucket_lens[i] * sizeof(uint64_t));
+        for (j = 0; j < tree->bucket_lens[i]; j++) {
+            integer_buckets[i][j] = num_hts;
+            num_hts++;
+        }
+    }
+
+    /* write four header bytes */
+    ret = fwrite("MFS\0", 1, 4, stream);
+    if (ret != 4) {
+        fprintf(stderr, "cannot fwrite\n");
+        return -1;
+    }
+
+    /* write revision */
+    ret = fwrite(&(tree->revision), sizeof(tree->revision), 1, stream);
+    if (ret != 1) {
+        fprintf(stderr, "cannot fwrite\n");
+        return -1;
+    }
+
+    /* write number of h_entries */
+    ret = fwrite(&num_hts, sizeof(num_hts), 1, stream);
+    if (ret != 1) {
+        fprintf(stderr, "cannot fwrite\n");
+        return -1;
+    }
+
+    /* write the root */
+    ret = fwrite(&(tree->root), sizeof(h_entry), 1, stream);
+    if (ret != 1) {
+        fprintf(stderr, "cannot fwrite\n");
+        return -1;
+    }
+
+    for (i = 0; i < NUM_BUCKETS; i++) {
+        if (tree->bucket_lens[i] == 0)
+            continue;
+
+        for (j = 0; j < tree->bucket_lens[i]; j++) {
+            /* save the old value of the parent to restore it later */
+            tmp_parent = tree->buckets[i][j]->parent;
+            if (tmp_parent == &(tree->root)) {
+                tree->buckets[i][j]->parent_offs = 0;
+            } else {
+                bucket_id = HASH_OF_KEY(tmp_parent->key);
+                found = false;
+                for (k = 0; k < tree->bucket_lens[bucket_id]; k++) {
+                    if (tree->buckets[bucket_id][k] == tmp_parent) {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    fprintf(stderr, "parent of %s was not found!\n",
+                            tree->buckets[i][j]->key);
+                    return -1;
+                }
+                tree->buckets[i][j]->parent_offs =
+                    integer_buckets[bucket_id][k];
+            }
+
+            /* write out modified record */
+            ret = fwrite(tree->buckets[i][j], sizeof(h_entry), 1, stream);
+            if (ret != 1) {
+                fprintf(stderr, "cannot fwrite\n");
+                return -1;
+            }
+
+            /* restore original value for parent */
+            tree->buckets[i][j]->parent = tmp_parent;
+        }
+    }
+
+    for (i = 0; i < NUM_BUCKETS; i++) {
+        if (tree->bucket_lens[i] > 0) {
+            free(integer_buckets[i]);
+        }
+    }
+    free(integer_buckets);
+
+    return 0;
+}
+
+folder_tree    *folder_tree_load(FILE * stream)
+{
+    folder_tree    *tree;
+    unsigned char   tmp_buffer[4];
+    size_t          ret;
+    uint64_t        num_hts;
+    uint64_t        i;
+    h_entry       **ordered_entries;
+    h_entry        *tmp_entry;
+    h_entry        *parent;
+    int             bucket_id;
+
+    /* read and check the first four bytes */
+    ret = fread(tmp_buffer, 1, 4, stream);
+    if (ret != 4) {
+        fprintf(stderr, "cannot fread\n");
+        return NULL;
+    }
+
+    if (tmp_buffer[0] != 'M' || tmp_buffer[1] != 'F'
+        || tmp_buffer[2] != 'S' || tmp_buffer[3] != 0) {
+        fprintf(stderr, "invalid magic\n");
+        return NULL;
+    }
+
+    tree = (folder_tree *) calloc(1, sizeof(folder_tree));
+
+    /* read revision */
+    ret = fread(&(tree->revision), sizeof(tree->revision), 1, stream);
+    if (ret != 1) {
+        fprintf(stderr, "cannot fread\n");
+        return NULL;
+    }
+
+    /* read number of h_entries to read */
+    ret = fread(&num_hts, sizeof(num_hts), 1, stream);
+    if (ret != 1) {
+        fprintf(stderr, "cannot fread\n");
+        return NULL;
+    }
+
+    /* read root */
+    ret = fread(&(tree->root), sizeof(tree->root), 1, stream);
+    if (ret != 1) {
+        fprintf(stderr, "cannot fread\n");
+        return NULL;
+    }
+    /* zero out its array of children just in case */
+    tree->root.num_children = 0;
+    tree->root.children = NULL;
+
+    /* to effectively map integer offsets to addresses we load the file into
+     * an array of pointers to h_entry objects and free that array after we're
+     * done with setting up the hashtable */
+
+    /* populate the array of children */
+    ordered_entries = (h_entry **) malloc(num_hts * sizeof(h_entry *));
+
+    /* the first entry in this array points to the memory allocated for the
+     * root */
+    ordered_entries[0] = &(tree->root);
+
+    /* read the remaining entries one by one */
+    for (i = 1; i < num_hts; i++) {
+        tmp_entry = (h_entry *) malloc(sizeof(h_entry));
+        ret = fread(tmp_entry, sizeof(h_entry), 1, stream);
+        if (ret != 1) {
+            fprintf(stderr, "cannot fread\n");
+            return NULL;
+        }
+        /* zero out the array of children */
+        tmp_entry->num_children = 0;
+        tmp_entry->children = NULL;
+        /* store pointer to it in the array */
+        ordered_entries[i] = tmp_entry;
+    }
+
+    /* turn the parent offset value into a pointer to the memory we allocated
+     * earlier, populate the array of children for each entry and sort them
+     * into the hashtable */
+    for (i = 1; i < num_hts; i++) {
+        /* the parent of this entry is at the given offset in the array */
+        parent = ordered_entries[ordered_entries[i]->parent_offs];
+        ordered_entries[i]->parent = parent;
+
+        /* use the parent information to populate the array of children */
+        parent->num_children++;
+        parent->children =
+            (h_entry **) realloc(parent->children,
+                                 parent->num_children * sizeof(h_entry *));
+        if (parent->children == NULL) {
+            fprintf(stderr, "realloc failed\n");
+            return NULL;
+        }
+        parent->children[parent->num_children - 1] = ordered_entries[i];
+
+        /* put the entry into the hashtable */
+        bucket_id = HASH_OF_KEY(ordered_entries[i]->key);
+        tree->bucket_lens[bucket_id]++;
+        tree->buckets[bucket_id] =
+            (h_entry **) realloc(tree->buckets[bucket_id],
+                                 tree->bucket_lens[bucket_id] *
+                                 sizeof(h_entry *));
+        if (tree->buckets[bucket_id] == NULL) {
+            fprintf(stderr, "realloc failed\n");
+            return NULL;
+        }
+        tree->buckets[bucket_id][tree->bucket_lens[bucket_id] - 1] =
+            ordered_entries[i];
+    }
+
+    free(ordered_entries);
+
+    return tree;
+}
 
 folder_tree    *folder_tree_create(void)
 {
