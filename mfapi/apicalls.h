@@ -26,17 +26,22 @@
 #include "folder.h"
 #include "mfconn.h"
 
+#define MFAPI_MAX_LEN_KEY 15
+#define MFAPI_MAX_LEN_NAME 255
+
 enum mfconn_device_change_type {
     MFCONN_DEVICE_CHANGE_DELETED_FOLDER,
     MFCONN_DEVICE_CHANGE_DELETED_FILE,
     MFCONN_DEVICE_CHANGE_UPDATED_FOLDER,
-    MFCONN_DEVICE_CHANGE_UPDATED_FILE
+    MFCONN_DEVICE_CHANGE_UPDATED_FILE,
+    MFCONN_DEVICE_CHANGE_END
 };
 
 struct mfconn_device_change {
     enum mfconn_device_change_type change;
-    char            key[20];
+    char            key[16];
     uint64_t        revision;
+    char            parent[16];
 };
 
 int             mfconn_api_file_get_info(mfconn * conn, mffile * file,

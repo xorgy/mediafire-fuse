@@ -27,11 +27,13 @@
 #include "../utils/http.h"
 #include "../utils/strings.h"
 #include "file.h"
+#include "apicalls.h"
 
 struct mffile {
-    char            quickkey[18];
+    char            quickkey[MFAPI_MAX_LEN_KEY + 1];
+    char            parent[MFAPI_MAX_LEN_NAME + 1];
     char            hash[65];
-    char            name[256];
+    char            name[MFAPI_MAX_LEN_NAME + 1];
     time_t          created;
     uint64_t        revision;
     uint64_t        size;
@@ -81,7 +83,7 @@ int file_set_key(mffile * file, const char *key)
         return -1;
 
     memset(file->quickkey, 0, sizeof(file->quickkey));
-    strncpy(file->quickkey, key, sizeof(file->quickkey) - 1);
+    strncpy(file->quickkey, key, sizeof(file->quickkey));
 
     return 0;
 }
@@ -92,6 +94,33 @@ const char     *file_get_key(mffile * file)
         return NULL;
 
     return file->quickkey;
+}
+
+int file_set_parent(mffile * file, const char *parent_key)
+{
+    if (file == NULL)
+        return -1;
+
+    if (parent_key == NULL) {
+        memset(file->parent, 0, sizeof(file->parent));
+    } else {
+        memset(file->parent, 0, sizeof(file->parent));
+        strncpy(file->parent, parent_key, sizeof(file->parent));
+    }
+
+    return 0;
+}
+
+const char     *file_get_parent(mffile * file)
+{
+    if (file == NULL)
+        return NULL;
+
+    if (file->parent[0] == '\0') {
+        return NULL;
+    } else {
+        return file->parent;
+    }
 }
 
 int file_set_hash(mffile * file, const char *hash)
@@ -130,7 +159,7 @@ int file_set_name(mffile * file, const char *name)
         return -1;
 
     memset(file->name, 0, sizeof(file->name));
-    strncpy(file->name, name, sizeof(file->name) - 1);
+    strncpy(file->name, name, sizeof(file->name));
 
     return 0;
 }

@@ -69,9 +69,8 @@ static int _decode_file_get_info(mfhttp * conn, void *data)
     json_error_t    error;
     json_t         *root;
     json_t         *node;
+    json_t         *obj;
     json_t         *quickkey;
-    json_t         *file_hash;
-    json_t         *file_name;
     int             retval = 0;
     mffile         *file;
 
@@ -88,14 +87,22 @@ static int _decode_file_get_info(mfhttp * conn, void *data)
     if (quickkey != NULL)
         file_set_key(file, json_string_value(quickkey));
 
-    file_name = json_object_get(node, "filename");
-    if (file_name != NULL)
-        file_set_name(file, json_string_value(file_name));
+    obj = json_object_get(node, "filename");
+    if (obj != NULL)
+        file_set_name(file, json_string_value(obj));
 
-    file_hash = json_object_get(node, "hash");
-    if (file_hash != NULL) {
-        file_set_hash(file, json_string_value(file_hash));
+    obj = json_object_get(node, "hash");
+    if (obj != NULL) {
+        file_set_hash(file, json_string_value(obj));
     }
+
+    obj = json_object_get(node, "parent_folderkey");
+    if (obj != NULL) {
+        file_set_parent(file, json_string_value(obj));
+    }
+    // infer that the parent folder must be root
+    if (obj == NULL && quickkey != NULL)
+        file_set_parent(file, NULL);
 
     if (quickkey == NULL)
         retval = -1;

@@ -54,7 +54,7 @@ int mfshell_cmd_changes(mfshell * mfshell, int argc, char *const argv[])
     retval = mfconn_api_device_get_changes(mfshell->conn, revision, &changes);
     mfconn_update_secret_key(mfshell->conn);
 
-    for (i = 0; changes[i].revision != 0; i++) {
+    for (i = 0; changes[i].change != MFCONN_DEVICE_CHANGE_END; i++) {
         switch (changes[i].change) {
             case MFCONN_DEVICE_CHANGE_DELETED_FOLDER:
                 printf("%" PRIu64 " deleted folder: %s\n", changes[i].revision,
@@ -71,6 +71,8 @@ int mfshell_cmd_changes(mfshell * mfshell, int argc, char *const argv[])
             case MFCONN_DEVICE_CHANGE_UPDATED_FILE:
                 printf("%" PRIu64 " updated file:   %s\n", changes[i].revision,
                        changes[i].key);
+                break;
+            case MFCONN_DEVICE_CHANGE_END:
                 break;
         }
     }

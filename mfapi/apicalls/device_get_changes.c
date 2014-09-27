@@ -23,6 +23,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <stddef.h>
+#include <stdio.h>
 
 #include "../../utils/http.h"
 #include "../../utils/json.h"
@@ -62,14 +63,16 @@ int mfconn_api_device_get_changes(mfconn * conn, uint64_t revision,
     return retval;
 }
 
-static void aux(json_t * key, json_t * revision,
+static void aux(json_t * key, json_t * parent, json_t * revision,
                 enum mfconn_device_change_type change,
                 struct mfconn_device_change **changes, size_t * len_changes)
 {
     struct mfconn_device_change *tmp_change;
 
-    if (key == NULL || revision == NULL)
+    if (key == NULL || revision == NULL || parent == NULL) {
+        fprintf(stderr, "change without either key, revision or parent");
         return;
+    }
     (*len_changes)++;
     *changes = (struct mfconn_device_change *)
         realloc(*changes,
@@ -77,6 +80,8 @@ static void aux(json_t * key, json_t * revision,
     tmp_change = *changes + (*len_changes) - 1;
     tmp_change->change = change;
     strncpy(tmp_change->key, json_string_value(key), sizeof(tmp_change->key));
+    strncpy(tmp_change->parent, json_string_value(parent),
+            sizeof(tmp_change->parent));
     tmp_change->revision = atoll(json_string_value(revision));
 }
 
@@ -95,7 +100,9 @@ static int _decode_device_get_changes(mfhttp * conn, void *user_ptr)
 
     json_t         *obj_array;
     json_t         *key;
+    json_t         *parent;
     json_t         *revision;
+    json_t         *device_revision;
 
     int             array_sz;
     int             i = 0;
@@ -109,6 +116,15 @@ static int _decode_device_get_changes(mfhttp * conn, void *user_ptr)
 
     root = http_parse_buf_json(conn, 0, &error);
 
+    node = json_object_by_path(root, "response");
+
+    device_revision = json_object_get(node, "device_revision");
+    if (device_revision == NULL) {
+        fprintf(stderr,
+                "response/device_revision is not part of the result\n");
+        return -1;
+    }
+
     len_changes = 0;
 
     node = json_object_by_path(root, "response/updated");
@@ -121,9 +137,10 @@ static int _decode_device_get_changes(mfhttp * conn, void *user_ptr)
             if (!json_is_object(data))
                 continue;
             key = json_object_get(data, "quickkey");
+            parent = json_object_get(data, "parent_folderkey");
             revision = json_object_get(data, "revision");
-            aux(key, revision, MFCONN_DEVICE_CHANGE_UPDATED_FILE, changes,
-                &len_changes);
+            aux(key, parent, revision, MFCONN_DEVICE_CHANGE_UPDATED_FILE,
+                changes, &len_changes);
         }
     }
 
@@ -135,9 +152,10 @@ static int _decode_device_get_changes(mfhttp * conn, void *user_ptr)
             if (!json_is_object(data))
                 continue;
             key = json_object_get(data, "folderkey");
+            parent = json_object_get(data, "parent_folderkey");
             revision = json_object_get(data, "revision");
-            aux(key, revision, MFCONN_DEVICE_CHANGE_UPDATED_FOLDER, changes,
-                &len_changes);
+            aux(key, parent, revision, MFCONN_DEVICE_CHANGE_UPDATED_FOLDER,
+                changes, &len_changes);
         }
     }
 
@@ -151,9 +169,10 @@ static int _decode_device_get_changes(mfhttp * conn, void *user_ptr)
             if (!json_is_object(data))
                 continue;
             key = json_object_get(data, "quickkey");
+            parent = json_object_get(data, "parent_folderkey");
             revision = json_object_get(data, "revision");
-            aux(key, revision, MFCONN_DEVICE_CHANGE_DELETED_FILE, changes,
-                &len_changes);
+            aux(key, parent, revision, MFCONN_DEVICE_CHANGE_DELETED_FILE,
+                changes, &len_changes);
         }
     }
 
@@ -165,20 +184,25 @@ static int _decode_device_get_changes(mfhttp * conn, void *user_ptr)
             if (!json_is_object(data))
                 continue;
             key = json_object_get(data, "folderkey");
+            parent = json_object_get(data, "parent_folderkey");
             revision = json_object_get(data, "revision");
-            aux(key, revision, MFCONN_DEVICE_CHANGE_DELETED_FOLDER, changes,
-                &len_changes);
+            aux(key, parent, revision, MFCONN_DEVICE_CHANGE_DELETED_FOLDER,
+                changes, &len_changes);
         }
     }
     // sort
     qsort(*changes, len_changes, sizeof(struct mfconn_device_change),
           change_compare);
 
-    // put a zero valued entry at the end
+    // put an entry with change type MFCONN_DEVICE_CHANGE_END at the end
+    // encode the current device revision as its revision
     len_changes++;
     *changes = (struct mfconn_device_change *)
         realloc(*changes, len_changes * sizeof(struct mfconn_device_change));
     memset(*changes + len_changes - 1, 0, sizeof(struct mfconn_device_change));
+    (*changes)[len_changes - 1].change = MFCONN_DEVICE_CHANGE_END;
+    (*changes)[len_changes - 1].revision =
+        atoll(json_string_value(device_revision));
 
     if (root != NULL)
         json_decref(root);

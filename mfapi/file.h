@@ -32,6 +32,10 @@ int             file_set_key(mffile * file, const char *quickkey);
 
 const char     *file_get_key(mffile * file);
 
+int             file_set_parent(mffile * file, const char *parent_key);
+
+const char     *file_get_parent(mffile * file);
+
 int             file_set_hash(mffile * file, const char *hash);
 
 const char     *file_get_hash(mffile * file);

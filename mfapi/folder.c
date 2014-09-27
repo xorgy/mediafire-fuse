@@ -22,11 +22,12 @@
 #include <string.h>
 
 #include "folder.h"
+#include "apicalls.h"
 
 struct mffolder {
-    char            folderkey[20];
-    char            name[41];
-    char            parent[20];
+    char            folderkey[MFAPI_MAX_LEN_KEY + 1];
+    char            name[MFAPI_MAX_LEN_NAME + 1];
+    char            parent[MFAPI_MAX_LEN_KEY + 1];
     uint64_t        revision;
     time_t          created;
 };
@@ -62,7 +63,7 @@ int folder_set_key(mffolder * folder, const char *key)
             return -1;
 
         memset(folder->folderkey, 0, sizeof(folder->folderkey));
-        strncpy(folder->folderkey, key, sizeof(folder->folderkey) - 1);
+        strncpy(folder->folderkey, key, sizeof(folder->folderkey));
     }
 
     return 0;
@@ -88,12 +89,8 @@ int folder_set_parent(mffolder * folder, const char *parent_key)
     if (parent_key == NULL) {
         memset(folder->parent, 0, sizeof(folder->parent));
     } else {
-        if (strlen(parent_key) != 13) {
-            return -1;
-        }
-
         memset(folder->parent, 0, sizeof(folder->parent));
-        strncpy(folder->parent, parent_key, sizeof(folder->parent) - 1);
+        strncpy(folder->parent, parent_key, sizeof(folder->parent));
     }
 
     return 0;
@@ -104,7 +101,11 @@ const char     *folder_get_parent(mffolder * folder)
     if (folder == NULL)
         return NULL;
 
-    return folder->parent;
+    if (folder->parent[0] == '\0') {
+        return NULL;
+    } else {
+        return folder->parent;
+    }
 }
 
 int folder_set_name(mffolder * folder, const char *name)
@@ -118,7 +119,7 @@ int folder_set_name(mffolder * folder, const char *name)
         return -1;
 
     memset(folder->name, 0, sizeof(folder->name));
-    strncpy(folder->name, name, sizeof(folder->name) - 1);
+    strncpy(folder->name, name, sizeof(folder->name));
 
     return 0;
 }

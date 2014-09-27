@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stddef.h>
+#include <stdio.h>
 
 #include "../../utils/http.h"
 #include "../../utils/json.h"
@@ -129,6 +130,7 @@ static int _decode_folder_get_content_folders(mfhttp * conn, void *user_ptr)
 
     folders_array = json_object_get(node, "folders");
     if (!json_is_array(folders_array)) {
+        fprintf(stderr, "is not an array: folders");
         json_decref(root);
         return -1;
     }
@@ -225,6 +227,7 @@ static int _decode_folder_get_content_files(mfhttp * conn, void *user_ptr)
 
     files_array = json_object_get(node, "files");
     if (!json_is_array(files_array)) {
+        fprintf(stderr, "is not an array: files");
         json_decref(root);
         return -1;
     }

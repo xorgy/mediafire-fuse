@@ -88,6 +88,7 @@ static void usage(const char *progname)
 
 static int mediafirefs_getattr(const char *path, struct stat *stbuf)
 {
+    folder_tree_update(tree, conn);
     return folder_tree_getattr(tree, path, stbuf);
 }
 
@@ -98,6 +99,7 @@ static int mediafirefs_readdir(const char *path, void *buf,
     (void)offset;
     (void)info;
 
+    folder_tree_update(tree, conn);
     return folder_tree_readdir(tree, path, buf, filldir);
 }
 
@@ -187,7 +189,7 @@ int main(int argc, char *argv[])
 
     //folder_tree_housekeep(tree);
 
-    folder_tree_debug(tree, NULL, 0);
+    //folder_tree_debug(tree, NULL, 0);
 
     //folder_tree_destroy(tree);
 
