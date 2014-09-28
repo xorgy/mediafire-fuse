@@ -540,6 +540,59 @@ static struct h_entry *folder_tree_lookup_path(folder_tree * tree,
     return result;
 }
 
+uint64_t folder_tree_path_get_num_children(folder_tree * tree,
+                                           const char *path)
+{
+    struct h_entry *result;
+
+    result = folder_tree_lookup_path(tree, path);
+
+    if (result != NULL) {
+        return result->num_children;
+    } else {
+        return -1;
+    }
+}
+
+bool folder_tree_path_is_root(folder_tree * tree, const char *path)
+{
+    struct h_entry *result;
+
+    result = folder_tree_lookup_path(tree, path);
+
+    if (result != NULL) {
+        return result == &(tree->root);
+    } else {
+        return false;
+    }
+}
+
+bool folder_tree_path_is_directory(folder_tree * tree, const char *path)
+{
+    struct h_entry *result;
+
+    result = folder_tree_lookup_path(tree, path);
+
+    if (result != NULL) {
+        return result->atime == 0;
+    } else {
+        return false;
+    }
+}
+
+const char     *folder_tree_path_get_key(folder_tree * tree, const char *path)
+{
+    struct h_entry *result;
+
+    result = folder_tree_lookup_path(tree, path);
+
+    if (result != NULL) {
+        return result->key;
+    } else {
+        return NULL;
+    }
+}
+
 /*
  * given a path, check if it exists in the hashtable
  */
@@ -549,7 +602,7 @@ bool folder_tree_path_exists(folder_tree * tree, const char *path)
 
     result = folder_tree_lookup_path(tree, path);
 
-    return path != NULL;
+    return result != NULL;
 }
 
 int folder_tree_getattr(folder_tree * tree, const char *path,

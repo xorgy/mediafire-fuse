@@ -24,8 +24,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
+#include <errno.h>
+#include <sys/types.h>
 
 #include "../mfapi/mfconn.h"
+#include "../mfapi/apicalls.h"
 #include "hashtbl.h"
 
 enum {
@@ -118,10 +122,122 @@ static void mediafirefs_destroy()
     folder_tree_destroy(tree);
 }
 
+static int mediafirefs_mkdir(const char *path, mode_t mode)
+{
+    (void)mode;
+
+    char           *dirname;
+    int             retval;
+    char           *basename;
+    const char     *key;
+
+    folder_tree_update(tree, conn);
+
+    /* before calling the remote function we check locally */
+
+    dirname = strdup(path);
+
+    if (strcmp(dirname, "/") == 0) {
+        fprintf(stderr, "the root already exists\n");
+        return -EEXIST;
+    }
+
+    /* remove possible trailing slash */
+    if (dirname[strlen(dirname) - 1] == '/') {
+        dirname[strlen(dirname) - 1] = '\0';
+    }
+
+    /* check if the path already exists */
+    if (folder_tree_path_exists(tree, dirname)) {
+        fprintf(stderr, "the path %s already exists\n", dirname);
+        return -EEXIST;
+    }
+
+    /* split into dirname and basename */
+
+    basename = rindex(dirname, '/');
+    if (basename == NULL) {
+        fprintf(stderr, "cannot find slash\n");
+        return -ENOENT;
+    }
+
+    /* replace the slash by a terminating zero */
+    basename[0] = '\0';
+
+    /* basename points to the string after the last slash */
+    basename++;
+
+    /* check if the dirname is of zero length now. If yes, then the directory
+     * is to be created in the root */
+    if (dirname[0] == '\0') {
+        key = NULL;
+    } else {
+        key = folder_tree_path_get_key(tree, dirname);
+    }
+
+    retval = mfconn_api_folder_create(conn, key, basename);
+    mfconn_update_secret_key(conn);
+    if (retval != 0) {
+        fprintf(stderr, "mfconn_api_folder_create unsuccessful\n");
+        // FIXME: find better errno in this case
+        return -EAGAIN;
+    }
+
+    free(dirname);
+
+    folder_tree_update(tree, conn);
+
+    return 0;
+}
+
+int mediafirefs_rmdir(const char *path)
+{
+    const char     *key;
+    int             retval;
+
+    folder_tree_update(tree, conn);
+
+    /* check if path is directory */
+    if (!folder_tree_path_is_directory(tree, path)) {
+        fprintf(stderr, "path is not a directory\n");
+        // FIXME: find a better errno in this case
+        return -ENOENT;
+    }
+
+    /* check if directory is empty */
+    if (folder_tree_path_get_num_children(tree, path) != 0) {
+        fprintf(stderr, "path is not empty\n");
+        return -ENOTEMPTY;
+    }
+
+    /* check if directory is root */
+    if (folder_tree_path_is_root(tree, path)) {
+        fprintf(stderr, "cannot remove root\n");
+        // FIXME: find better errno in this case
+        return -EPERM;
+    }
+
+    key = folder_tree_path_get_key(tree, path);
+
+    retval = mfconn_api_folder_delete(conn, key);
+    mfconn_update_secret_key(conn);
+    if (retval != 0) {
+        fprintf(stderr, "mfconn_api_folder_create unsuccessful\n");
+        // FIXME: find better errno in this case
+        return -EAGAIN;
+    }
+
+    folder_tree_update(tree, conn);
+
+    return 0;
+}
+
 static struct fuse_operations mediafirefs_oper = {
     .getattr = mediafirefs_getattr,
     .readdir = mediafirefs_readdir,
     .destroy = mediafirefs_destroy,
+    .mkdir = mediafirefs_mkdir,
+    .rmdir = mediafirefs_rmdir,
 /*    .create = mediafirefs_create,
     .fsync = mediafirefs_fsync,
     .getattr = mediafirefs_getattr,

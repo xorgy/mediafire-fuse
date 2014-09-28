@@ -51,4 +51,14 @@ folder_tree    *folder_tree_load(FILE * stream);
 
 bool            folder_tree_path_exists(folder_tree * tree, const char *path);
 
+uint64_t        folder_tree_path_get_num_children(folder_tree * tree,
+                                                  const char *path);
+
+bool            folder_tree_path_is_directory(folder_tree * tree,
+                                              const char *path);
+
+const char     *folder_tree_path_get_key(folder_tree * tree, const char *path);
+
+bool            folder_tree_path_is_root(folder_tree * tree, const char *path);
+
 #endif
