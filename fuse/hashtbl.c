@@ -82,9 +82,10 @@ struct h_entry {
     uint64_t        ctime;
     /* the containing folder */
     union {
-        /* during runtime this is a pointer to the containing h_entry */
-        h_entry        *parent;
-        /* when storing on disk, this is the offset of the stored h_entry */
+        /* during runtime this is a pointer to the containing h_entry struct */
+        struct h_entry *parent;
+        /* when storing on disk, this is the offset of the stored h_entry
+         * struct */
         uint64_t        parent_offs;
     };
 
@@ -100,7 +101,7 @@ struct h_entry {
      * This member could also be an array of keys which would not require
      * lookups on updating but we expect more reads than writes so we
      * sacrifice slower updates for faster lookups */
-    h_entry       **children;
+    struct h_entry **children;
 
     /******************
      * only for files *
@@ -117,9 +118,10 @@ struct h_entry {
 };
 
 /*
- * Each bucket is an array of pointers instead of an array of h_entry so that
- * the array can be changed without the memory location of the h_entry
- * changing because the children of each h_entry point to those locations
+ * Each bucket is an array of pointers instead of an array of h_entry structs
+ * so that the array can be changed without the memory location of the h_entry
+ * struct changing because the children of each h_entry struct point to those
+ * locations
  *
  * This also allows us to implement each bucket as a sorted list in the
  * future. Queries could then be done using bisection (O(log(n))) instead of
@@ -130,8 +132,8 @@ struct h_entry {
 struct folder_tree {
     uint64_t        revision;
     uint64_t        bucket_lens[NUM_BUCKETS];
-    h_entry       **buckets[NUM_BUCKETS];
-    h_entry         root;
+    struct h_entry **buckets[NUM_BUCKETS];
+    struct h_entry  root;
 };
 
 /* persistant storage file layout:
@@ -141,20 +143,22 @@ struct folder_tree {
  * byte 2: 0x53 -> ASCII S  --> MFS == MediaFire Storage
  * byte 3: 0x00 -> version information
  * bytes 4-11   -> last seen device revision
- * bytes 12-19  -> number of h_entry objects including root (num_hts)
- * bytes 20...  -> h_entry objects, the first one being root
+ * bytes 12-19  -> number of h_entry structs including root (num_hts)
+ * bytes 20...  -> h_entry structs, the first one being root
  *
- * the children pointer member of the h_entry object is useless when stored,
+ * the children pointer member of the h_entry struct is useless when stored,
  * should be set to zero and not used when reading the file
  */
+
 int folder_tree_store(folder_tree * tree, FILE * stream)
 {
+
     /* to allow a quick mapping from keys to their offsets in the array that
      * will be stored, we create a hashtable of the same structure as the
      * folder_tree but instead of storing pointers to h_entries in the buckets
      * we store their integer offset. This way, when one known in which bucket
-     * and in which position in a bucket a h_entry is, one can retrieve the
-     * associated integer offset. */
+     * and in which position in a bucket a h_entry struct is, one can retrieve
+     * the associated integer offset. */
 
     uint64_t      **integer_buckets;
     uint64_t        i,
@@ -162,7 +166,7 @@ int folder_tree_store(folder_tree * tree, FILE * stream)
                     k,
                     num_hts;
     size_t          ret;
-    h_entry        *tmp_parent;
+    struct h_entry *tmp_parent;
     int             bucket_id;
     bool            found;
 
@@ -208,7 +212,7 @@ int folder_tree_store(folder_tree * tree, FILE * stream)
     }
 
     /* write the root */
-    ret = fwrite(&(tree->root), sizeof(h_entry), 1, stream);
+    ret = fwrite(&(tree->root), sizeof(struct h_entry), 1, stream);
     if (ret != 1) {
         fprintf(stderr, "cannot fwrite\n");
         return -1;
@@ -242,7 +246,8 @@ int folder_tree_store(folder_tree * tree, FILE * stream)
             }
 
             /* write out modified record */
-            ret = fwrite(tree->buckets[i][j], sizeof(h_entry), 1, stream);
+            ret =
+                fwrite(tree->buckets[i][j], sizeof(struct h_entry), 1, stream);
             if (ret != 1) {
                 fprintf(stderr, "cannot fwrite\n");
                 return -1;
@@ -270,9 +275,9 @@ folder_tree    *folder_tree_load(FILE * stream)
     size_t          ret;
     uint64_t        num_hts;
     uint64_t        i;
-    h_entry       **ordered_entries;
-    h_entry        *tmp_entry;
-    h_entry        *parent;
+    struct h_entry **ordered_entries;
+    struct h_entry *tmp_entry;
+    struct h_entry *parent;
     int             bucket_id;
 
     /* read and check the first four bytes */
@@ -315,11 +320,12 @@ folder_tree    *folder_tree_load(FILE * stream)
     tree->root.children = NULL;
 
     /* to effectively map integer offsets to addresses we load the file into
-     * an array of pointers to h_entry objects and free that array after we're
+     * an array of pointers to h_entry structs and free that array after we're
      * done with setting up the hashtable */
 
     /* populate the array of children */
-    ordered_entries = (h_entry **) malloc(num_hts * sizeof(h_entry *));
+    ordered_entries =
+        (struct h_entry **)malloc(num_hts * sizeof(struct h_entry *));
 
     /* the first entry in this array points to the memory allocated for the
      * root */
@@ -327,8 +333,8 @@ folder_tree    *folder_tree_load(FILE * stream)
 
     /* read the remaining entries one by one */
     for (i = 1; i < num_hts; i++) {
-        tmp_entry = (h_entry *) malloc(sizeof(h_entry));
-        ret = fread(tmp_entry, sizeof(h_entry), 1, stream);
+        tmp_entry = (struct h_entry *)malloc(sizeof(struct h_entry));
+        ret = fread(tmp_entry, sizeof(struct h_entry), 1, stream);
         if (ret != 1) {
             fprintf(stderr, "cannot fread\n");
             return NULL;
@@ -351,8 +357,9 @@ folder_tree    *folder_tree_load(FILE * stream)
         /* use the parent information to populate the array of children */
         parent->num_children++;
         parent->children =
-            (h_entry **) realloc(parent->children,
-                                 parent->num_children * sizeof(h_entry *));
+            (struct h_entry **)realloc(parent->children,
+                                       parent->num_children *
+                                       sizeof(struct h_entry *));
         if (parent->children == NULL) {
             fprintf(stderr, "realloc failed\n");
             return NULL;
@@ -363,9 +370,9 @@ folder_tree    *folder_tree_load(FILE * stream)
         bucket_id = HASH_OF_KEY(ordered_entries[i]->key);
         tree->bucket_lens[bucket_id]++;
         tree->buckets[bucket_id] =
-            (h_entry **) realloc(tree->buckets[bucket_id],
-                                 tree->bucket_lens[bucket_id] *
-                                 sizeof(h_entry *));
+            (struct h_entry **)realloc(tree->buckets[bucket_id],
+                                       tree->bucket_lens[bucket_id] *
+                                       sizeof(struct h_entry *));
         if (tree->buckets[bucket_id] == NULL) {
             fprintf(stderr, "realloc failed\n");
             return NULL;
@@ -414,13 +421,14 @@ void folder_tree_destroy(folder_tree * tree)
 }
 
 /*
- * given a folderkey, lookup the h_entry of it in the tree
+ * given a folderkey, lookup the h_entry struct of it in the hashtable
  *
  * if key is NULL, then a pointer to the root is returned
  *
- * if no matching h_entry is found, NULL is returned
+ * if no matching h_entry struct is found, NULL is returned
  */
-static h_entry *folder_tree_lookup_key(folder_tree * tree, const char *key)
+static struct h_entry *folder_tree_lookup_key(folder_tree * tree,
+                                              const char *key)
 {
     int             bucket_id;
     uint64_t        i;
@@ -437,22 +445,23 @@ static h_entry *folder_tree_lookup_key(folder_tree * tree, const char *key)
         }
     }
 
-    fprintf(stderr, "cannot find h_entry for key %s\n", key);
+    fprintf(stderr, "cannot find h_entry struct for key %s\n", key);
     return NULL;
 }
 
 /*
- * given a path, return the h_entry of the last component
+ * given a path, return the h_entry struct of the last component
  *
  * the path must start with a slash
  */
-static h_entry *folder_tree_lookup_path(folder_tree * tree, const char *path)
+static struct h_entry *folder_tree_lookup_path(folder_tree * tree,
+                                               const char *path)
 {
     char           *tmp_path;
     char           *new_path;
     char           *slash_pos;
-    h_entry        *curr_dir;
-    h_entry        *result;
+    struct h_entry *curr_dir;
+    struct h_entry *result;
     uint64_t        i;
     bool            success;
 
@@ -531,10 +540,22 @@ static h_entry *folder_tree_lookup_path(folder_tree * tree, const char *path)
     return result;
 }
 
+/*
+ * given a path, check if it exists in the hashtable
+ */
+bool folder_tree_path_exists(folder_tree * tree, const char *path)
+{
+    struct h_entry *result;
+
+    result = folder_tree_lookup_path(tree, path);
+
+    return path != NULL;
+}
+
 int folder_tree_getattr(folder_tree * tree, const char *path,
                         struct stat *stbuf)
 {
-    h_entry        *entry;
+    struct h_entry *entry;
 
     entry = folder_tree_lookup_path(tree, path);
 
@@ -566,7 +587,7 @@ int folder_tree_getattr(folder_tree * tree, const char *path,
 int folder_tree_readdir(folder_tree * tree, const char *path, void *buf,
                         fuse_fill_dir_t filldir)
 {
-    h_entry        *entry;
+    struct h_entry *entry;
     uint64_t        i;
 
     entry = folder_tree_lookup_path(tree, path);
@@ -586,7 +607,7 @@ int folder_tree_readdir(folder_tree * tree, const char *path, void *buf,
     return 0;
 }
 
-static bool folder_tree_is_root(h_entry * entry)
+static bool folder_tree_is_root(struct h_entry *entry)
 {
     if (entry == NULL) {
         fprintf(stderr, "entry is NULL\n");
@@ -603,12 +624,13 @@ static bool folder_tree_is_root(h_entry * entry)
  * memory if necessary and adjust the children arrays of the former and new
  * parent to accommodate for the change
  */
-static h_entry *folder_tree_allocate_entry(folder_tree * tree, const char *key,
-                                           h_entry * new_parent)
+static struct h_entry *folder_tree_allocate_entry(folder_tree * tree,
+                                                  const char *key,
+                                                  struct h_entry *new_parent)
 {
-    h_entry        *entry;
+    struct h_entry *entry;
     int             bucket_id;
-    h_entry        *old_parent;
+    struct h_entry *old_parent;
     uint64_t        i;
     bool            found;
 
@@ -628,12 +650,12 @@ static h_entry *folder_tree_allocate_entry(folder_tree * tree, const char *key,
         fprintf(stderr,
                 "key is NULL but this is fine, we just create it now\n");
         /* entry was not found, so append it to the end of the bucket */
-        entry = (h_entry *) calloc(1, sizeof(h_entry));
+        entry = (struct h_entry *)calloc(1, sizeof(struct h_entry));
         bucket_id = HASH_OF_KEY(key);
         tree->bucket_lens[bucket_id]++;
         tree->buckets[bucket_id] =
             realloc(tree->buckets[bucket_id],
-                    sizeof(h_entry *) * tree->bucket_lens[bucket_id]);
+                    sizeof(struct h_entry *) * tree->bucket_lens[bucket_id]);
         if (tree->buckets[bucket_id] == NULL) {
             fprintf(stderr, "realloc failed\n");
             return NULL;
@@ -648,8 +670,9 @@ static h_entry *folder_tree_allocate_entry(folder_tree * tree, const char *key,
          */
         new_parent->num_children++;
         new_parent->children =
-            (h_entry **) realloc(new_parent->children,
-                                 new_parent->num_children * sizeof(h_entry *));
+            (struct h_entry **)realloc(new_parent->children,
+                                       new_parent->num_children *
+                                       sizeof(struct h_entry *));
         if (new_parent->children == NULL) {
             fprintf(stderr, "realloc failed\n");
             return NULL;
@@ -677,8 +700,8 @@ static h_entry *folder_tree_allocate_entry(folder_tree * tree, const char *key,
             if (old_parent->children[i] == entry) {
                 /* move the entries on the right one place to the left */
                 memmove(old_parent->children[i], old_parent->children[i + 1],
-                        sizeof(h_entry *) * (old_parent->num_children - i -
-                                             1));
+                        sizeof(struct h_entry *) * (old_parent->num_children -
+                                                    i - 1));
                 old_parent->num_children--;
                 /* change the children size */
                 if (old_parent->num_children) {
@@ -686,9 +709,9 @@ static h_entry *folder_tree_allocate_entry(folder_tree * tree, const char *key,
                     old_parent->children = NULL;
                 } else {
                     old_parent->children =
-                        (h_entry **) realloc(old_parent->children,
-                                             old_parent->num_children *
-                                             sizeof(h_entry *));
+                        (struct h_entry **)realloc(old_parent->children,
+                                                   old_parent->num_children *
+                                                   sizeof(struct h_entry *));
                     if (old_parent->children == NULL) {
                         fprintf(stderr, "realloc failed\n");
                         return NULL;
@@ -722,8 +745,9 @@ static h_entry *folder_tree_allocate_entry(folder_tree * tree, const char *key,
     if (!found) {
         new_parent->num_children++;
         new_parent->children =
-            (h_entry **) realloc(new_parent->children,
-                                 new_parent->num_children * sizeof(h_entry *));
+            (struct h_entry **)realloc(new_parent->children,
+                                       new_parent->num_children *
+                                       sizeof(struct h_entry *));
         if (new_parent->children == 0) {
             fprintf(stderr, "realloc failed\n");
             return NULL;
@@ -738,10 +762,10 @@ static h_entry *folder_tree_allocate_entry(folder_tree * tree, const char *key,
  * When adding an existing key, the old key is overwritten.
  * Return the inserted or updated key
  */
-static h_entry *folder_tree_add_file(folder_tree * tree, mffile * file,
-                                     h_entry * parent)
+static struct h_entry *folder_tree_add_file(folder_tree * tree, mffile * file,
+                                            struct h_entry *parent)
 {
-    h_entry        *entry;
+    struct h_entry *entry;
     const char     *key;
 
     if (tree == NULL) {
@@ -770,22 +794,23 @@ static h_entry *folder_tree_add_file(folder_tree * tree, mffile * file,
     entry->ctime = file_get_created(file);
     entry->fsize = file_get_size(file);
 
-    /* mark this h_entry as a file if its atime is not set yet */
+    /* mark this h_entry struct as a file if its atime is not set yet */
     if (entry->atime == 0)
         entry->atime = 1;
 
     return entry;
 }
 
-/* given an mffolder, add its information to a new h_entry, or update an
- * existing h_entry in the hashtable
+/* given an mffolder, add its information to a new h_entry struct, or update an
+ * existing h_entry struct in the hashtable
  *
- * returns the added or updated h_entry
+ * returns a pointer to the added or updated h_entry struct
  */
-static h_entry *folder_tree_add_folder(folder_tree * tree, mffolder * folder,
-                                       h_entry * parent)
+static struct h_entry *folder_tree_add_folder(folder_tree * tree,
+                                              mffolder * folder,
+                                              struct h_entry *parent)
 {
-    h_entry        *entry;
+    struct h_entry *entry;
     const char     *key;
     const char     *name;
 
@@ -853,7 +878,8 @@ static void folder_tree_remove(folder_tree * tree, const char *key)
         free(tree->buckets[bucket_id][i]);
         /* move the items on the right one place to the left */
         memmove(tree->buckets[bucket_id][i], tree->buckets[bucket_id][i + 1],
-                sizeof(h_entry *) * (tree->bucket_lens[bucket_id] - i - 1));
+                sizeof(struct h_entry *) * (tree->bucket_lens[bucket_id] - i -
+                                            1));
         /* change bucket size */
         tree->bucket_lens[bucket_id]--;
         if (tree->bucket_lens[bucket_id] == 0) {
@@ -862,7 +888,7 @@ static void folder_tree_remove(folder_tree * tree, const char *key)
         } else {
             tree->buckets[bucket_id] =
                 realloc(tree->buckets[bucket_id],
-                        sizeof(h_entry) * tree->bucket_lens[bucket_id]);
+                        sizeof(struct h_entry) * tree->bucket_lens[bucket_id]);
             if (tree->buckets[bucket_id] == NULL) {
                 fprintf(stderr, "realloc failed\n");
                 return;
@@ -872,17 +898,19 @@ static void folder_tree_remove(folder_tree * tree, const char *key)
 }
 
 /*
- * check if a h_entry is the parent of another
+ * check if a h_entry struct is the parent of another
  *
  * this checks only pointer equivalence and does not compare the key for
  * better performance
  *
- * thus, this function relies on the fact that only one h_entry per key exists
+ * thus, this function relies on the fact that only one h_entry struct per key
+ * exists
  *
  * This function does not use the parent member of the child. If you want to
  * rely on that, then use it directly.
  */
-static bool folder_tree_is_parent_of(h_entry * parent, h_entry * child)
+static bool folder_tree_is_parent_of(struct h_entry *parent,
+                                     struct h_entry *child)
 {
     uint64_t        i;
     bool            found;
@@ -899,19 +927,19 @@ static bool folder_tree_is_parent_of(h_entry * parent, h_entry * child)
 }
 
 /*
- * given a h_entry, this function gets the remote content of that folder and
- * fills its children
+ * given a h_entry struct of a folder, this function gets the remote content
+ * of that folder and fills its children
  *
  * it then recurses for each child that is a directory and does the same in a
  * full remote directory walk
  */
 static int folder_tree_rebuild_helper(folder_tree * tree, mfconn * conn,
-                                      h_entry * curr_entry, bool recurse)
+                                      struct h_entry *curr_entry, bool recurse)
 {
     int             retval;
     mffolder      **folder_result;
     mffile        **file_result;
-    h_entry        *entry;
+    struct h_entry *entry;
     int             i;
     const char     *key;
     bool            found;
@@ -956,9 +984,9 @@ static int folder_tree_rebuild_helper(folder_tree * tree, mfconn * conn,
         if (folder_tree_lookup_key(tree, key) != NULL) {
             curr_entry->num_children++;
             curr_entry->children =
-                (h_entry **) realloc(curr_entry->children,
-                                     curr_entry->num_children *
-                                     sizeof(h_entry *));
+                (struct h_entry **)realloc(curr_entry->children,
+                                           curr_entry->num_children *
+                                           sizeof(struct h_entry *));
             if (curr_entry->children == NULL) {
                 fprintf(stderr, "realloc failed\n");
                 return -1;
@@ -1011,9 +1039,9 @@ static int folder_tree_rebuild_helper(folder_tree * tree, mfconn * conn,
         if (folder_tree_lookup_key(tree, key) != NULL) {
             curr_entry->num_children++;
             curr_entry->children =
-                (h_entry **) realloc(curr_entry->children,
-                                     curr_entry->num_children *
-                                     sizeof(h_entry *));
+                (struct h_entry **)realloc(curr_entry->children,
+                                           curr_entry->num_children *
+                                           sizeof(struct h_entry *));
             if (curr_entry->children == NULL) {
                 fprintf(stderr, "realloc failed\n");
                 return -1;
@@ -1045,7 +1073,7 @@ static int folder_tree_update_file_info(folder_tree * tree, mfconn * conn,
 {
     mffile         *file;
     int             retval;
-    h_entry        *parent;
+    struct h_entry *parent;
 
     file = file_alloc();
 
@@ -1075,15 +1103,16 @@ static int folder_tree_update_file_info(folder_tree * tree, mfconn * conn,
 /*
  * update the fields of a folder without checking its children
  *
- * we identify the folder to update by its key instead of its h_entry because
- * this function is to fill the h_entry in the first place
+ * we identify the folder to update by its key instead of its h_entry struct
+ * pointer because this function is to fill the h_entry struct in the first
+ * place
  */
 static int folder_tree_update_folder_info(folder_tree * tree, mfconn * conn,
                                           char *key)
 {
     mffolder       *folder;
     int             retval;
-    h_entry        *parent;
+    struct h_entry *parent;
 
     if (key != NULL && strcmp(key, "trash")) {
         fprintf(stderr, "cannot get folder info of trash\n");
@@ -1126,7 +1155,7 @@ void folder_tree_update(folder_tree * tree, mfconn * conn)
     uint64_t        i;
     struct mfconn_device_change *changes;
     int             retval;
-    h_entry        *tmp_entry;
+    struct h_entry *tmp_entry;
 
     mfconn_api_device_get_status(conn, &revision_remote);
     mfconn_update_secret_key(conn);
@@ -1223,17 +1252,18 @@ void folder_tree_update(folder_tree * tree, mfconn * conn)
      * situation should be rectified once the next device/get_changes is done.
      *
      * Just remember that due to this it can happen that the revision of the
-     * local tree is less than the highest revision of a h_entry it stores.
+     * local tree is less than the highest revision of a h_entry struct it
+     * stores.
      */
 
     /* now fix up any possible errors */
 
     /* clean the resulting folder_tree of any dangling objects */
     fprintf(stderr, "tree before cleaning:\n");
-    folder_tree_debug(tree, NULL, 0);
+    folder_tree_debug(tree);
     folder_tree_housekeep(tree, conn);
     fprintf(stderr, "tree after cleaning:\n");
-    folder_tree_debug(tree, NULL, 0);
+    folder_tree_debug(tree);
 }
 
 /*
@@ -1380,7 +1410,8 @@ void folder_tree_housekeep(folder_tree * tree, mfconn * conn)
      */
 }
 
-void folder_tree_debug(folder_tree * tree, h_entry * ent, int depth)
+void folder_tree_debug_helper(folder_tree * tree, struct h_entry *ent,
+                              int depth)
 {
     uint64_t        i;
 
@@ -1394,7 +1425,7 @@ void folder_tree_debug(folder_tree * tree, h_entry * ent, int depth)
             fprintf(stderr, "%*s d:%s k:%s p:%s\n", depth + 1, " ",
                     ent->children[i]->name, ent->children[i]->key,
                     ent->children[i]->parent->key);
-            folder_tree_debug(tree, ent->children[i], depth + 1);
+            folder_tree_debug_helper(tree, ent->children[i], depth + 1);
         } else {
             /* file */
             fprintf(stderr, "%*s f:%s k:%s p:%s\n", depth + 1, " ",
@@ -1402,4 +1433,9 @@ void folder_tree_debug(folder_tree * tree, h_entry * ent, int depth)
                     ent->children[i]->parent->key);
         }
     }
+}
+
+void folder_tree_debug(folder_tree * tree)
+{
+    folder_tree_debug_helper(tree, NULL, 0);
 }

@@ -219,7 +219,7 @@ int main(int argc, char *argv[])
 
     //folder_tree_housekeep(tree);
 
-    folder_tree_debug(tree, NULL, 0);
+    folder_tree_debug(tree);
 
     return fuse_main(args.argc, args.argv, &mediafirefs_oper, NULL);
 }

@@ -21,11 +21,11 @@
 
 #include <fuse/fuse.h>
 #include <stdio.h>
+#include <stdbool.h>
 
 #include "../mfapi/mfconn.h"
 
 typedef struct folder_tree folder_tree;
-typedef struct h_entry h_entry;
 
 folder_tree    *folder_tree_create(void);
 
@@ -35,8 +35,7 @@ int             folder_tree_rebuild(folder_tree * tree, mfconn * conn);
 
 void            folder_tree_housekeep(folder_tree * tree, mfconn * conn);
 
-void            folder_tree_debug(folder_tree * tree, h_entry * ent,
-                                  int depth);
+void            folder_tree_debug(folder_tree * tree);
 
 int             folder_tree_getattr(folder_tree * tree, const char *path,
                                     struct stat *stbuf);
@@ -49,5 +48,7 @@ void            folder_tree_update(folder_tree * tree, mfconn * conn);
 int             folder_tree_store(folder_tree * tree, FILE * stream);
 
 folder_tree    *folder_tree_load(FILE * stream);
+
+bool            folder_tree_path_exists(folder_tree * tree, const char *path);
 
 #endif
