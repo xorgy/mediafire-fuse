@@ -32,6 +32,55 @@
 #include "../mfapi/apicalls.h"
 #include "hashtbl.h"
 
+/* what you can safely assume about requests to your filesystem
+ *
+ * from: http://sourceforge.net/p/fuse/wiki/FuseInvariants/
+ *
+ * There are a number of assumptions that one can safely make when
+ * implementing a filesystem using fuse. This page should be completed with a
+ * set of such assumptions.
+ *
+ *  - All requests are absolute, i.e. all paths begin with "/" and include the
+ *    complete path to a file or a directory. Symlinks, "." and ".." are
+ *    already resolved.
+ *
+ *  - For every request you can get except for "Getattr()", "Read()" and
+ *    "Write()", usually for every path argument (both source and destination
+ *    for link and rename, but only the source for symlink), you will get a
+ *    "Getattr()" request just before the callback.
+ *
+ * For example, suppose I store file names of files in a filesystem also into a
+ * database. To keep data in sync, I would like, for each filesystem operation
+ * that succeeds, to check if the file exists on the database. I just do this in
+ * the "Getattr()" call, since all other calls will be preceded by a getattr.
+ *
+ *  - The value of the "st_dev" attribute in the "Getattr()" call are ignored
+ *    by fuse and an appropriate anomynous device number is inserted instead.
+ *
+ *  - The arguments for every request are already verified as much as
+ *    possible. This means that, for example "readdir()" is only called with
+ *    an existing directory name, "Readlink()" is only called with an existing
+ *    symlink, "Symlink()" is only called if there isn't already another
+ *    object with the requested linkname, "read()" and "Write()" are only
+ *    called if the file has been opened with the correct flags.
+ *
+ *  - The VFS also takes care of avoiding race conditions:
+ *
+ *  - while "Unlink()" is running on a specific file, it cannot be interrupted
+ *    by a "Chmod()", "Link()" or "Open()" call from a different thread on the
+ *    same file.
+ *
+ *  - while "Rmdir()" is running, no files can be created in the directory
+ *    that "Rmdir()" is acting on.
+ *
+ *  - If a request returns invalid values (e.g. in the structure returned by
+ *    "Getattr()" or in the link target returned by "Symlink()") or if a
+ *    request appears to have failed (e.g. if a "Create()" request succeds but
+ *    a subsequent "Getattr()" (that fuse calls automatically) ndicates that
+ *    no regular file has been created), the syscall returns EIO to the
+ *    caller.
+ */
+
 enum {
     KEY_HELP,
     KEY_VERSION,
@@ -92,6 +141,11 @@ static void usage(const char *progname)
 
 static int mediafirefs_getattr(const char *path, struct stat *stbuf)
 {
+    /*
+     * since getattr is called before every other call (except for getattr,
+     * read and write) wee only call folder_tree_update in the getattr call
+     * and not the others
+     */
     folder_tree_update(tree, conn);
     return folder_tree_getattr(tree, path, stbuf);
 }
@@ -103,7 +157,6 @@ static int mediafirefs_readdir(const char *path, void *buf,
     (void)offset;
     (void)info;
 
-    folder_tree_update(tree, conn);
     return folder_tree_readdir(tree, path, buf, filldir);
 }
 
@@ -131,26 +184,17 @@ static int mediafirefs_mkdir(const char *path, mode_t mode)
     char           *basename;
     const char     *key;
 
-    folder_tree_update(tree, conn);
+    /* we don't need to check whether the path already existed because the
+     * getattr call made before this one takes care of that
+     */
 
     /* before calling the remote function we check locally */
 
     dirname = strdup(path);
 
-    if (strcmp(dirname, "/") == 0) {
-        fprintf(stderr, "the root already exists\n");
-        return -EEXIST;
-    }
-
     /* remove possible trailing slash */
     if (dirname[strlen(dirname) - 1] == '/') {
         dirname[strlen(dirname) - 1] = '\0';
-    }
-
-    /* check if the path already exists */
-    if (folder_tree_path_exists(tree, dirname)) {
-        fprintf(stderr, "the path %s already exists\n", dirname);
-        return -EEXIST;
     }
 
     /* split into dirname and basename */
@@ -190,34 +234,24 @@ static int mediafirefs_mkdir(const char *path, mode_t mode)
     return 0;
 }
 
-int mediafirefs_rmdir(const char *path)
+static int mediafirefs_rmdir(const char *path)
 {
     const char     *key;
     int             retval;
 
-    folder_tree_update(tree, conn);
-
-    /* check if path is directory */
-    if (!folder_tree_path_is_directory(tree, path)) {
-        fprintf(stderr, "path is not a directory\n");
-        // FIXME: find a better errno in this case
-        return -ENOENT;
-    }
-
-    /* check if directory is empty */
-    if (folder_tree_path_get_num_children(tree, path) != 0) {
-        fprintf(stderr, "path is not empty\n");
-        return -ENOTEMPTY;
-    }
-
-    /* check if directory is root */
-    if (folder_tree_path_is_root(tree, path)) {
-        fprintf(stderr, "cannot remove root\n");
-        // FIXME: find better errno in this case
-        return -EPERM;
-    }
+    /* no need to check
+     *  - if path is directory
+     *  - if directory is empty
+     *  - if directory is root
+     *
+     * because getattr was called before and already made sure
+     */
 
     key = folder_tree_path_get_key(tree, path);
+    if (key == NULL) {
+        fprintf(stderr, "key is NULL\n");
+        return -ENOENT;
+    }
 
     retval = mfconn_api_folder_delete(conn, key);
     mfconn_update_secret_key(conn);
@@ -227,9 +261,41 @@ int mediafirefs_rmdir(const char *path)
         return -EAGAIN;
     }
 
+    /* retrieve remote changes to not get out of sync */
     folder_tree_update(tree, conn);
 
     return 0;
+}
+
+static int mediafirefs_open(const char * path, struct fuse_file_info * file_info)
+{
+    (void)path;
+
+    if((file_info->flags & O_ACCMODE) != O_RDONLY) {
+        fprintf(stderr, "can only open read-only");
+        return -EACCES;
+    }
+
+    /* check if file has already been downloaded */
+
+    /* check if downloaded version is the current one */
+
+    /* download file from remote */
+
+    /* update local file with patch */
+
+    return -ENOSYS;
+}
+
+static int mediafirefs_read(const char * path, char * buf, size_t size, off_t offset, struct fuse_file_info * file_info)
+{
+    (void)path;
+    (void)buf;
+    (void)size;
+    (void)offset;
+    (void)file_info;
+
+    return -ENOSYS;
 }
 
 static struct fuse_operations mediafirefs_oper = {
@@ -238,15 +304,14 @@ static struct fuse_operations mediafirefs_oper = {
     .destroy = mediafirefs_destroy,
     .mkdir = mediafirefs_mkdir,
     .rmdir = mediafirefs_rmdir,
+    .open = mediafirefs_open,
+    .read = mediafirefs_read,
 /*    .create = mediafirefs_create,
     .fsync = mediafirefs_fsync,
-    .getattr = mediafirefs_getattr,
     .getxattr = mediafirefs_getxattr,
     .init = mediafirefs_init,
     .listxattr = mediafirefs_listxattr,
-    .open = mediafirefs_open,
     .opendir = mediafirefs_opendir,
-    .read = mediafirefs_read,
     .releasedir = mediafirefs_releasedir,
     .setxattr = mediafirefs_setxattr,
     .statfs = mediafirefs_statfs,

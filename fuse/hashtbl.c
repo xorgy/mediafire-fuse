@@ -567,6 +567,19 @@ bool folder_tree_path_is_root(folder_tree * tree, const char *path)
     }
 }
 
+bool folder_tree_path_is_file(folder_tree * tree, const char *path)
+{
+    struct h_entry *result;
+
+    result = folder_tree_lookup_path(tree, path);
+
+    if (result != NULL) {
+        return result->atime != 0;
+    } else {
+        return false;
+    }
+}
+
 bool folder_tree_path_is_directory(folder_tree * tree, const char *path)
 {
     struct h_entry *result;

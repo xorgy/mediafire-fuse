@@ -61,4 +61,6 @@ const char     *folder_tree_path_get_key(folder_tree * tree, const char *path);
 
 bool            folder_tree_path_is_root(folder_tree * tree, const char *path);
 
+bool            folder_tree_path_is_file(folder_tree * tree, const char *path);
+
 #endif
