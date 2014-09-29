@@ -138,6 +138,7 @@ struct folder_tree {
 
 /* static functions local to this file */
 
+/* functions without remote access */
 static void     folder_tree_free_entries(folder_tree * tree);
 static struct h_entry *folder_tree_lookup_key(folder_tree * tree,
                                               const char *key);
@@ -149,16 +150,17 @@ static struct h_entry *folder_tree_allocate_entry(folder_tree * tree,
                                                   struct h_entry *new_parent);
 static struct h_entry *folder_tree_add_file(folder_tree * tree, mffile * file,
                                             struct h_entry *new_parent);
+static void     folder_tree_remove(folder_tree * tree, const char *key);
+static bool     folder_tree_is_parent_of(struct h_entry *parent,
+                                         struct h_entry *child);
+
+/* functions with remote access */
 static struct h_entry *folder_tree_add_folder(folder_tree * tree,
                                               mfconn * conn,
                                               mffolder * folder,
                                               struct h_entry *new_parent);
 static int      folder_tree_rebuild_helper(folder_tree * tree, mfconn * conn,
-                                           struct h_entry *curr_entry,
-                                           bool recurse);
-static void     folder_tree_remove(folder_tree * tree, const char *key);
-static bool     folder_tree_is_parent_of(struct h_entry *parent,
-                                         struct h_entry *child);
+                                           struct h_entry *curr_entry);
 static int      folder_tree_update_file_info(folder_tree * tree, mfconn * conn,
                                              const char *key);
 static int      folder_tree_update_folder_info(folder_tree * tree,
@@ -948,9 +950,13 @@ static struct h_entry *folder_tree_add_folder(folder_tree * tree,
     new_entry->parent = new_parent;
 
     /* if the revisions of the old and new entry differ, we have to
-     * update its content */
-    if (old_entry != NULL && old_revision < new_entry->revision) {
-        folder_tree_rebuild_helper(tree, conn, new_entry, false);
+     * update its content from the remote
+     *
+     * we also have to fetch the remote content if the folder was only just
+     * added and did not exist before */
+    if ((old_entry != NULL && old_revision < new_entry->revision)
+        || old_entry == NULL) {
+        folder_tree_rebuild_helper(tree, conn, new_entry);
     }
 
     return new_entry;
@@ -959,12 +965,9 @@ static struct h_entry *folder_tree_add_folder(folder_tree * tree,
 /*
  * given a h_entry struct of a folder, this function gets the remote content
  * of that folder and fills its children
- *
- * it then recurses for each child that is a directory and does the same in a
- * full remote directory walk
  */
 static int folder_tree_rebuild_helper(folder_tree * tree, mfconn * conn,
-                                      struct h_entry *curr_entry, bool recurse)
+                                      struct h_entry *curr_entry)
 {
     int             retval;
     mffolder      **folder_result;
@@ -1016,9 +1019,6 @@ static int folder_tree_rebuild_helper(folder_tree * tree, mfconn * conn,
         }
         entry =
             folder_tree_add_folder(tree, conn, folder_result[i], curr_entry);
-        /* recurse */
-        if (recurse)
-            folder_tree_rebuild_helper(tree, conn, entry, true);
         folder_free(folder_result[i]);
     }
     free(folder_result);
@@ -1384,7 +1384,7 @@ void folder_tree_update(folder_tree * tree, mfconn * conn)
      * items which were even removed from the trash
      */
 
-    folder_tree_rebuild_helper(tree, conn, &(tree->root), false);
+    folder_tree_rebuild_helper(tree, conn, &(tree->root));
 
     /* the new revision of the tree is the revision of the terminating change
      * */
@@ -1446,7 +1446,7 @@ int folder_tree_rebuild(folder_tree * tree, mfconn * conn)
         return -1;
     }
 
-    folder_tree_rebuild_helper(tree, conn, &(tree->root), true);
+    folder_tree_rebuild_helper(tree, conn, &(tree->root));
 
     /*
      * call device/get_changes to get possible remote changes while we walked
@@ -1505,7 +1505,7 @@ void folder_tree_housekeep(folder_tree * tree, mfconn * conn)
          * changes to items which were even removed from the trash
          */
 
-        folder_tree_rebuild_helper(tree, conn, &(tree->root), false);
+        folder_tree_rebuild_helper(tree, conn, &(tree->root));
     }
 
     /* then check the hashtable */
@@ -1538,8 +1538,7 @@ void folder_tree_housekeep(folder_tree * tree, mfconn * conn)
                  * from the trash
                  */
 
-                folder_tree_rebuild_helper(tree, conn, tree->buckets[i][j],
-                                           false);
+                folder_tree_rebuild_helper(tree, conn, tree->buckets[i][j]);
             }
         }
     }
