@@ -267,11 +267,11 @@ static int mediafirefs_rmdir(const char *path)
     return 0;
 }
 
-static int mediafirefs_open(const char * path, struct fuse_file_info * file_info)
+static int mediafirefs_open(const char *path, struct fuse_file_info *file_info)
 {
     (void)path;
 
-    if((file_info->flags & O_ACCMODE) != O_RDONLY) {
+    if ((file_info->flags & O_ACCMODE) != O_RDONLY) {
         fprintf(stderr, "can only open read-only");
         return -EACCES;
     }
@@ -287,7 +287,8 @@ static int mediafirefs_open(const char * path, struct fuse_file_info * file_info
     return -ENOSYS;
 }
 
-static int mediafirefs_read(const char * path, char * buf, size_t size, off_t offset, struct fuse_file_info * file_info)
+static int mediafirefs_read(const char *path, char *buf, size_t size,
+                            off_t offset, struct fuse_file_info *file_info)
 {
     (void)path;
     (void)buf;
@@ -400,6 +401,7 @@ int main(int argc, char *argv[])
 
     //folder_tree_housekeep(tree);
 
+    fprintf(stderr, "tree before starting fuse:\n");
     folder_tree_debug(tree);
 
     return fuse_main(args.argc, args.argv, &mediafirefs_oper, NULL);

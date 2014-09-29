@@ -45,10 +45,10 @@ struct mfconn_device_change {
 };
 
 int             mfconn_api_file_get_info(mfconn * conn, mffile * file,
-                                         char *quickkey);
+                                         const char *quickkey);
 
 int             mfconn_api_file_get_links(mfconn * conn, mffile * file,
-                                          char *quickkey);
+                                          const char *quickkey);
 
 int             mfconn_api_folder_create(mfconn * conn, const char *parent,
                                          const char *name);

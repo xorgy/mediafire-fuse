@@ -136,6 +136,34 @@ struct folder_tree {
     struct h_entry  root;
 };
 
+/* static functions local to this file */
+
+static void     folder_tree_free_entries(folder_tree * tree);
+static struct h_entry *folder_tree_lookup_key(folder_tree * tree,
+                                              const char *key);
+static struct h_entry *folder_tree_lookup_path(folder_tree * tree,
+                                               const char *path);
+static bool     folder_tree_is_root(struct h_entry *entry);
+static struct h_entry *folder_tree_allocate_entry(folder_tree * tree,
+                                                  const char *key,
+                                                  struct h_entry *new_parent);
+static struct h_entry *folder_tree_add_file(folder_tree * tree, mffile * file,
+                                            struct h_entry *new_parent);
+static struct h_entry *folder_tree_add_folder(folder_tree * tree,
+                                              mfconn * conn,
+                                              mffolder * folder,
+                                              struct h_entry *new_parent);
+static int      folder_tree_rebuild_helper(folder_tree * tree, mfconn * conn,
+                                           struct h_entry *curr_entry,
+                                           bool recurse);
+static void     folder_tree_remove(folder_tree * tree, const char *key);
+static bool     folder_tree_is_parent_of(struct h_entry *parent,
+                                         struct h_entry *child);
+static int      folder_tree_update_file_info(folder_tree * tree, mfconn * conn,
+                                             const char *key);
+static int      folder_tree_update_folder_info(folder_tree * tree,
+                                               mfconn * conn, char *key);
+
 /* persistant storage file layout:
  *
  * byte 0: 0x4D -> ASCII M
@@ -728,7 +756,7 @@ static struct h_entry *folder_tree_allocate_entry(folder_tree * tree,
         }
         tree->buckets[bucket_id][tree->bucket_lens[bucket_id] - 1] = entry;
 
-        /* since this entry is new, add it to the children of its parent
+        /* since this entry is new, just add it to the children of its parent
          *
          * since the key of this file or folder did not exist in the
          * hashtable, we do not have to check whether the parent already has
@@ -748,15 +776,10 @@ static struct h_entry *folder_tree_allocate_entry(folder_tree * tree,
         return entry;
     }
 
-    /* Entry was found so check if the old parent is different from the
-     * new parent. If yes, we need to adjust the children of the old and new
-     * parent.
-     */
+    /* Entry was found, so remove the entry from the children of the old
+     * parent and add it to the children of the new parent */
 
     old_parent = entry->parent;
-    /* parent stays the same - nothing to do */
-    if (old_parent == new_parent)
-        return entry;
 
     /* check whether entry does not have a parent (this is the case for the
      * root node) */
@@ -765,12 +788,12 @@ static struct h_entry *folder_tree_allocate_entry(folder_tree * tree,
         for (i = 0; i < old_parent->num_children; i++) {
             if (old_parent->children[i] == entry) {
                 /* move the entries on the right one place to the left */
-                memmove(old_parent->children[i], old_parent->children[i + 1],
+                memmove(old_parent->children + i, old_parent->children + i + 1,
                         sizeof(struct h_entry *) * (old_parent->num_children -
                                                     i - 1));
                 old_parent->num_children--;
                 /* change the children size */
-                if (old_parent->num_children) {
+                if (old_parent->num_children == 0) {
                     free(old_parent->children);
                     old_parent->children = NULL;
                 } else {
@@ -829,7 +852,7 @@ static struct h_entry *folder_tree_allocate_entry(folder_tree * tree,
  * Return the inserted or updated key
  */
 static struct h_entry *folder_tree_add_file(folder_tree * tree, mffile * file,
-                                            struct h_entry *parent)
+                                            struct h_entry *new_parent)
 {
     struct h_entry *entry;
     const char     *key;
@@ -844,18 +867,18 @@ static struct h_entry *folder_tree_add_file(folder_tree * tree, mffile * file,
         return NULL;
     }
 
-    if (parent == NULL) {
-        fprintf(stderr, "parent cannot be NULL\n");
+    if (new_parent == NULL) {
+        fprintf(stderr, "new parent cannot be NULL\n");
         return NULL;
     }
 
     key = file_get_key(file);
 
-    entry = folder_tree_allocate_entry(tree, key, parent);
+    entry = folder_tree_allocate_entry(tree, key, new_parent);
 
     strncpy(entry->key, key, sizeof(entry->key));
     strncpy(entry->name, file_get_name(file), sizeof(entry->name));
-    entry->parent = parent;
+    entry->parent = new_parent;
     entry->revision = file_get_revision(file);
     entry->ctime = file_get_created(file);
     entry->fsize = file_get_size(file);
@@ -870,15 +893,21 @@ static struct h_entry *folder_tree_add_file(folder_tree * tree, mffile * file,
 /* given an mffolder, add its information to a new h_entry struct, or update an
  * existing h_entry struct in the hashtable
  *
+ * if the revision of the existing entry was found to be less than the new
+ * entry, also update its contents
+ *
  * returns a pointer to the added or updated h_entry struct
  */
 static struct h_entry *folder_tree_add_folder(folder_tree * tree,
+                                              mfconn * conn,
                                               mffolder * folder,
-                                              struct h_entry *parent)
+                                              struct h_entry *new_parent)
 {
-    struct h_entry *entry;
+    struct h_entry *new_entry;
     const char     *key;
     const char     *name;
+    uint64_t        old_revision;
+    struct h_entry *old_entry;
 
     if (tree == NULL) {
         fprintf(stderr, "tree cannot be NULL\n");
@@ -890,27 +919,140 @@ static struct h_entry *folder_tree_add_folder(folder_tree * tree,
         return NULL;
     }
 
-    if (parent == NULL) {
-        fprintf(stderr, "parent cannot be NULL\n");
+    if (new_parent == NULL) {
+        fprintf(stderr, "new parent cannot be NULL\n");
         return NULL;
     }
 
     key = folder_get_key(folder);
 
-    entry = folder_tree_allocate_entry(tree, key, parent);
+    /* if the folder already existed in the hashtable, store its old revision
+     * so that we can schedule an update of its content at the end of this
+     * function */
+    old_entry = folder_tree_lookup_key(tree, key);
+    if (old_entry != NULL) {
+        old_revision = old_entry->revision;
+    }
+
+    new_entry = folder_tree_allocate_entry(tree, key, new_parent);
 
     /* can be NULL for root */
     if (key != NULL)
-        strncpy(entry->key, key, sizeof(entry->key));
+        strncpy(new_entry->key, key, sizeof(new_entry->key));
     /* can be NULL for root */
     name = folder_get_name(folder);
     if (name != NULL)
-        strncpy(entry->name, name, sizeof(entry->name));
-    entry->revision = folder_get_revision(folder);
-    entry->ctime = folder_get_created(folder);
-    entry->parent = parent;
+        strncpy(new_entry->name, name, sizeof(new_entry->name));
+    new_entry->revision = folder_get_revision(folder);
+    new_entry->ctime = folder_get_created(folder);
+    new_entry->parent = new_parent;
 
-    return entry;
+    /* if the revisions of the old and new entry differ, we have to
+     * update its content */
+    if (old_entry != NULL && old_revision < new_entry->revision) {
+        folder_tree_rebuild_helper(tree, conn, new_entry, false);
+    }
+
+    return new_entry;
+}
+
+/*
+ * given a h_entry struct of a folder, this function gets the remote content
+ * of that folder and fills its children
+ *
+ * it then recurses for each child that is a directory and does the same in a
+ * full remote directory walk
+ */
+static int folder_tree_rebuild_helper(folder_tree * tree, mfconn * conn,
+                                      struct h_entry *curr_entry, bool recurse)
+{
+    int             retval;
+    mffolder      **folder_result;
+    mffile        **file_result;
+    struct h_entry *entry;
+    int             i;
+    const char     *key;
+
+    /*
+     * free the old children array of this folder to make sure that any
+     * entries that do not exist on the remote are removed locally
+     *
+     * we don't free the children it references because they might be
+     * referenced by someone else
+     *
+     * this action will leave all those entries dangling (with a reference to
+     * this folder as their parent) which have been completely removed remotely
+     * (including from the trash) and thus did not show up in a
+     * device/get_changes call. All these entries will be cleaned up by the
+     * housekeeping function
+     */
+    free(curr_entry->children);
+    curr_entry->children = NULL;
+    curr_entry->num_children = 0;
+
+    /* first folders */
+    folder_result = NULL;
+    retval =
+        mfconn_api_folder_get_content(conn, 0, curr_entry->key, &folder_result,
+                                      NULL);
+    mfconn_update_secret_key(conn);
+    if (retval != 0) {
+        fprintf(stderr, "folder/get_content failed\n");
+        if (folder_result != NULL) {
+            for (i = 0; folder_result[i] != NULL; i++) {
+                free(folder_result[i]);
+            }
+            free(folder_result);
+        }
+        return -1;
+    }
+
+    for (i = 0; folder_result[i] != NULL; i++) {
+        key = folder_get_key(folder_result[i]);
+        if (key == NULL) {
+            fprintf(stderr, "folder_get_key returned NULL\n");
+            folder_free(folder_result[i]);
+            continue;
+        }
+        entry =
+            folder_tree_add_folder(tree, conn, folder_result[i], curr_entry);
+        /* recurse */
+        if (recurse)
+            folder_tree_rebuild_helper(tree, conn, entry, true);
+        folder_free(folder_result[i]);
+    }
+    free(folder_result);
+
+    /* then files */
+    file_result = NULL;
+    retval =
+        mfconn_api_folder_get_content(conn, 1, curr_entry->key, NULL,
+                                      &file_result);
+    mfconn_update_secret_key(conn);
+    if (retval != 0) {
+        fprintf(stderr, "folder/get_content failed\n");
+        if (file_result != NULL) {
+            for (i = 0; file_result[i] != NULL; i++) {
+                file_free(file_result[i]);
+            }
+            free(file_result);
+        }
+        return -1;
+    }
+
+    for (i = 0; file_result[i] != NULL; i++) {
+        key = file_get_key(file_result[i]);
+        if (key == NULL) {
+            fprintf(stderr, "file_get_key returned NULL\n");
+            file_free(file_result[i]);
+            continue;
+        }
+        entry = folder_tree_add_file(tree, file_result[i], curr_entry);
+        file_free(file_result[i]);
+    }
+    free(file_result);
+
+    return 0;
 }
 
 /* When trying to delete a non-existing key, nothing happens */
@@ -919,9 +1061,11 @@ static void folder_tree_remove(folder_tree * tree, const char *key)
     int             bucket_id;
     int             found;
     uint64_t        i;
+    struct h_entry *entry;
+    struct h_entry *parent;
 
     if (key == NULL) {
-        fprintf(stderr, "cannot remove root");
+        fprintf(stderr, "cannot remove root\n");
         return;
     }
 
@@ -936,31 +1080,71 @@ static void folder_tree_remove(folder_tree * tree, const char *key)
         }
     }
 
+    if (!found) {
+        fprintf(stderr, "key was not found, removing nothing\n");
+        return;
+    }
+
     /* if found, use the last value of i to adjust the bucket */
-    if (found) {
-        /* remove its possible children */
-        free(tree->buckets[bucket_id][i]->children);
-        /* remove entry */
-        free(tree->buckets[bucket_id][i]);
-        /* move the items on the right one place to the left */
-        memmove(tree->buckets[bucket_id][i], tree->buckets[bucket_id][i + 1],
-                sizeof(struct h_entry *) * (tree->bucket_lens[bucket_id] - i -
-                                            1));
-        /* change bucket size */
-        tree->bucket_lens[bucket_id]--;
-        if (tree->bucket_lens[bucket_id] == 0) {
-            free(tree->buckets[bucket_id]);
-            tree->buckets[bucket_id] = NULL;
-        } else {
-            tree->buckets[bucket_id] =
-                realloc(tree->buckets[bucket_id],
-                        sizeof(struct h_entry) * tree->bucket_lens[bucket_id]);
-            if (tree->buckets[bucket_id] == NULL) {
-                fprintf(stderr, "realloc failed\n");
-                return;
+    entry = tree->buckets[bucket_id][i];
+    /* move the items on the right one place to the left */
+    memmove(tree->buckets[bucket_id] + i, tree->buckets[bucket_id] + i + 1,
+            sizeof(struct h_entry *) * (tree->bucket_lens[bucket_id] - i - 1));
+    /* change bucket size */
+    tree->bucket_lens[bucket_id]--;
+    if (tree->bucket_lens[bucket_id] == 0) {
+        free(tree->buckets[bucket_id]);
+        tree->buckets[bucket_id] = NULL;
+    } else {
+        tree->buckets[bucket_id] =
+            realloc(tree->buckets[bucket_id],
+                    sizeof(struct h_entry) * tree->bucket_lens[bucket_id]);
+        if (tree->buckets[bucket_id] == NULL) {
+            fprintf(stderr, "realloc failed\n");
+            return;
+        }
+    }
+
+    /* if it is a folder, then we have to recurse into its children which
+     * reference this folder as their parent because otherwise their parent
+     * pointers will reference unallocated memory */
+    if (entry->num_children > 0) {
+        for (i = 0; i < entry->num_children; i++) {
+            if (entry->children[i]->parent == entry) {
+                folder_tree_remove(tree, entry->children[i]->key);
             }
         }
     }
+
+    /* remove the entry from its parent */
+    parent = entry->parent;
+    for (i = 0; i < parent->num_children; i++) {
+        if (entry->parent->children[i] == entry) {
+            /* move the entries on the right one place to the left */
+            memmove(parent->children + i, parent->children + i + 1,
+                    sizeof(struct h_entry *) * (parent->num_children - i - 1));
+            parent->num_children--;
+            /* change the children size */
+            if (parent->num_children == 0) {
+                free(parent->children);
+                parent->children = NULL;
+            } else {
+                parent->children =
+                    (struct h_entry **)realloc(parent->children,
+                                               parent->num_children *
+                                               sizeof(struct h_entry *));
+                if (parent->children == NULL) {
+                    fprintf(stderr, "realloc failed\n");
+                    return;
+                }
+            }
+        }
+    }
+
+    /* remove its possible children */
+    free(entry->children);
+    /* remove entry */
+    free(entry);
 }
 
 /*
@@ -993,149 +1177,10 @@ static bool folder_tree_is_parent_of(struct h_entry *parent,
 }
 
 /*
- * given a h_entry struct of a folder, this function gets the remote content
- * of that folder and fills its children
- *
- * it then recurses for each child that is a directory and does the same in a
- * full remote directory walk
- */
-static int folder_tree_rebuild_helper(folder_tree * tree, mfconn * conn,
-                                      struct h_entry *curr_entry, bool recurse)
-{
-    int             retval;
-    mffolder      **folder_result;
-    mffile        **file_result;
-    struct h_entry *entry;
-    int             i;
-    const char     *key;
-    bool            found;
-
-    /*
-     * free the old children array of this folder to make sure that any
-     * entries that do not exist on the remote are removed locally
-     *
-     * we don't free the children it references because they might be
-     * referenced by someone else
-     */
-    free(curr_entry->children);
-    curr_entry->children = NULL;
-    curr_entry->num_children = 0;
-
-    /* first folders */
-    folder_result = NULL;
-    retval =
-        mfconn_api_folder_get_content(conn, 0, curr_entry->key, &folder_result,
-                                      NULL);
-    mfconn_update_secret_key(conn);
-    if (retval != 0) {
-        fprintf(stderr, "folder/get_content failed\n");
-        if (folder_result != NULL) {
-            for (i = 0; folder_result[i] != NULL; i++) {
-                free(folder_result[i]);
-            }
-            free(folder_result);
-        }
-        return -1;
-    }
-
-    for (i = 0; folder_result[i] != NULL; i++) {
-        key = folder_get_key(folder_result[i]);
-        if (key == NULL) {
-            fprintf(stderr, "folder_get_key returned NULL\n");
-            folder_free(folder_result[i]);
-        }
-        /* if this folder existed before, then folder_tree_add_folder will not
-         * add it to this folder's children. Thus we do this now */
-        found = false;
-        if (folder_tree_lookup_key(tree, key) != NULL) {
-            curr_entry->num_children++;
-            curr_entry->children =
-                (struct h_entry **)realloc(curr_entry->children,
-                                           curr_entry->num_children *
-                                           sizeof(struct h_entry *));
-            if (curr_entry->children == NULL) {
-                fprintf(stderr, "realloc failed\n");
-                return -1;
-            }
-            found = true;
-        }
-        entry = folder_tree_add_folder(tree, folder_result[i], curr_entry);
-        /* we are using a new variable "found" here because after doing a
-         * folder_tree_add_folder, folder_tree_lookup_key will always succeed
-         *
-         * if this entry was not present before, then folder_tree_add_folder
-         * already added it to this folder's children
-         */
-        if (found) {
-            curr_entry->children[curr_entry->num_children - 1] = entry;
-        }
-        /* recurse */
-        if (recurse)
-            folder_tree_rebuild_helper(tree, conn, entry, true);
-        folder_free(folder_result[i]);
-    }
-    free(folder_result);
-
-    /* then files */
-    file_result = NULL;
-    retval =
-        mfconn_api_folder_get_content(conn, 1, curr_entry->key, NULL,
-                                      &file_result);
-    mfconn_update_secret_key(conn);
-    if (retval != 0) {
-        fprintf(stderr, "folder/get_content failed\n");
-        if (file_result != NULL) {
-            for (i = 0; file_result[i] != NULL; i++) {
-                file_free(file_result[i]);
-            }
-            free(file_result);
-        }
-        return -1;
-    }
-
-    for (i = 0; file_result[i] != NULL; i++) {
-        key = file_get_key(file_result[i]);
-        if (key == NULL) {
-            fprintf(stderr, "file_get_key returned NULL\n");
-            file_free(file_result[i]);
-        }
-        /* if this folder existed before, then folder_tree_add_folder will not
-         * add it to this folder's children. Thus we do this now */
-        found = false;
-        if (folder_tree_lookup_key(tree, key) != NULL) {
-            curr_entry->num_children++;
-            curr_entry->children =
-                (struct h_entry **)realloc(curr_entry->children,
-                                           curr_entry->num_children *
-                                           sizeof(struct h_entry *));
-            if (curr_entry->children == NULL) {
-                fprintf(stderr, "realloc failed\n");
-                return -1;
-            }
-            found = true;
-        }
-        entry = folder_tree_add_file(tree, file_result[i], curr_entry);
-        /* we are using a new variable "found" here because after doing a
-         * folder_tree_add_folder, folder_tree_lookup_key will always succeed
-         *
-         * if this entry was not present before, then folder_tree_add_folder
-         * already added it to this folder's children
-         */
-        if (found) {
-            curr_entry->children[curr_entry->num_children - 1] = entry;
-        }
-        file_free(file_result[i]);
-    }
-    free(file_result);
-
-    return 0;
-}
-
-/*
  * update the fields of a file
  */
 static int folder_tree_update_file_info(folder_tree * tree, mfconn * conn,
-                                        char *key)
+                                        const char *key)
 {
     mffile         *file;
     int             retval;
@@ -1147,10 +1192,12 @@ static int folder_tree_update_file_info(folder_tree * tree, mfconn * conn,
     mfconn_update_secret_key(conn);
     if (retval != 0) {
         fprintf(stderr, "api call unsuccessful\n");
-        /* TODO: check reason. It might be that the remote object does not
-         * exist anymore in which case it has to be removed locally */
+        /* maybe there is a different reason but for now just assume that an
+         * unsuccessful call to file/get_info means that the remote file
+         * vanished. Thus we remove the object locally */
+        folder_tree_remove(tree, key);
         file_free(file);
-        return -1;
+        return 0;
     }
 
     parent = folder_tree_lookup_key(tree, file_get_parent(file));
@@ -1167,11 +1214,16 @@ static int folder_tree_update_file_info(folder_tree * tree, mfconn * conn,
 }
 
 /*
- * update the fields of a folder without checking its children
+ * update the fields of a folder through a call to folder/get_info
  *
  * we identify the folder to update by its key instead of its h_entry struct
  * pointer because this function is to fill the h_entry struct in the first
  * place
+ *
+ * if the folder key does not exist remote, remove it from the hashtable
+ *
+ * if the folder already existed locally but the remote version was found to
+ * be newer, also update its content
  */
 static int folder_tree_update_folder_info(folder_tree * tree, mfconn * conn,
                                           char *key)
@@ -1179,8 +1231,9 @@ static int folder_tree_update_folder_info(folder_tree * tree, mfconn * conn,
     mffolder       *folder;
     int             retval;
     struct h_entry *parent;
+    struct h_entry *new_entry;
 
-    if (key != NULL && strcmp(key, "trash")) {
+    if (key != NULL && strcmp(key, "trash") == 0) {
         fprintf(stderr, "cannot get folder info of trash\n");
         return -1;
     }
@@ -1191,10 +1244,12 @@ static int folder_tree_update_folder_info(folder_tree * tree, mfconn * conn,
     mfconn_update_secret_key(conn);
     if (retval != 0) {
         fprintf(stderr, "api call unsuccessful\n");
-        /* TODO: check reason. It might be that the remote object does not
-         * exist anymore in which case it has to be removed locally */
+        /* maybe there is a different reason but for now just assume that an
+         * unsuccessful call to file/get_info means that the remote file
+         * vanished. Thus we remove the object locally */
+        folder_tree_remove(tree, key);
         folder_free(folder);
-        return -1;
+        return 0;
     }
 
     parent = folder_tree_lookup_key(tree, folder_get_parent(folder));
@@ -1203,7 +1258,14 @@ static int folder_tree_update_folder_info(folder_tree * tree, mfconn * conn,
         return -1;
     }
 
-    folder_tree_add_folder(tree, folder, parent);
+    /* store the updated entry in the hashtable */
+    new_entry = folder_tree_add_folder(tree, conn, folder, parent);
+
+    if (new_entry == NULL) {
+        fprintf(stderr, "folder_tree_add_folder failed\n");
+        folder_free(folder);
+        return -1;
+    }
 
     folder_free(folder);
 
@@ -1222,6 +1284,8 @@ void folder_tree_update(folder_tree * tree, mfconn * conn)
     struct mfconn_device_change *changes;
     int             retval;
     struct h_entry *tmp_entry;
+    const char     *key;
+    uint64_t        revision;
 
     mfconn_api_device_get_status(conn, &revision_remote);
     mfconn_update_secret_key(conn);
@@ -1243,16 +1307,6 @@ void folder_tree_update(folder_tree * tree, mfconn * conn)
      */
 
     /*
-     * we have to manually check the root because it never shows up in the
-     * results from device_get_changes
-     *
-     * we don't need to be recursive here because we rely on
-     * device/get_changes reporting all changes to its children
-     */
-
-    folder_tree_rebuild_helper(tree, conn, &(tree->root), false);
-
-    /*
      * changes have to be applied in the right order but the result of
      * mfconn_api_device_get_changes is already sorted by revision
      */
@@ -1266,6 +1320,8 @@ void folder_tree_update(folder_tree * tree, mfconn * conn)
     }
 
     for (i = 0; changes[i].change != MFCONN_DEVICE_CHANGE_END; i++) {
+        key = changes[i].key;
+        revision = changes[i].revision;
         switch (changes[i].change) {
             case MFCONN_DEVICE_CHANGE_DELETED_FOLDER:
             case MFCONN_DEVICE_CHANGE_DELETED_FILE:
@@ -1278,32 +1334,57 @@ void folder_tree_update(folder_tree * tree, mfconn * conn)
                     continue;
                 if (strcmp(changes[i].parent, "trash") == 0)
                     continue;
-                /* if a folder has been updated then its name or location
-                 * might have changed... */
-                folder_tree_update_folder_info(tree, conn, changes[i].key);
-                /* ...or its contents changed
-                 * the last call made sure that an entry for this folder has
-                 * been added locally, so the following should succeed */
-                tmp_entry = folder_tree_lookup_key(tree, changes[i].key);
-                if (tmp_entry == NULL) {
-                    fprintf(stderr, "folder_tree_lookup_key failed\n");
-                    continue;
+                /* only do anything if the revision of the change is greater
+                 * than the revision of the locally stored entry */
+                tmp_entry = folder_tree_lookup_key(tree, key);
+                if (tmp_entry != NULL && tmp_entry->revision >= revision) {
+                    break;
                 }
-                /* we don't need to be recursive here because we rely on
-                 * device/get_changes reporting all changes to its children */
-                folder_tree_rebuild_helper(tree, conn, tmp_entry, false);
+
+                /* if a folder has been updated then its name or location
+                 * might have changed... 
+                 *
+                 * folder_tree_update_folder_info will check whether the
+                 * new remote revision is higher than the local revision and
+                 * will also fetch the content if this is the case
+                 * */
+                folder_tree_update_folder_info(tree, conn, changes[i].key);
                 break;
             case MFCONN_DEVICE_CHANGE_UPDATED_FILE:
                 /* ignore files updated in trash */
                 if (strcmp(changes[i].parent, "trash") == 0)
                     continue;
+                /* only do anything if the revision of the change is greater
+                 * than the revision of the locally stored entry */
+                tmp_entry = folder_tree_lookup_key(tree, key);
+                if (tmp_entry != NULL && tmp_entry->revision >= revision) {
+                    break;
+                }
                 /* if a file changed, update its info */
-                folder_tree_update_file_info(tree, conn, changes[i].key);
+                folder_tree_update_file_info(tree, conn, key);
                 break;
             case MFCONN_DEVICE_CHANGE_END:
                 break;
         }
     }
+
+    /*
+     * we have to manually check the root because it never shows up in the
+     * results from device_get_changes
+     *
+     * we don't need to be recursive here because we rely on
+     * device/get_changes reporting all changes to its children
+     *
+     * we update the root AFTER evaluating the results of device/get_changes
+     * so that we only have to pull in the remaining changes
+     *
+     * some recursion will be done if the helper detects that some of the
+     * children it updated have a newer revision than the existing ones. This
+     * is necessary because device/get_changes does not report changes to
+     * items which were even removed from the trash
+     */
+
+    folder_tree_rebuild_helper(tree, conn, &(tree->root), false);
 
     /* the new revision of the tree is the revision of the terminating change
      * */
@@ -1397,6 +1478,8 @@ void folder_tree_housekeep(folder_tree * tree, mfconn * conn)
 
     /*
      * find objects with children who claim to have a different parent
+     *
+     * this should actually never happen
      */
 
     /* first check the root as a special case */
@@ -1414,6 +1497,14 @@ void folder_tree_housekeep(folder_tree * tree, mfconn * conn)
         }
     }
     if (found) {
+
+        /*
+         * some recursion will be done if the helper detects that some of the
+         * children it updated have a newer revision than the existing ones.
+         * This is necessary because device/get_changes does not report
+         * changes to items which were even removed from the trash
+         */
+
         folder_tree_rebuild_helper(tree, conn, &(tree->root), false);
     }
 
@@ -1436,15 +1527,31 @@ void folder_tree_housekeep(folder_tree * tree, mfconn * conn)
                 }
             }
             if (found) {
+
                 /* an entry was found that claims to have a different parent,
-                 * so ask the remote to retrieve the real list of children */
+                 * so ask the remote to retrieve the real list of children
+                 *
+                 * some recursion will be done if the helper detects that some
+                 * of the children it updated have a newer revision than the
+                 * existing ones. This is necessary because device/get_changes
+                 * does not report changes to items which were even removed
+                 * from the trash
+                 */
+
                 folder_tree_rebuild_helper(tree, conn, tree->buckets[i][j],
                                            false);
             }
         }
     }
 
-    /* find objects whose parents do not match their actual parents */
+    /* find objects whose parents do not match their actual parents
+     *
+     * this can happen when entries in the local hashtable do not exist
+     * anymore at the remote but have not been removed locally because they
+     * have not been part of any device/get_changes results. This can happen
+     * if the remote entries have been removed completely (including from the
+     * trash)
+     * */
     for (i = 0; i < NUM_BUCKETS; i++) {
         for (j = 0; j < tree->bucket_lens[i]; j++) {
             if (!folder_tree_is_parent_of

@@ -30,7 +30,8 @@
 
 static int      _decode_file_get_info(mfhttp * conn, void *data);
 
-int mfconn_api_file_get_info(mfconn * conn, mffile * file, char *quickkey)
+int mfconn_api_file_get_info(mfconn * conn, mffile * file,
+                             const char *quickkey)
 {
     const char     *api_call;
     int             retval;
