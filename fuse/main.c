@@ -16,6 +16,8 @@
  *
  */
 
+#define _POSIX_C_SOURCE 200809L // for strdup and struct timespec
+
 #define FUSE_USE_VERSION 30
 
 #include <fuse/fuse.h>
@@ -199,7 +201,7 @@ static int mediafirefs_mkdir(const char *path, mode_t mode)
 
     /* split into dirname and basename */
 
-    basename = rindex(dirname, '/');
+    basename = strrchr(dirname, '/');
     if (basename == NULL) {
         fprintf(stderr, "cannot find slash\n");
         return -ENOENT;

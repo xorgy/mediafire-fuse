@@ -16,6 +16,8 @@
  *
  */
 
+#define _POSIX_C_SOURCE 200809L // for strdup
+
 #include <stdio.h>
 #include <getopt.h>
 #include <string.h>

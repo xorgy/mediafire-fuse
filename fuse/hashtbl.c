@@ -16,6 +16,9 @@
  *
  */
 
+#define _POSIX_C_SOURCE 200809L // for strdup and struct timespec (in fuse.h)
+                          // and S_IFDIR and S_IFREG
+
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
@@ -60,7 +63,12 @@ static unsigned char base36_decoding_table[] = {
 
 /*
  * a macro to convert a char* of the key into a hash of its first three
- * characters
+ * characters, treating those first three characters as if they represented a
+ * number in base36
+ *
+ * in the future this could be made more dynamic by using the ability of
+ * strtoll to convert numbers of base36 and then only retrieving the desired
+ * amount of high-bits for the desired size of the hashtable
  */
 #define HASH_OF_KEY(key) base36_decoding_table[(int)(key)[0]]*36*36+\
     base36_decoding_table[(int)(key)[1]]*36+\
@@ -518,7 +526,7 @@ static struct h_entry *folder_tree_lookup_path(folder_tree * tree,
             result = curr_dir;
             break;
         }
-        slash_pos = index(tmp_path, '/');
+        slash_pos = strchr(tmp_path, '/');
         if (slash_pos == NULL) {
             // no slash found in the remaining path:
             // find entry in current directory and return it

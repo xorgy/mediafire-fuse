@@ -17,6 +17,9 @@
  *
  */
 
+#define _POSIX_C_SOURCE 200809L // for strdup and getline
+#define _BSD_SOURCE             // for strsep
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

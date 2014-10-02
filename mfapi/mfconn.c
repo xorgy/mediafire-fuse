@@ -17,6 +17,8 @@
  *
  */
 
+#define _POSIX_C_SOURCE 200809L // for strdup
+
 #include <openssl/md5.h>
 #include <openssl/sha.h>
 #include <stdarg.h>

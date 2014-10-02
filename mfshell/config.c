@@ -16,6 +16,8 @@
  *
  */
 
+#define _POSIX_C_SOURCE 200809L // for getline
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <pwd.h>

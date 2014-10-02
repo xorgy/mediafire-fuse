@@ -17,6 +17,8 @@
  *
  */
 
+#define _POSIX_C_SOURCE 200809L // for gmtime_r
+
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
