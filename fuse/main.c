@@ -349,7 +349,6 @@ mediafirefs_opt_proc(void *data, const char *arg, int key,
 
 int main(int argc, char *argv[])
 {
-    int             ret;
     struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
     FILE           *fd;
 
@@ -398,7 +397,7 @@ int main(int argc, char *argv[])
         // file doesn't exist
         tree = folder_tree_create();
 
-        ret = folder_tree_rebuild(tree, conn);
+        folder_tree_rebuild(tree, conn);
     }
 
     //folder_tree_housekeep(tree);

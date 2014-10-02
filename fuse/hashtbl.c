@@ -980,7 +980,6 @@ static int folder_tree_rebuild_helper(folder_tree * tree, mfconn * conn,
     int             retval;
     mffolder      **folder_result;
     mffile        **file_result;
-    struct h_entry *entry;
     int             i;
     const char     *key;
 
@@ -1025,8 +1024,7 @@ static int folder_tree_rebuild_helper(folder_tree * tree, mfconn * conn,
             folder_free(folder_result[i]);
             continue;
         }
-        entry =
-            folder_tree_add_folder(tree, conn, folder_result[i], curr_entry);
+        folder_tree_add_folder(tree, conn, folder_result[i], curr_entry);
         folder_free(folder_result[i]);
     }
     free(folder_result);
@@ -1055,7 +1053,7 @@ static int folder_tree_rebuild_helper(folder_tree * tree, mfconn * conn,
             file_free(file_result[i]);
             continue;
         }
-        entry = folder_tree_add_file(tree, file_result[i], curr_entry);
+        folder_tree_add_file(tree, file_result[i], curr_entry);
         file_free(file_result[i]);
     }
     free(file_result);
