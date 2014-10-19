@@ -37,11 +37,12 @@ void            folder_tree_housekeep(folder_tree * tree, mfconn * conn);
 
 void            folder_tree_debug(folder_tree * tree);
 
-int             folder_tree_getattr(folder_tree * tree, const char *path,
-                                    struct stat *stbuf);
+int             folder_tree_getattr(folder_tree * tree, mfconn * conn,
+                                    const char *path, struct stat *stbuf);
 
-int             folder_tree_readdir(folder_tree * tree, const char *path,
-                                    void *buf, fuse_fill_dir_t filldir);
+int             folder_tree_readdir(folder_tree * tree, mfconn * conn,
+                                    const char *path, void *buf,
+                                    fuse_fill_dir_t filldir);
 
 void            folder_tree_update(folder_tree * tree, mfconn * conn);
 
@@ -49,18 +50,23 @@ int             folder_tree_store(folder_tree * tree, FILE * stream);
 
 folder_tree    *folder_tree_load(FILE * stream);
 
-bool            folder_tree_path_exists(folder_tree * tree, const char *path);
+bool            folder_tree_path_exists(folder_tree * tree, mfconn * conn,
+                                        const char *path);
 
 uint64_t        folder_tree_path_get_num_children(folder_tree * tree,
+                                                  mfconn * conn,
                                                   const char *path);
 
 bool            folder_tree_path_is_directory(folder_tree * tree,
-                                              const char *path);
+                                              mfconn * conn, const char *path);
 
-const char     *folder_tree_path_get_key(folder_tree * tree, const char *path);
+const char     *folder_tree_path_get_key(folder_tree * tree, mfconn * conn,
+                                         const char *path);
 
-bool            folder_tree_path_is_root(folder_tree * tree, const char *path);
+bool            folder_tree_path_is_root(folder_tree * tree, mfconn * conn,
+                                         const char *path);
 
-bool            folder_tree_path_is_file(folder_tree * tree, const char *path);
+bool            folder_tree_path_is_file(folder_tree * tree, mfconn * conn,
+                                         const char *path);
 
 #endif

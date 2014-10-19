@@ -88,6 +88,10 @@ struct h_entry {
     uint64_t        revision;
     /* creation time */
     uint64_t        ctime;
+    /* Whether or not this h_entry needs to be updated before it can be used.
+     * This value is set to true when directories and files are added as
+     * children of a directory but their content has not bee retrieved yet */
+    bool            needs_update;
     /* the containing folder */
     union {
         /* during runtime this is a pointer to the containing h_entry struct */
@@ -150,29 +154,29 @@ struct folder_tree {
 static void     folder_tree_free_entries(folder_tree * tree);
 static struct h_entry *folder_tree_lookup_key(folder_tree * tree,
                                               const char *key);
-static struct h_entry *folder_tree_lookup_path(folder_tree * tree,
-                                               const char *path);
 static bool     folder_tree_is_root(struct h_entry *entry);
 static struct h_entry *folder_tree_allocate_entry(folder_tree * tree,
                                                   const char *key,
                                                   struct h_entry *new_parent);
 static struct h_entry *folder_tree_add_file(folder_tree * tree, mffile * file,
                                             struct h_entry *new_parent);
+static struct h_entry *folder_tree_add_folder(folder_tree * tree,
+                                              mffolder * folder,
+                                              struct h_entry *new_parent);
 static void     folder_tree_remove(folder_tree * tree, const char *key);
 static bool     folder_tree_is_parent_of(struct h_entry *parent,
                                          struct h_entry *child);
 
 /* functions with remote access */
-static struct h_entry *folder_tree_add_folder(folder_tree * tree,
-                                              mfconn * conn,
-                                              mffolder * folder,
-                                              struct h_entry *new_parent);
+static struct h_entry *folder_tree_lookup_path(folder_tree * tree,
+                                               mfconn * conn,
+                                               const char *path);
 static int      folder_tree_rebuild_helper(folder_tree * tree, mfconn * conn,
                                            struct h_entry *curr_entry);
 static int      folder_tree_update_file_info(folder_tree * tree, mfconn * conn,
                                              const char *key);
 static int      folder_tree_update_folder_info(folder_tree * tree,
-                                               mfconn * conn, char *key);
+                                               mfconn * conn, const char *key);
 
 /* persistant storage file layout:
  *
@@ -493,7 +497,7 @@ static struct h_entry *folder_tree_lookup_key(folder_tree * tree,
  * the path must start with a slash
  */
 static struct h_entry *folder_tree_lookup_path(folder_tree * tree,
-                                               const char *path)
+                                               mfconn * conn, const char *path)
 {
     char           *tmp_path;
     char           *new_path;
@@ -520,6 +524,10 @@ static struct h_entry *folder_tree_lookup_path(folder_tree * tree,
     result = NULL;
 
     for (;;) {
+        // make sure that curr_dir is up to date
+        if (curr_dir->atime == 0 && curr_dir->needs_update == true) {
+            folder_tree_rebuild_helper(tree, conn, curr_dir);
+        }
         // path with a trailing slash, so the remainder is of zero length
         if (tmp_path[0] == '\0') {
             // return curr_dir
@@ -534,6 +542,11 @@ static struct h_entry *folder_tree_lookup_path(folder_tree * tree,
                 if (strcmp(curr_dir->children[i]->name, tmp_path) == 0) {
                     // return this directory
                     result = curr_dir->children[i];
+
+                    // make sure that result is up to date
+                    if (curr_dir->atime == 0 && result->needs_update == true) {
+                        folder_tree_rebuild_helper(tree, conn, curr_dir);
+                    }
                     break;
                 }
             }
@@ -579,11 +592,11 @@ static struct h_entry *folder_tree_lookup_path(folder_tree * tree,
 }
 
 uint64_t folder_tree_path_get_num_children(folder_tree * tree,
-                                           const char *path)
+                                           mfconn * conn, const char *path)
 {
     struct h_entry *result;
 
-    result = folder_tree_lookup_path(tree, path);
+    result = folder_tree_lookup_path(tree, conn, path);
 
     if (result != NULL) {
         return result->num_children;
@@ -592,11 +605,12 @@ uint64_t folder_tree_path_get_num_children(folder_tree * tree,
     }
 }
 
-bool folder_tree_path_is_root(folder_tree * tree, const char *path)
+bool folder_tree_path_is_root(folder_tree * tree, mfconn * conn,
+                              const char *path)
 {
     struct h_entry *result;
 
-    result = folder_tree_lookup_path(tree, path);
+    result = folder_tree_lookup_path(tree, conn, path);
 
     if (result != NULL) {
         return result == &(tree->root);
@@ -605,11 +619,12 @@ bool folder_tree_path_is_root(folder_tree * tree, const char *path)
     }
 }
 
-bool folder_tree_path_is_file(folder_tree * tree, const char *path)
+bool folder_tree_path_is_file(folder_tree * tree, mfconn * conn,
+                              const char *path)
 {
     struct h_entry *result;
 
-    result = folder_tree_lookup_path(tree, path);
+    result = folder_tree_lookup_path(tree, conn, path);
 
     if (result != NULL) {
         return result->atime != 0;
@@ -618,11 +633,12 @@ bool folder_tree_path_is_file(folder_tree * tree, const char *path)
     }
 }
 
-bool folder_tree_path_is_directory(folder_tree * tree, const char *path)
+bool folder_tree_path_is_directory(folder_tree * tree, mfconn * conn,
+                                   const char *path)
 {
     struct h_entry *result;
 
-    result = folder_tree_lookup_path(tree, path);
+    result = folder_tree_lookup_path(tree, conn, path);
 
     if (result != NULL) {
         return result->atime == 0;
@@ -631,11 +647,12 @@ bool folder_tree_path_is_directory(folder_tree * tree, const char *path)
     }
 }
 
-const char     *folder_tree_path_get_key(folder_tree * tree, const char *path)
+const char     *folder_tree_path_get_key(folder_tree * tree, mfconn * conn,
+                                         const char *path)
 {
     struct h_entry *result;
 
-    result = folder_tree_lookup_path(tree, path);
+    result = folder_tree_lookup_path(tree, conn, path);
 
     if (result != NULL) {
         return result->key;
@@ -647,21 +664,22 @@ const char     *folder_tree_path_get_key(folder_tree * tree, const char *path)
 /*
  * given a path, check if it exists in the hashtable
  */
-bool folder_tree_path_exists(folder_tree * tree, const char *path)
+bool folder_tree_path_exists(folder_tree * tree, mfconn * conn,
+                             const char *path)
 {
     struct h_entry *result;
 
-    result = folder_tree_lookup_path(tree, path);
+    result = folder_tree_lookup_path(tree, conn, path);
 
     return result != NULL;
 }
 
-int folder_tree_getattr(folder_tree * tree, const char *path,
+int folder_tree_getattr(folder_tree * tree, mfconn * conn, const char *path,
                         struct stat *stbuf)
 {
     struct h_entry *entry;
 
-    entry = folder_tree_lookup_path(tree, path);
+    entry = folder_tree_lookup_path(tree, conn, path);
 
     if (entry == NULL) {
         return -ENOENT;
@@ -688,13 +706,13 @@ int folder_tree_getattr(folder_tree * tree, const char *path,
     return 0;
 }
 
-int folder_tree_readdir(folder_tree * tree, const char *path, void *buf,
-                        fuse_fill_dir_t filldir)
+int folder_tree_readdir(folder_tree * tree, mfconn * conn, const char *path,
+                        void *buf, fuse_fill_dir_t filldir)
 {
     struct h_entry *entry;
     uint64_t        i;
 
-    entry = folder_tree_lookup_path(tree, path);
+    entry = folder_tree_lookup_path(tree, conn, path);
 
     /* either directory not found or found entry is not a directory */
     if (entry == NULL || entry->atime != 0) {
@@ -864,7 +882,9 @@ static struct h_entry *folder_tree_allocate_entry(folder_tree * tree,
 static struct h_entry *folder_tree_add_file(folder_tree * tree, mffile * file,
                                             struct h_entry *new_parent)
 {
-    struct h_entry *entry;
+    struct h_entry *old_entry;
+    struct h_entry *new_entry;
+    uint64_t        old_revision;
     const char     *key;
 
     if (tree == NULL) {
@@ -884,20 +904,36 @@ static struct h_entry *folder_tree_add_file(folder_tree * tree, mffile * file,
 
     key = file_get_key(file);
 
-    entry = folder_tree_allocate_entry(tree, key, new_parent);
+    /* if the file already existed in the hashtable, store its old revision
+     * so that we can schedule an update of its content at the end of this
+     * function */
+    old_entry = folder_tree_lookup_key(tree, key);
+    if (old_entry != NULL) {
+        old_revision = old_entry->revision;
+    }
 
-    strncpy(entry->key, key, sizeof(entry->key));
-    strncpy(entry->name, file_get_name(file), sizeof(entry->name));
-    entry->parent = new_parent;
-    entry->revision = file_get_revision(file);
-    entry->ctime = file_get_created(file);
-    entry->fsize = file_get_size(file);
+    new_entry = folder_tree_allocate_entry(tree, key, new_parent);
+
+    strncpy(new_entry->key, key, sizeof(new_entry->key));
+    strncpy(new_entry->name, file_get_name(file), sizeof(new_entry->name));
+    new_entry->parent = new_parent;
+    new_entry->revision = file_get_revision(file);
+    new_entry->ctime = file_get_created(file);
+    new_entry->fsize = file_get_size(file);
+    new_entry->needs_update = false;
 
     /* mark this h_entry struct as a file if its atime is not set yet */
-    if (entry->atime == 0)
-        entry->atime = 1;
+    if (new_entry->atime == 0)
+        new_entry->atime = 1;
 
-    return entry;
+    /* if the revisions of the old and new entry differ, we have to
+     * update its content from the remote the next time the file is accessed
+     */
+    if ((old_entry != NULL && old_revision < new_entry->revision)
+        || old_entry == NULL) {
+        new_entry->needs_update = true;
+    }
+    return new_entry;
 }
 
 /* given an mffolder, add its information to a new h_entry struct, or update an
@@ -909,7 +945,6 @@ static struct h_entry *folder_tree_add_file(folder_tree * tree, mffile * file,
  * returns a pointer to the added or updated h_entry struct
  */
 static struct h_entry *folder_tree_add_folder(folder_tree * tree,
-                                              mfconn * conn,
                                               mffolder * folder,
                                               struct h_entry *new_parent)
 {
@@ -956,6 +991,7 @@ static struct h_entry *folder_tree_add_folder(folder_tree * tree,
     new_entry->revision = folder_get_revision(folder);
     new_entry->ctime = folder_get_created(folder);
     new_entry->parent = new_parent;
+    new_entry->needs_update = false;
 
     /* if the revisions of the old and new entry differ, we have to
      * update its content from the remote
@@ -964,7 +1000,7 @@ static struct h_entry *folder_tree_add_folder(folder_tree * tree,
      * added and did not exist before */
     if ((old_entry != NULL && old_revision < new_entry->revision)
         || old_entry == NULL) {
-        folder_tree_rebuild_helper(tree, conn, new_entry);
+        new_entry->needs_update = true;
     }
 
     return new_entry;
@@ -1024,7 +1060,7 @@ static int folder_tree_rebuild_helper(folder_tree * tree, mfconn * conn,
             folder_free(folder_result[i]);
             continue;
         }
-        folder_tree_add_folder(tree, conn, folder_result[i], curr_entry);
+        folder_tree_add_folder(tree, folder_result[i], curr_entry);
         folder_free(folder_result[i]);
     }
     free(folder_result);
@@ -1057,6 +1093,9 @@ static int folder_tree_rebuild_helper(folder_tree * tree, mfconn * conn,
         file_free(file_result[i]);
     }
     free(file_result);
+
+    /* since the children have been updated, no update is needed anymore */
+    curr_entry->needs_update = false;
 
     return 0;
 }
@@ -1232,7 +1271,7 @@ static int folder_tree_update_file_info(folder_tree * tree, mfconn * conn,
  * be newer, also update its content
  */
 static int folder_tree_update_folder_info(folder_tree * tree, mfconn * conn,
-                                          char *key)
+                                          const char *key)
 {
     mffolder       *folder;
     int             retval;
@@ -1258,14 +1297,21 @@ static int folder_tree_update_folder_info(folder_tree * tree, mfconn * conn,
         return 0;
     }
 
+    /*
+     * folder_tree_update_folder_info might have been called during an
+     * device/get_changes call in which case, the parent of that folder might
+     * not exist yet. We recurse until we reach the root to not have a
+     * dangling folder in our hashtable.
+     */
     parent = folder_tree_lookup_key(tree, folder_get_parent(folder));
     if (parent == NULL) {
-        fprintf(stderr, "folder_tree_lookup_key failed\n");
-        return -1;
+        fprintf(stderr, "the parent of %s does not exist yet - retrieve it\n",
+                key);
+        folder_tree_update_folder_info(tree, conn, folder_get_parent(folder));
     }
 
     /* store the updated entry in the hashtable */
-    new_entry = folder_tree_add_folder(tree, conn, folder, parent);
+    new_entry = folder_tree_add_folder(tree, folder, parent);
 
     if (new_entry == NULL) {
         fprintf(stderr, "folder_tree_add_folder failed\n");

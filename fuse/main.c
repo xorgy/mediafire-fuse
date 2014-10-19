@@ -29,6 +29,8 @@
 #include <string.h>
 #include <errno.h>
 #include <sys/types.h>
+#include <bits/fcntl-linux.h>
+#include <fuse/fuse_common.h>
 
 #include "../mfapi/mfconn.h"
 #include "../mfapi/apicalls.h"
@@ -149,7 +151,7 @@ static int mediafirefs_getattr(const char *path, struct stat *stbuf)
      * and not the others
      */
     folder_tree_update(tree, conn);
-    return folder_tree_getattr(tree, path, stbuf);
+    return folder_tree_getattr(tree, conn, path, stbuf);
 }
 
 static int mediafirefs_readdir(const char *path, void *buf,
@@ -159,7 +161,7 @@ static int mediafirefs_readdir(const char *path, void *buf,
     (void)offset;
     (void)info;
 
-    return folder_tree_readdir(tree, path, buf, filldir);
+    return folder_tree_readdir(tree, conn, path, buf, filldir);
 }
 
 static void mediafirefs_destroy()
@@ -218,7 +220,7 @@ static int mediafirefs_mkdir(const char *path, mode_t mode)
     if (dirname[0] == '\0') {
         key = NULL;
     } else {
-        key = folder_tree_path_get_key(tree, dirname);
+        key = folder_tree_path_get_key(tree, conn, dirname);
     }
 
     retval = mfconn_api_folder_create(conn, key, basename);
@@ -249,7 +251,7 @@ static int mediafirefs_rmdir(const char *path)
      * because getattr was called before and already made sure
      */
 
-    key = folder_tree_path_get_key(tree, path);
+    key = folder_tree_path_get_key(tree, conn, path);
     if (key == NULL) {
         fprintf(stderr, "key is NULL\n");
         return -ENOENT;
