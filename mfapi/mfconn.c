@@ -156,6 +156,10 @@ const char     *mfconn_create_call_signature(mfconn * conn, const char *url,
     signature_raw = strdup_printf("%d%s%s%s",
                                   (conn->secret_key % 256),
                                   conn->secret_time, api, args);
+    if (signature_raw == NULL) {
+        fprintf(stderr, "strdup_printf failed\n");
+        return NULL;
+    }
 
     MD5((const unsigned char *)signature_raw,
         strlen(signature_raw), signature_enc);
@@ -239,6 +243,11 @@ const char     *mfconn_create_signed_get(mfconn * conn, int ssl,
 
     // append api GET args to api request
     api_request = (char *)realloc(api_request, bytes_to_alloc);
+    if (api_request == NULL) {
+        fprintf(stderr, "cannot allocate memory\n");
+        return NULL;
+    }
+
     strncat(api_request, api_args, api_args_len);
     strcat(api_request, signature);
 

@@ -58,11 +58,58 @@
    ...
    fun:curl_multi_perform
    fun:curl_easy_perform
-   fun:http_post_buf
-   fun:mfconn_api_user_get_session_token
-   fun:mfconn_create
-   fun:mfshell_cmd_auth
-   fun:mfshell_exec
-   fun:mfshell_parse_commands
-   fun:main
+   ...
+}
+{
+   libcurl #1
+   Memcheck:Leak
+   ...
+   fun:curl_global_init
+   fun:curl_easy_init
+   ...
+}
+{
+   libcurl #2
+   Memcheck:Cond
+   ...
+   fun:curl_multi_perform
+   fun:curl_easy_perform
+   ...
+}
+{
+   libcurl #3
+   Memcheck:Value8
+   fun:Curl_raw_toupper
+   ...
+}
+{
+   libcrypto
+   Memcheck:Leak
+   ...
+   fun:curl_multi_perform
+   fun:curl_easy_perform
+   ...
+}
+{
+   openssl
+   Memcheck:Leak
+   fun:malloc
+   fun:CRYPTO_malloc
+   ...
+   fun:ssl_verify_cert_chain
+   ...
+}
+{
+   jansson #1
+   Memcheck:Cond
+   ...
+   obj:*/libjansson.so*
+   ...
+}
+{
+   jansson #2
+   Memcheck:Value8
+   ...
+   obj:*/libjansson.so*
+   ...
 }

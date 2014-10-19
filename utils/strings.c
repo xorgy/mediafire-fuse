@@ -42,6 +42,10 @@ char           *strdup_printf(char *fmt, ...)
     bytes_to_allocate++;
 
     ret_str = (char *)malloc(bytes_to_allocate * sizeof(char));
+    if (ret_str == NULL) {
+        fprintf(stderr, "failed to allocate memory\n");
+        return NULL;
+    }
 
     va_start(ap, fmt);
     bytes_to_allocate = vsnprintf(ret_str, bytes_to_allocate, fmt, ap);
