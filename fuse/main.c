@@ -31,10 +31,13 @@
 #include <sys/types.h>
 #include <bits/fcntl-linux.h>
 #include <fuse/fuse_common.h>
+#include <pwd.h>
+#include <wordexp.h>
 
 #include "../mfapi/mfconn.h"
 #include "../mfapi/apicalls.h"
 #include "hashtbl.h"
+#include "../utils/strings.h"
 
 /* what you can safely assume about requests to your filesystem
  *
@@ -100,26 +103,6 @@ struct mediafirefs_user_options {
     char           *server;
     int             app_id;
     char           *api_key;
-} mediafirefs_user_options = {
-NULL, NULL, NULL, NULL, -1, NULL};
-
-static struct fuse_opt mediafirefs_opts[] = {
-    FUSE_OPT_KEY("-h", KEY_HELP),
-    FUSE_OPT_KEY("--help", KEY_HELP),
-    FUSE_OPT_KEY("-V", KEY_VERSION),
-    FUSE_OPT_KEY("--version", KEY_VERSION),
-    {"-c %s", offsetof(struct mediafirefs_user_options, configfile), 0},
-    {"--config=%s", offsetof(struct mediafirefs_user_options, configfile), 0},
-    {"-u %s", offsetof(struct mediafirefs_user_options, username), 0},
-    {"--username %s", offsetof(struct mediafirefs_user_options, username), 0},
-    {"-p %s", offsetof(struct mediafirefs_user_options, password), 0},
-    {"--password %s", offsetof(struct mediafirefs_user_options, password), 0},
-    {"--server %s", offsetof(struct mediafirefs_user_options, server), 0},
-    {"-i %d", offsetof(struct mediafirefs_user_options, app_id), 0},
-    {"--app-id %d", offsetof(struct mediafirefs_user_options, app_id), 0},
-    {"-k %s", offsetof(struct mediafirefs_user_options, api_key), 0},
-    {"--api-key %s", offsetof(struct mediafirefs_user_options, api_key), 0},
-    FUSE_OPT_END
 };
 
 static void usage(const char *progname)
@@ -349,36 +332,186 @@ mediafirefs_opt_proc(void *data, const char *arg, int key,
     return 1;
 }
 
-int main(int argc, char *argv[])
+static void parse_config_file(FILE * fp, int *argc, char ***argv)
 {
-    struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
-    FILE           *fd;
+    // read the config file line by line and pass each line to wordexp to
+    // retain proper quoting
+    char           *line = NULL;
+    size_t          len = 0;
+    ssize_t         read;
+    wordexp_t       p;
+    int             ret;
+    size_t          i;
+
+    while ((read = getline(&line, &len, fp)) != -1) {
+        if (line[0] == '#')
+            continue;
+
+        // replace possible trailing newline by zero
+        if (line[strlen(line) - 1] == '\n')
+            line[strlen(line) - 1] = '\0';
+        ret = wordexp(line, &p, WRDE_SHOWERR | WRDE_UNDEF);
+        if (ret != 0) {
+            switch (ret) {
+                case WRDE_BADCHAR:
+                    fprintf(stderr, "wordexp: WRDE_BADCHAR\n");
+                    break;
+                case WRDE_BADVAL:
+                    fprintf(stderr, "wordexp: WRDE_BADVAL\n");
+                    break;
+                case WRDE_CMDSUB:
+                    fprintf(stderr, "wordexp: WRDE_CMDSUB\n");
+                    break;
+                case WRDE_NOSPACE:
+                    fprintf(stderr, "wordexp: WRDE_NOSPACE\n");
+                    break;
+                case WRDE_SYNTAX:
+                    fprintf(stderr, "wordexp: WRDE_SYNTAX\n");
+                    break;
+            }
+            wordfree(&p);
+            continue;
+        }
+        // now insert those arguments into argv right after the first
+        *argv = (char **)realloc(*argv, sizeof(char *) * (*argc + p.we_wordc));
+        memmove((*argv) + p.we_wordc + 1, (*argv) + 1,
+                sizeof(char *) * (*argc - 1));
+        *argc += p.we_wordc;
+        for (i = 0; i < p.we_wordc; i++) {
+            (*argv)[i + 1] = strdup(p.we_wordv[i]);
+        }
+        wordfree(&p);
+    }
+    free(line);
+}
+
+static void parse_config(int *argc, char ***argv, char *configfile)
+{
+    FILE           *fp;
+    char           *homedir;
+
+    // parse the configuration file
+    // if a value is not set (it is NULL) then it has not been set by the
+    // commandline and should be set by the configuration file
+
+    // try set config file first if set
+    if (configfile != NULL && (fp = fopen(configfile, "r")) != NULL) {
+        parse_config_file(fp, argc, argv);
+        fclose(fp);
+        return;
+    }
+    // try "./.mediafire-tools.conf" second
+    if ((fp = fopen("./.mediafire-tools.conf", "r")) != NULL) {
+        parse_config_file(fp, argc, argv);
+        fclose(fp);
+        return;
+    }
+    // try "~/.mediafire-tools.conf" third
+    if ((homedir = getenv("HOME")) == NULL) {
+        homedir = getpwuid(getuid())->pw_dir;
+    }
+    homedir = strdup_printf("%s/.mediafire-tools.conf", homedir);
+    if ((fp = fopen("./.mediafire-tools.conf", "r")) != NULL) {
+        parse_config_file(fp, argc, argv);
+        fclose(fp);
+    }
+    free(homedir);
+}
+
+static void parse_arguments(int *argc, char ***argv,
+                            struct mediafirefs_user_options *options)
+{
+    char          **argv_new;
+
+    /* In the first pass, we only search for the help, version and config file
+     * options.
+     *
+     * In case help or version options are found, the program will display
+     * them and quit
+     *
+     * Otherwise, the program will read the config file (possibly supplied
+     * through the option being set in the first pass), prepend its arguments
+     * to argv and parse the arguments again as a second pass.
+     */
+
+    struct fuse_opt mediafirefs_opts_fst[] = {
+        FUSE_OPT_KEY("-h", KEY_HELP),
+        FUSE_OPT_KEY("--help", KEY_HELP),
+        FUSE_OPT_KEY("-V", KEY_VERSION),
+        FUSE_OPT_KEY("--version", KEY_VERSION),
+        {"-c %s", offsetof(struct mediafirefs_user_options, configfile), 0},
+        {"--config %s", offsetof(struct mediafirefs_user_options, configfile),
+         0},
+        FUSE_OPT_END
+    };
+
+    // copy argv into a new area so that we can realloc later
+    argv_new = malloc(sizeof(char *) * (*argc));
+    memcpy(argv_new, *argv, sizeof(char *) * (*argc));
+    *argv = argv_new;
+
+    struct fuse_args args_fst = FUSE_ARGS_INIT(*argc, *argv);
 
     if (fuse_opt_parse
-        (&args, &mediafirefs_user_options, mediafirefs_opts,
+        (&args_fst, options, mediafirefs_opts_fst,
          mediafirefs_opt_proc) == -1) {
         exit(1);
     }
+    *argc = args_fst.argc;
+    *argv = args_fst.argv;
 
-    if (mediafirefs_user_options.app_id == -1) {
-        mediafirefs_user_options.app_id = 42709;
-    }
+    parse_config(argc, argv, options->configfile);
 
-    if (mediafirefs_user_options.server == NULL) {
-        mediafirefs_user_options.server = "www.mediafire.com";
-    }
+    struct fuse_opt mediafirefs_opts_snd[] = {
+        {"-c %s", offsetof(struct mediafirefs_user_options, configfile), 0},
+        {"--config %s", offsetof(struct mediafirefs_user_options, configfile),
+         0},
+        {"-u %s", offsetof(struct mediafirefs_user_options, username), 0},
+        {"--username %s", offsetof(struct mediafirefs_user_options, username),
+         0},
+        {"-p %s", offsetof(struct mediafirefs_user_options, password), 0},
+        {"--password %s", offsetof(struct mediafirefs_user_options, password),
+         0},
+        {"--server %s", offsetof(struct mediafirefs_user_options, server), 0},
+        {"-i %d", offsetof(struct mediafirefs_user_options, app_id), 0},
+        {"--app-id %d", offsetof(struct mediafirefs_user_options, app_id), 0},
+        {"-k %s", offsetof(struct mediafirefs_user_options, api_key), 0},
+        {"--api-key %s", offsetof(struct mediafirefs_user_options, api_key),
+         0},
+        FUSE_OPT_END
+    };
 
-    if (mediafirefs_user_options.username == NULL ||
-        mediafirefs_user_options.password == NULL) {
-        fprintf(stderr, "You must specify username and pasword\n");
+    struct fuse_args args_snd = FUSE_ARGS_INIT(*argc, *argv);
+
+    if (fuse_opt_parse(&args_snd, options, mediafirefs_opts_snd, NULL)
+        == -1) {
         exit(1);
     }
 
-    conn = mfconn_create(mediafirefs_user_options.server,
-                         mediafirefs_user_options.username,
-                         mediafirefs_user_options.password,
-                         mediafirefs_user_options.app_id,
-                         mediafirefs_user_options.api_key);
+    *argc = args_snd.argc;
+    *argv = args_snd.argv;
+}
+
+static void connect_mf(struct mediafirefs_user_options *options)
+{
+    FILE           *fd;
+
+    if (options->app_id == -1) {
+        options->app_id = 42709;
+    }
+
+    if (options->server == NULL) {
+        options->server = "www.mediafire.com";
+    }
+
+    if (options->username == NULL || options->password == NULL) {
+        fprintf(stderr, "You must specify username and password\n");
+        exit(1);
+    }
+
+    conn = mfconn_create(options->server,
+                         options->username,
+                         options->password, options->app_id, options->api_key);
 
     if (conn == NULL) {
         fprintf(stderr, "Cannot establish connection\n");
@@ -406,6 +539,17 @@ int main(int argc, char *argv[])
 
     fprintf(stderr, "tree before starting fuse:\n");
     folder_tree_debug(tree);
+}
 
-    return fuse_main(args.argc, args.argv, &mediafirefs_oper, NULL);
+int main(int argc, char *argv[])
+{
+    struct mediafirefs_user_options options = {
+        NULL, NULL, NULL, NULL, -1, NULL
+    };
+
+    parse_arguments(&argc, &argv, &options);
+
+    connect_mf(&options);
+
+    return fuse_main(argc, argv, &mediafirefs_oper, NULL);
 }
