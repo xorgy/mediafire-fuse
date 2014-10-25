@@ -113,3 +113,15 @@
    obj:*/libjansson.so*
    ...
 }
+{
+   fuse_opt_parse
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   fun:strdup
+   obj:*libfuse.so*
+   obj:*libfuse.so*
+   fun:fuse_opt_parse
+   fun:parse_arguments
+   fun:main
+}

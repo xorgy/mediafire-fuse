@@ -160,6 +160,8 @@ static void mediafirefs_destroy()
     fclose(fd);
 
     folder_tree_destroy(tree);
+
+    mfconn_destroy(conn);
 }
 
 static int mediafirefs_mkdir(const char *path, mode_t mode)
@@ -421,7 +423,7 @@ static void parse_config(int *argc, char ***argv, char *configfile)
 static void parse_arguments(int *argc, char ***argv,
                             struct mediafirefs_user_options *options)
 {
-    char          **argv_new;
+    int             i;
 
     /* In the first pass, we only search for the help, version and config file
      * options.
@@ -445,11 +447,6 @@ static void parse_arguments(int *argc, char ***argv,
         FUSE_OPT_END
     };
 
-    // copy argv into a new area so that we can realloc later
-    argv_new = malloc(sizeof(char *) * (*argc));
-    memcpy(argv_new, *argv, sizeof(char *) * (*argc));
-    *argv = argv_new;
-
     struct fuse_args args_fst = FUSE_ARGS_INIT(*argc, *argv);
 
     if (fuse_opt_parse
@@ -457,6 +454,7 @@ static void parse_arguments(int *argc, char ***argv,
          mediafirefs_opt_proc) == -1) {
         exit(1);
     }
+
     *argc = args_fst.argc;
     *argv = args_fst.argv;
 
@@ -486,6 +484,13 @@ static void parse_arguments(int *argc, char ***argv,
     if (fuse_opt_parse(&args_snd, options, mediafirefs_opts_snd, NULL)
         == -1) {
         exit(1);
+    }
+
+    if (*argv != args_snd.argv) {
+        for (i = 0; i < *argc; i++) {
+            free((*argv)[i]);
+        }
+        free(*argv);
     }
 
     *argc = args_snd.argc;
@@ -543,6 +548,9 @@ static void connect_mf(struct mediafirefs_user_options *options)
 
 int main(int argc, char *argv[])
 {
+    int             ret,
+                    i;
+
     struct mediafirefs_user_options options = {
         NULL, NULL, NULL, NULL, -1, NULL
     };
@@ -551,5 +559,12 @@ int main(int argc, char *argv[])
 
     connect_mf(&options);
 
-    return fuse_main(argc, argv, &mediafirefs_oper, NULL);
+    ret = fuse_main(argc, argv, &mediafirefs_oper, NULL);
+
+    for (i = 0; i < argc; i++) {
+        free(argv[i]);
+    }
+    free(argv);
+
+    return ret;
 }

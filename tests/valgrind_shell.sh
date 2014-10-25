@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -e
+
 case $# in
 	0)
 		source_dir="."
