@@ -39,6 +39,11 @@ int mfshell_cmd_links(mfshell * mfshell, int argc, char *const argv[])
     if (mfshell == NULL)
         return -1;
 
+    if (mfshell->conn == NULL) {
+        fprintf(stderr, "conn is NULL\n");
+        return -1;
+    }
+
     if (argc != 2) {
         fprintf(stderr, "Invalid number of arguments\n");
         return -1;

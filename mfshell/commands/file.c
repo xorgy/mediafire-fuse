@@ -38,6 +38,11 @@ int mfshell_cmd_file(mfshell * mfshell, int argc, char *const argv[])
     if (mfshell == NULL)
         return -1;
 
+    if (mfshell->conn == NULL) {
+        fprintf(stderr, "conn is NULL\n");
+        return -1;
+    }
+
     if (argc != 2) {
         fprintf(stderr, "Invalid number of arguments\n");
         return -1;
@@ -55,10 +60,12 @@ int mfshell_cmd_file(mfshell * mfshell, int argc, char *const argv[])
     file = file_alloc();
 
     retval = mfconn_api_file_get_info(mfshell->conn, file, (char *)quickkey);
-    if (retval != 0) {
-        fprintf(stderr, "api call unsuccessful\n");
-    }
     mfconn_update_secret_key(mfshell->conn);
+
+    if (retval != 0) {
+        fprintf(stderr, "mfconn_api_file_get_info failed\n");
+        return -1;
+    }
 
     quickkey = file_get_key(file);
     name = file_get_name(file);

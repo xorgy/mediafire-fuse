@@ -38,6 +38,11 @@ int mfshell_cmd_changes(mfshell * mfshell, int argc, char *const argv[])
     if (mfshell == NULL)
         return -1;
 
+    if (mfshell->conn == NULL) {
+        fprintf(stderr, "conn is NULL\n");
+        return -1;
+    }
+
     switch (argc) {
         case 1:
             revision = 0;
@@ -53,6 +58,11 @@ int mfshell_cmd_changes(mfshell * mfshell, int argc, char *const argv[])
     changes = NULL;
     retval = mfconn_api_device_get_changes(mfshell->conn, revision, &changes);
     mfconn_update_secret_key(mfshell->conn);
+
+    if (retval != 0) {
+        fprintf(stderr, "mfconn_api_device_get_changes failed\n");
+        return -1;
+    }
 
     for (i = 0; changes[i].change != MFCONN_DEVICE_CHANGE_END; i++) {
         switch (changes[i].change) {

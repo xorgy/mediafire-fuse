@@ -52,6 +52,11 @@ int mfshell_cmd_folder(mfshell * mfshell, int argc, char *const argv[])
         return -1;
     }
 
+    if (mfshell->conn == NULL) {
+        fprintf(stderr, "conn is NULL\n");
+        return -1;
+    }
+
     switch (argc) {
         case 1:
             folderkey = NULL;

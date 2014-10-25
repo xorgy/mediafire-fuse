@@ -38,6 +38,11 @@ int mfshell_cmd_list(mfshell * mfshell, int argc, char *const argv[])
     if (mfshell == NULL)
         return -1;
 
+    if (mfshell->conn == NULL) {
+        fprintf(stderr, "conn is NULL\n");
+        return -1;
+    }
+
     if (argc != 1) {
         fprintf(stderr, "Invalid number of arguments\n");
         return -1;
@@ -49,6 +54,10 @@ int mfshell_cmd_list(mfshell * mfshell, int argc, char *const argv[])
                                       folder_get_key(mfshell->folder_curr),
                                       &folder_result, NULL);
     mfconn_update_secret_key(mfshell->conn);
+
+    if (folder_result == NULL) {
+        return -1;
+    }
 
     for (i = 0; folder_result[i] != NULL; i++) {
         printf("%s %s\n", folder_get_name(folder_result[i]),

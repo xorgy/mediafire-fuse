@@ -77,9 +77,18 @@ int mfshell_cmd_chdir(mfshell * mfshell, int argc, char *const argv[])
         folder_set_key(folder_new, NULL);
         retval = 0;
     } else {
+        if (mfshell->conn == NULL) {
+            fprintf(stderr, "conn is NULL\n");
+            return -1;
+        }
         retval = mfconn_api_folder_get_info(mfshell->conn,
                                             folder_new, (char *)folderkey);
         mfconn_update_secret_key(mfshell->conn);
+
+        if (retval != 0) {
+            fprintf(stderr, "mfconn_api_folder_get_info failed\n");
+            return -1;
+        }
     }
 
     if (retval == 0) {

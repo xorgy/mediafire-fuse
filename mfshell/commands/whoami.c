@@ -29,6 +29,16 @@ int mfshell_cmd_whoami(mfshell * mfshell, int argc, char *const argv[])
     (void)argv;
     int             retval;
 
+    if (mfshell == NULL) {
+        fprintf(stderr, "mfshell is NULL\n");
+        return -1;
+    }
+
+    if (mfshell->conn == NULL) {
+        fprintf(stderr, "conn is NULL\n");
+        return -1;
+    }
+
     if (argc != 1) {
         fprintf(stderr, "Invalid number of arguments\n");
         return -1;
