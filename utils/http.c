@@ -79,6 +79,8 @@ mfhttp         *http_create(void)
 
     curl_easy_setopt(conn->curl_handle, CURLOPT_ERRORBUFFER, conn->error_buf);
 
+    /*curl_easy_setopt(conn->curl_handle, CURLOPT_VERBOSE, 1L); */
+
     return conn;
 }
 
@@ -201,7 +203,8 @@ http_post_buf(mfhttp * conn, const char *url, const char *post_args,
     retval = curl_easy_perform(conn->curl_handle);
     fprintf(stderr, "POST: %s\n", url);
     if (retval != CURLE_OK) {
-        fprintf(stderr, "error curl_easy_perform %s\n\r", conn->error_buf);
+        fprintf(stderr, "error curl_easy_perform \"%s\" \"%s\"\n\r",
+                curl_easy_strerror(retval), conn->error_buf);
         return retval;
     }
     if (data_handler != NULL)
