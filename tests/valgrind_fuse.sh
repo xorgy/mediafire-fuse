@@ -33,11 +33,19 @@ $cmd "${binary_dir}/mediafire-fuse" -s -f -d /mnt &
 fusepid="$!"
 
 # once the file system is found to be mounted, print the tree and unmount
-while sleep 1; do
+for i in `seq 1 10`; do
+	sleep 1
 	if [ `mount -t fuse.mediafire-fuse | wc -l` -ne 0 ]; then
 		break;
 	fi
 done
+
+if [ `mount -t fuse.mediafire-fuse | wc -l` -eq 0 ]; then
+	echo "cannot mount fuse" >&2
+	fusermount -u /mnt
+	wait "$fusepid"
+	exit 1
+fi
 
 tree /mnt
 
