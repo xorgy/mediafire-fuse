@@ -28,7 +28,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
-#include <sys/types.h>
+#include <sys/stat.h>
 #include <bits/fcntl-linux.h>
 #include <fuse/fuse_common.h>
 #include <pwd.h>
@@ -397,23 +397,22 @@ static void parse_config(int *argc, char ***argv, char *configfile)
     // commandline and should be set by the configuration file
 
     // try set config file first if set
-    if (configfile != NULL && (fp = fopen(configfile, "r")) != NULL) {
-        parse_config_file(fp, argc, argv);
-        fclose(fp);
-        return;
+    if (configfile != NULL) {
+        if ((fp = fopen(configfile, "r")) != NULL) {
+            parse_config_file(fp, argc, argv);
+            fclose(fp);
+            return;
+        } else {
+            fprintf(stderr, "Cannot open configuration file %s\n", configfile);
+            exit(1);
+        }
     }
-    // try "./.mediafire-tools.conf" second
-    if ((fp = fopen("./.mediafire-tools.conf", "r")) != NULL) {
-        parse_config_file(fp, argc, argv);
-        fclose(fp);
-        return;
-    }
-    // try "~/.mediafire-tools.conf" third
+    // then try "~/.mediafire-tools/config"
     if ((homedir = getenv("HOME")) == NULL) {
         homedir = getpwuid(getuid())->pw_dir;
     }
-    homedir = strdup_printf("%s/.mediafire-tools.conf", homedir);
-    if ((fp = fopen("./.mediafire-tools.conf", "r")) != NULL) {
+    homedir = strdup_printf("%s/.mediafire-tools/config", homedir);
+    if ((fp = fopen(homedir, "r")) != NULL) {
         parse_config_file(fp, argc, argv);
         fclose(fp);
     }
@@ -550,10 +549,29 @@ int main(int argc, char *argv[])
 {
     int             ret,
                     i;
+    char           *homedir;
+    char           *cachedir;
 
     struct mediafirefs_user_options options = {
         NULL, NULL, NULL, NULL, -1, NULL
     };
+
+    if ((homedir = getenv("HOME")) == NULL) {
+        homedir = getpwuid(getuid())->pw_dir;
+    }
+    homedir = strdup_printf("%s/.mediafire-tools", homedir);
+    /* EEXIST is okay, so only fail if it is something else */
+    if (mkdir(homedir, 0755) != 0 && errno != EEXIST) {
+        perror("mkdir");
+        exit(1);
+    }
+    cachedir = strdup_printf("%s/cache", homedir);
+    if (mkdir(cachedir, 0755) != 0 && errno != EEXIST) {
+        perror("mkdir");
+        exit(1);
+    }
+    free(cachedir);
+    free(homedir);
 
     parse_arguments(&argc, &argv, &options);
 
