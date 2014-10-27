@@ -33,6 +33,7 @@
 #include <fuse/fuse_common.h>
 #include <pwd.h>
 #include <wordexp.h>
+#include <stdint.h>
 
 #include "../mfapi/mfconn.h"
 #include "../mfapi/apicalls.h"
@@ -105,6 +106,10 @@ struct mediafirefs_user_options {
     char           *api_key;
 };
 
+struct mediafirefs_openfile {
+    int             fd;
+};
+
 static void usage(const char *progname)
 {
     fprintf(stderr, "Usage %s [options] mountpoint\n"
@@ -132,6 +137,9 @@ static int mediafirefs_getattr(const char *path, struct stat *stbuf)
      * since getattr is called before every other call (except for getattr,
      * read and write) wee only call folder_tree_update in the getattr call
      * and not the others
+     *
+     * FIXME: only call folder_tree_update if it has not been called for a set
+     * amount of time
      */
     folder_tree_update(tree, conn);
     return folder_tree_getattr(tree, conn, path, stbuf);
@@ -258,34 +266,43 @@ static int mediafirefs_rmdir(const char *path)
 
 static int mediafirefs_open(const char *path, struct fuse_file_info *file_info)
 {
-    (void)path;
+    int             fd;
+    struct mediafirefs_openfile *openfile;
 
     if ((file_info->flags & O_ACCMODE) != O_RDONLY) {
         fprintf(stderr, "can only open read-only");
         return -EACCES;
     }
 
-    /* check if file has already been downloaded */
+    fd = folder_tree_open_file(tree, conn, path);
+    if (fd < 0) {
+        fprintf(stderr, "folder_tree_file_open unsuccessful\n");
+        return fd;
+    }
 
-    /* check if downloaded version is the current one */
-
-    /* download file from remote */
-
-    /* update local file with patch */
-
-    return -ENOSYS;
+    openfile = malloc(sizeof(struct mediafirefs_openfile));
+    openfile->fd = fd;
+    file_info->fh = (uint64_t) openfile;
+    return 0;
 }
 
 static int mediafirefs_read(const char *path, char *buf, size_t size,
                             off_t offset, struct fuse_file_info *file_info)
 {
     (void)path;
-    (void)buf;
-    (void)size;
-    (void)offset;
-    (void)file_info;
+    return pread(((struct mediafirefs_openfile *)file_info->fh)->fd, buf, size,
+                 offset);
+}
 
-    return -ENOSYS;
+static int mediafirefs_release(const char *path,
+                               struct fuse_file_info *file_info)
+{
+    (void)path;
+    struct mediafirefs_openfile *openfile =
+        (struct mediafirefs_openfile *)file_info->fh;
+    close(openfile->fd);
+    free(openfile);
+    return 0;
 }
 
 static struct fuse_operations mediafirefs_oper = {
@@ -296,6 +313,7 @@ static struct fuse_operations mediafirefs_oper = {
     .rmdir = mediafirefs_rmdir,
     .open = mediafirefs_open,
     .read = mediafirefs_read,
+    .release = mediafirefs_release,
 /*    .create = mediafirefs_create,
     .fsync = mediafirefs_fsync,
     .getxattr = mediafirefs_getxattr,

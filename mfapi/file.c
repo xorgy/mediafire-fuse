@@ -22,12 +22,8 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/stat.h>
-#include <sys/types.h>
 #include <string.h>
 
-#include "../utils/http.h"
-#include "../utils/strings.h"
 #include "file.h"
 #include "apicalls.h"
 
@@ -301,55 +297,4 @@ const char     *file_get_onetime_link(mffile * file)
         return NULL;
 
     return file->onetime_link;
-}
-
-ssize_t file_download_direct(mffile * file, const char *local_dir)
-{
-    const char     *url;
-    const char     *file_name;
-    const char     *file_path;
-    struct stat     file_info;
-    ssize_t         bytes_read = 0;
-    int             retval;
-    mfhttp         *conn;
-
-    if (file == NULL)
-        return -1;
-    if (local_dir == NULL)
-        return -1;
-
-    url = file_get_direct_link(file);
-    if (url == NULL)
-        return -1;
-
-    file_name = file_get_name(file);
-    if (file_name == NULL)
-        return -1;
-    if (strlen(file_name) < 1)
-        return -1;
-
-    if (local_dir[strlen(local_dir) - 1] == '/')
-        file_path = strdup_printf("%s%s", local_dir, file_name);
-    else
-        file_path = strdup_printf("%s/%s", local_dir, file_name);
-
-    conn = http_create();
-    retval = http_get_file(conn, url, file_path);
-    http_destroy(conn);
-
-    /*
-       it is preferable to have the vfs tell us how many bytes the
-       transfer actually is.  it's really all that matters.
-     */
-    memset(&file_info, 0, sizeof(file_info));
-    retval = stat(file_path, &file_info);
-
-    free((void *)file_path);
-
-    if (retval != 0)
-        return -1;
-
-    bytes_read = file_info.st_size;
-
-    return bytes_read;
 }

@@ -24,12 +24,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/stat.h>
 
 #include "../../mfapi/apicalls.h"
 #include "../mfshell.h"
 #include "../../mfapi/file.h"
 #include "../../mfapi/mfconn.h"
 #include "../commands.h"        // IWYU pragma: keep
+#include "../../utils/strings.h"
+#include "../../utils/http.h"
 
 int mfshell_cmd_get(mfshell * mfshell, int argc, char *const argv[])
 {
@@ -38,6 +41,11 @@ int mfshell_cmd_get(mfshell * mfshell, int argc, char *const argv[])
     int             retval;
     ssize_t         bytes_read;
     const char     *quickkey;
+    const char     *file_path;
+    const char     *file_name;
+    const char     *url;
+    struct stat     file_info;
+    mfhttp         *http;
 
     if (mfshell == NULL)
         return -1;
@@ -86,7 +94,34 @@ int mfshell_cmd_get(mfshell * mfshell, int argc, char *const argv[])
         getcwd(mfshell->local_working_dir, PATH_MAX);
     }
 
-    bytes_read = file_download_direct(file, mfshell->local_working_dir);
+    file_name = file_get_name(file);
+    if (file_name == NULL)
+        return -1;
+    if (strlen(file_name) < 1)
+        return -1;
+
+    file_path = strdup_printf("%s/%s", mfshell->local_working_dir, file_name);
+
+    url = file_get_direct_link(file);
+    if (url == NULL)
+        return -1;
+
+    http = http_create();
+    retval = http_get_file(http, url, file_path);
+    http_destroy(http);
+
+    if (retval != 0)
+        return -1;
+
+    memset(&file_info, 0, sizeof(file_info));
+    retval = stat(file_path, &file_info);
+
+    free((void *)file_path);
+
+    if (retval != 0)
+        return -1;
+
+    bytes_read = file_info.st_size;
 
     if (bytes_read != -1)
         printf("\r   Downloaded %zd bytes OK!\n\r", bytes_read);

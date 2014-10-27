@@ -22,6 +22,7 @@
 #include <fuse/fuse.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 #include "../mfapi/mfconn.h"
 
@@ -68,5 +69,8 @@ bool            folder_tree_path_is_root(folder_tree * tree, mfconn * conn,
 
 bool            folder_tree_path_is_file(folder_tree * tree, mfconn * conn,
                                          const char *path);
+
+int             folder_tree_open_file(folder_tree * tree, mfconn * conn,
+                                      const char *path);
 
 #endif

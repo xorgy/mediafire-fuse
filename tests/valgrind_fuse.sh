@@ -49,6 +49,10 @@ fi
 
 tree /mnt
 
+printf "foobar" | diff - /mnt/Untitled.txt
+
+sleep 2
+
 fusermount -u /mnt
 
 wait "$fusepid"

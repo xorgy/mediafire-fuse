@@ -20,7 +20,8 @@
 #ifndef __MFAPI_FILE_H__
 #define __MFAPI_FILE_H__
 
-#include <sys/types.h>
+#include <stdint.h>
+#include <time.h>
 
 typedef struct mffile mffile;
 
@@ -55,8 +56,6 @@ const char     *file_get_direct_link(mffile * file);
 int             file_set_onetime_link(mffile * file, const char *onetime_link);
 
 const char     *file_get_onetime_link(mffile * file);
-
-ssize_t         file_download_direct(mffile * file, const char *local_dir);
 
 int             file_set_size(mffile * file, uint64_t size);
 

@@ -30,12 +30,17 @@
 #include <fcntl.h>
 #include <stdint.h>
 #include <stddef.h>
+#include <pwd.h>
+#include <inttypes.h>
+#include <bits/fcntl-linux.h>
 
 #include "hashtbl.h"
 #include "../mfapi/mfconn.h"
 #include "../mfapi/file.h"
 #include "../mfapi/folder.h"
 #include "../mfapi/apicalls.h"
+#include "../utils/strings.h"
+#include "../utils/http.h"
 
 /*
  * we build a hashtable using the first three characters of the file or folder
@@ -143,6 +148,7 @@ struct h_entry {
 
 struct folder_tree {
     uint64_t        revision;
+    char           *filecache;
     uint64_t        bucket_lens[NUM_BUCKETS];
     struct h_entry **buckets[NUM_BUCKETS];
     struct h_entry  root;
@@ -321,6 +327,7 @@ folder_tree    *folder_tree_load(FILE * stream)
     struct h_entry *tmp_entry;
     struct h_entry *parent;
     int             bucket_id;
+    char           *homedir;
 
     /* read and check the first four bytes */
     ret = fread(tmp_buffer, 1, 4, stream);
@@ -425,14 +432,27 @@ folder_tree    *folder_tree_load(FILE * stream)
 
     free(ordered_entries);
 
+    /* set file cache */
+    if ((homedir = getenv("HOME")) == NULL) {
+        homedir = getpwuid(getuid())->pw_dir;
+    }
+    tree->filecache = strdup_printf("%s/.mediafire-tools/cache", homedir);
+
     return tree;
 }
 
 folder_tree    *folder_tree_create(void)
 {
     folder_tree    *tree;
+    char           *homedir;
 
     tree = (folder_tree *) calloc(1, sizeof(folder_tree));
+
+    /* set file cache */
+    if ((homedir = getenv("HOME")) == NULL) {
+        homedir = getpwuid(getuid())->pw_dir;
+    }
+    tree->filecache = strdup_printf("%s/.mediafire-tools/cache", homedir);
 
     return tree;
 }
@@ -459,6 +479,7 @@ static void folder_tree_free_entries(folder_tree * tree)
 void folder_tree_destroy(folder_tree * tree)
 {
     folder_tree_free_entries(tree);
+    free(tree->filecache);
     free(tree);
 }
 
@@ -729,6 +750,103 @@ int folder_tree_readdir(folder_tree * tree, mfconn * conn, const char *path,
     return 0;
 }
 
+int folder_tree_open_file(folder_tree * tree, mfconn * conn, const char *path)
+{
+    struct h_entry *entry;
+    char           *cachefile;
+    int             fd;
+    struct stat     file_info;
+    uint64_t        bytes_read;
+    const char     *url;
+    mffile         *file;
+    int             retval;
+    mfhttp         *http;
+
+    entry = folder_tree_lookup_path(tree, conn, path);
+
+    /* either file not found or found entry is not a file */
+    if (entry == NULL || entry->atime == 0) {
+        return -ENOENT;
+    }
+
+    /* TODO: check entry->needs_update
+     *       check if local size is equal to remote size
+     *       check if local version exists and needs updating */
+
+    /* check if the requested file is already in the cache */
+    cachefile =
+        strdup_printf("%s/%s_%d", tree->filecache, entry->key,
+                      entry->revision);
+    fd = open(cachefile, O_RDWR);
+    if (fd > 0) {
+        /* file existed - return handle */
+        free(cachefile);
+        return fd;
+    }
+
+    /* download the file */
+    file = file_alloc();
+    retval = mfconn_api_file_get_links(conn, file, (char *)entry->key);
+    mfconn_update_secret_key(conn);
+
+    if (retval == -1) {
+        fprintf(stderr, "mfconn_api_file_get_links failed\n");
+        free(cachefile);
+        file_free(file);
+        return -1;
+    }
+
+    url = file_get_direct_link(file);
+
+    if (url == NULL) {
+        fprintf(stderr, "file_get_direct_link failed\n");
+        free(cachefile);
+        file_free(file);
+        return -1;
+    }
+
+    http = http_create();
+    retval = http_get_file(http, url, cachefile);
+    http_destroy(http);
+
+    if (retval != 0) {
+        fprintf(stderr, "download failed\n");
+        free(cachefile);
+        file_free(file);
+        return -1;
+    }
+
+    memset(&file_info, 0, sizeof(file_info));
+    retval = stat(cachefile, &file_info);
+
+    if (retval != 0) {
+        fprintf(stderr, "stat failed\n");
+        free(cachefile);
+        file_free(file);
+        return -1;
+    }
+
+    bytes_read = file_info.st_size;
+
+    if (bytes_read != entry->fsize) {
+        fprintf(stderr,
+                "expected %" PRIu64 " bytes but got %" PRIu64 " bytes\n",
+                entry->fsize, bytes_read);
+        free(cachefile);
+        file_free(file);
+        return -1;
+    }
+
+    file_free(file);
+
+    fd = open(cachefile, O_RDWR);
+
+    free(cachefile);
+
+    /* return the file handle */
+    return fd;
+}
+
 static bool folder_tree_is_root(struct h_entry *entry)
 {
     if (entry == NULL) {
@@ -928,6 +1046,9 @@ static struct h_entry *folder_tree_add_file(folder_tree * tree, mffile * file,
 
     /* if the revisions of the old and new entry differ, we have to
      * update its content from the remote the next time the file is accessed
+     *
+     * we also have to fetch the remote content if the file was only just
+     * added and did not exist before
      */
     if ((old_entry != NULL && old_revision < new_entry->revision)
         || old_entry == NULL) {
@@ -1230,6 +1351,7 @@ static int folder_tree_update_file_info(folder_tree * tree, mfconn * conn,
     mffile         *file;
     int             retval;
     struct h_entry *parent;
+    struct h_entry *new_entry;
 
     file = file_alloc();
 
@@ -1247,11 +1369,19 @@ static int folder_tree_update_file_info(folder_tree * tree, mfconn * conn,
 
     parent = folder_tree_lookup_key(tree, file_get_parent(file));
     if (parent == NULL) {
-        fprintf(stderr, "file_tree_lookup_key failed\n");
-        return -1;
+        fprintf(stderr, "the parent of %s does not exist yet - retrieve it\n",
+                key);
+        folder_tree_update_folder_info(tree, conn, file_get_parent(file));
     }
 
-    folder_tree_add_file(tree, file, parent);
+    /* store the updated entry in the hashtable */
+    new_entry = folder_tree_add_file(tree, file, parent);
+
+    if (new_entry == NULL) {
+        fprintf(stderr, "folder_tree_add_file failed\n");
+        file_free(file);
+        return -1;
+    }
 
     file_free(file);
 
@@ -1368,6 +1498,7 @@ void folder_tree_update(folder_tree * tree, mfconn * conn)
     mfconn_update_secret_key(conn);
     if (retval != 0) {
         fprintf(stderr, "device/get_changes() failed\n");
+        free(changes);
         return;
     }
 
@@ -1463,6 +1594,9 @@ void folder_tree_update(folder_tree * tree, mfconn * conn)
     folder_tree_housekeep(tree, conn);
     fprintf(stderr, "tree after cleaning:\n");
     folder_tree_debug(tree);
+
+    /* free allocated memory */
+    free(changes);
 }
 
 /*
