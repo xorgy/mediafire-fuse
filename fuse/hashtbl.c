@@ -565,8 +565,8 @@ static struct h_entry *folder_tree_lookup_path(folder_tree * tree,
                     result = curr_dir->children[i];
 
                     // make sure that result is up to date
-                    if (curr_dir->atime == 0 && result->needs_update == true) {
-                        folder_tree_rebuild_helper(tree, conn, curr_dir);
+                    if (result->atime == 0 && result->needs_update == true) {
+                        folder_tree_rebuild_helper(tree, conn, result);
                     }
                     break;
                 }
