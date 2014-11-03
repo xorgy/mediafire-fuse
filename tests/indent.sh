@@ -13,7 +13,7 @@ case $# in
 		;;
 esac
 
-find "$source_dir" -name "*.c" -o -name "*.h" | while read f; do
+find "$source_dir" -name "*.c" -o -name "*.h" \! -path "$source_dir/3rdparty/*" | while read f; do
 	case $f in
 		${source_dir}/*/CMakeFiles/*)
 			;;
