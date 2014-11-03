@@ -28,7 +28,7 @@
 
 typedef struct folder_tree folder_tree;
 
-folder_tree    *folder_tree_create(void);
+folder_tree    *folder_tree_create(char *filecache);
 
 void            folder_tree_destroy(folder_tree * tree);
 
@@ -49,7 +49,7 @@ void            folder_tree_update(folder_tree * tree, mfconn * conn);
 
 int             folder_tree_store(folder_tree * tree, FILE * stream);
 
-folder_tree    *folder_tree_load(FILE * stream);
+folder_tree    *folder_tree_load(FILE * stream, char *filecache);
 
 bool            folder_tree_path_exists(folder_tree * tree, mfconn * conn,
                                         const char *path);

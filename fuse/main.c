@@ -34,6 +34,7 @@
 #include <pwd.h>
 #include <wordexp.h>
 #include <stdint.h>
+#include <fcntl.h>
 
 #include "../mfapi/mfconn.h"
 #include "../mfapi/apicalls.h"
@@ -352,7 +353,7 @@ mediafirefs_opt_proc(void *data, const char *arg, int key,
     return 1;
 }
 
-static void parse_config_file(FILE * fp, int *argc, char ***argv)
+static void parse_config_file(int *argc, char ***argv, char *configfile)
 {
     // read the config file line by line and pass each line to wordexp to
     // retain proper quoting
@@ -362,6 +363,12 @@ static void parse_config_file(FILE * fp, int *argc, char ***argv)
     wordexp_t       p;
     int             ret;
     size_t          i;
+    FILE           *fp;
+
+    if ((fp = fopen(configfile, "r")) == NULL) {
+        fprintf(stderr, "Cannot open configuration file %s\n", configfile);
+        exit(1);
+    }
 
     while ((read = getline(&line, &len, fp)) != -1) {
         if (line[0] == '#')
@@ -403,42 +410,13 @@ static void parse_config_file(FILE * fp, int *argc, char ***argv)
         wordfree(&p);
     }
     free(line);
-}
 
-static void parse_config(int *argc, char ***argv, char *configfile)
-{
-    FILE           *fp;
-    char           *homedir;
-
-    // parse the configuration file
-    // if a value is not set (it is NULL) then it has not been set by the
-    // commandline and should be set by the configuration file
-
-    // try set config file first if set
-    if (configfile != NULL) {
-        if ((fp = fopen(configfile, "r")) != NULL) {
-            parse_config_file(fp, argc, argv);
-            fclose(fp);
-            return;
-        } else {
-            fprintf(stderr, "Cannot open configuration file %s\n", configfile);
-            exit(1);
-        }
-    }
-    // then try "~/.mediafire-tools/config"
-    if ((homedir = getenv("HOME")) == NULL) {
-        homedir = getpwuid(getuid())->pw_dir;
-    }
-    homedir = strdup_printf("%s/.mediafire-tools/config", homedir);
-    if ((fp = fopen(homedir, "r")) != NULL) {
-        parse_config_file(fp, argc, argv);
-        fclose(fp);
-    }
-    free(homedir);
+    fclose(fp);
 }
 
 static void parse_arguments(int *argc, char ***argv,
-                            struct mediafirefs_user_options *options)
+                            struct mediafirefs_user_options *options,
+                            char *configfile)
 {
     int             i;
 
@@ -475,7 +453,11 @@ static void parse_arguments(int *argc, char ***argv,
     *argc = args_fst.argc;
     *argv = args_fst.argv;
 
-    parse_config(argc, argv, options->configfile);
+    if (options->configfile != NULL) {
+        parse_config_file(argc, argv, options->configfile);
+    } else {
+        parse_config_file(argc, argv, configfile);
+    }
 
     struct fuse_opt mediafirefs_opts_snd[] = {
         {"-c %s", offsetof(struct mediafirefs_user_options, configfile), 0},
@@ -514,9 +496,10 @@ static void parse_arguments(int *argc, char ***argv,
     *argv = args_snd.argv;
 }
 
-static void connect_mf(struct mediafirefs_user_options *options)
+static void connect_mf(struct mediafirefs_user_options *options,
+                       char *dircache, char *filecache)
 {
-    FILE           *fd;
+    FILE           *fp;
 
     if (options->app_id == -1) {
         options->app_id = 42709;
@@ -540,19 +523,20 @@ static void connect_mf(struct mediafirefs_user_options *options)
         exit(1);
     }
 
-    if (access("hashtable.dump", F_OK) != -1) {
+    fp = fopen(dircache, "r");
+    if (fp != NULL) {
         // file exists
         fprintf(stderr, "loading hashtable\n");
-        fd = fopen("hashtable.dump", "r");
 
-        tree = folder_tree_load(fd);
+        tree = folder_tree_load(fp, filecache);
 
-        fclose(fd);
+        fclose(fp);
 
         folder_tree_update(tree, conn);
     } else {
         // file doesn't exist
-        tree = folder_tree_create();
+        fprintf(stderr, "creating new hashtable\n");
+        tree = folder_tree_create(filecache);
 
         folder_tree_rebuild(tree, conn);
     }
@@ -563,37 +547,86 @@ static void connect_mf(struct mediafirefs_user_options *options)
     folder_tree_debug(tree);
 }
 
+static void setup_conf_and_cache_dir(char **configfile, char **dircache,
+                                     char **filecache)
+{
+    const char     *homedir;
+    const char     *configdir;
+    const char     *cachedir;
+    int             fd;
+
+    homedir = getenv("HOME");
+    if (homedir == NULL) {
+        homedir = getpwuid(getuid())->pw_dir;
+    }
+
+    configdir = getenv("XDG_CONFIG_HOME");
+    if (configdir == NULL) {
+        // $HOME/.config/mediafire-tools
+        configdir = strdup_printf("%s/.config/mediafire-tools", homedir);
+    } else {
+        // $XDG_CONFIG_HOME/mediafire-tools
+        configdir = strdup_printf("%s/mediafire-tools", configdir);
+    }
+
+    cachedir = getenv("XDG_CACHE_HOME");
+    if (cachedir == NULL) {
+        // $HOME/.cache/mediafire-tools
+        cachedir = strdup_printf("%s/.cache/mediafire-tools", homedir);
+    } else {
+        // $XDG_CONFIG_HOME/mediafire-tools
+        cachedir = strdup_printf("%s/mediafire-tools", cachedir);
+    }
+
+    /* EEXIST is okay, so only fail if it is something else */
+    if (mkdir(configdir, 0755) != 0 && errno != EEXIST) {
+        perror("mkdir");
+        exit(1);
+    }
+    if (mkdir(cachedir, 0755) != 0 && errno != EEXIST) {
+        perror("mkdir");
+        exit(1);
+    }
+
+    *configfile = strdup_printf("%s/config", configdir);
+    /* test if the configuration file can be opened */
+    fd = open(*configfile, O_RDONLY);
+    if (fd < 0) {
+        free(*configfile);
+        *configfile = NULL;
+    } else {
+        close(fd);
+    }
+
+    *dircache = strdup_printf("%s/directorytree", cachedir);
+
+    *filecache = strdup_printf("%s/files", cachedir);
+    if (mkdir(*filecache, 0755) != 0 && errno != EEXIST) {
+        perror("mkdir");
+        exit(1);
+    }
+
+    free((void *)configdir);
+    free((void *)cachedir);
+}
+
 int main(int argc, char *argv[])
 {
     int             ret,
                     i;
-    char           *homedir;
-    char           *cachedir;
+    char           *configfile;
+    char           *dircache;
+    char           *filecache;
 
     struct mediafirefs_user_options options = {
         NULL, NULL, NULL, NULL, -1, NULL
     };
 
-    if ((homedir = getenv("HOME")) == NULL) {
-        homedir = getpwuid(getuid())->pw_dir;
-    }
-    homedir = strdup_printf("%s/.mediafire-tools", homedir);
-    /* EEXIST is okay, so only fail if it is something else */
-    if (mkdir(homedir, 0755) != 0 && errno != EEXIST) {
-        perror("mkdir");
-        exit(1);
-    }
-    cachedir = strdup_printf("%s/cache", homedir);
-    if (mkdir(cachedir, 0755) != 0 && errno != EEXIST) {
-        perror("mkdir");
-        exit(1);
-    }
-    free(cachedir);
-    free(homedir);
+    setup_conf_and_cache_dir(&configfile, &dircache, &filecache);
 
-    parse_arguments(&argc, &argv, &options);
+    parse_arguments(&argc, &argv, &options, configfile);
 
-    connect_mf(&options);
+    connect_mf(&options, dircache, filecache);
 
     ret = fuse_main(argc, argv, &mediafirefs_oper, NULL);
 
@@ -601,6 +634,10 @@ int main(int argc, char *argv[])
         free(argv[i]);
     }
     free(argv);
+
+    free(configfile);
+    free(dircache);
+    free(filecache);
 
     return ret;
 }

@@ -316,7 +316,7 @@ int folder_tree_store(folder_tree * tree, FILE * stream)
     return 0;
 }
 
-folder_tree    *folder_tree_load(FILE * stream)
+folder_tree    *folder_tree_load(FILE * stream, char *filecache)
 {
     folder_tree    *tree;
     unsigned char   tmp_buffer[4];
@@ -327,7 +327,6 @@ folder_tree    *folder_tree_load(FILE * stream)
     struct h_entry *tmp_entry;
     struct h_entry *parent;
     int             bucket_id;
-    char           *homedir;
 
     /* read and check the first four bytes */
     ret = fread(tmp_buffer, 1, 4, stream);
@@ -432,27 +431,18 @@ folder_tree    *folder_tree_load(FILE * stream)
 
     free(ordered_entries);
 
-    /* set file cache */
-    if ((homedir = getenv("HOME")) == NULL) {
-        homedir = getpwuid(getuid())->pw_dir;
-    }
-    tree->filecache = strdup_printf("%s/.mediafire-tools/cache", homedir);
+    tree->filecache = strdup(filecache);
 
     return tree;
 }
 
-folder_tree    *folder_tree_create(void)
+folder_tree    *folder_tree_create(char *filecache)
 {
     folder_tree    *tree;
-    char           *homedir;
 
     tree = (folder_tree *) calloc(1, sizeof(folder_tree));
 
-    /* set file cache */
-    if ((homedir = getenv("HOME")) == NULL) {
-        homedir = getpwuid(getuid())->pw_dir;
-    }
-    tree->filecache = strdup_printf("%s/.mediafire-tools/cache", homedir);
+    tree->filecache = strdup(filecache);
 
     return tree;
 }
