@@ -2103,12 +2103,14 @@ xd3_decode_address (xd3_stream *stream, usize_t here,
 static void*
 __xd3_alloc_func (void* opaque, size_t items, usize_t size)
 {
+    (void)opaque;
   return malloc (items * (size_t) size);
 }
 
 static void
 __xd3_free_func (void* opaque, void* address)
 {
+    (void)opaque;
   free (address);
 }
 
@@ -3262,6 +3264,7 @@ xd3_iopt_get_slot (xd3_stream *stream, xd3_rinst** iptr)
 static void
 xd3_iopt_erase (xd3_stream *stream, usize_t pos, usize_t size)
 {
+    (void)size;
   while (! xd3_rlist_empty (& stream->iopt_used))
     {
       xd3_rinst *r = xd3_rlist_back (& stream->iopt_used);
@@ -3340,6 +3343,8 @@ static int
 xd3_emit_double (xd3_stream *stream, xd3_rinst *first,
                  xd3_rinst *second, usize_t code)
 {
+    (void)first;
+    (void)second;
   int ret;
 
   /* All double instructions use fixed sizes, so all we need to do is
@@ -4047,6 +4052,7 @@ xd3_process_stream (int            is_encode,
 		    usize_t       *output_size,
 		    usize_t        output_size_max)
 {
+    (void)is_encode;
   usize_t ipos = 0;
   usize_t n = min(stream->winsize, input_size);
 
@@ -4118,6 +4124,7 @@ xd3_process_memory (int            is_encode,
 		    usize_t       *output_size,
 		    usize_t        output_size_max,
 		    int            flags) {
+    (void)close_stream;
   xd3_stream stream;
   xd3_config config;
   xd3_source src;
@@ -4822,6 +4829,7 @@ xd3_scksum_insert (xd3_stream *stream,
 		   usize_t scksum,
 		   usize_t pos)
 {
+    (void)scksum;
   /* If we are maintaining previous duplicates. */
   if (stream->small_prev)
     {
@@ -4871,6 +4879,7 @@ xd3_smatch (xd3_stream *stream,
 	    usize_t scksum,
 	    usize_t *match_offset)
 {
+    (void)scksum;
   usize_t cmp_len;
   usize_t match_length = 0;
   usize_t chain = (stream->min_match == MIN_MATCH ?

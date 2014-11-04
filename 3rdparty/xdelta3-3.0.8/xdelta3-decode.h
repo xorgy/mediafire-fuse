@@ -554,6 +554,8 @@ xd3_decode_secondary_sections (xd3_stream *secondary_stream)
       return ret;
     }
 #undef DECODE_SECONDARY_SECTION
+#else
+  (void)secondary_stream;
 #endif
   return 0;
 }

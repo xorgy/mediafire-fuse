@@ -77,6 +77,7 @@ xd3_scksum (uint32_t *state,
             const uint8_t *base,
             const usize_t look)
 {
+    (void)look;
   UNALIGNED_READ32(state, base);
   return (*state) * hash_multiplier;
 }
@@ -85,6 +86,7 @@ xd3_small_cksum_update (uint32_t *state,
 			const uint8_t *base,
 			usize_t look)
 {
+    (void)look;
   UNALIGNED_READ32(state, base+1);
   return (*state) * hash_multiplier;
 }
@@ -158,6 +160,7 @@ xd3_size_hashtable (xd3_stream    *stream,
 		    usize_t        slots,
 		    xd3_hash_cfg  *cfg)
 {
+    (void)stream;
   int bits = xd3_size_log2 (slots);
 
   /* TODO: there's a 32-bit assumption here */
