@@ -267,7 +267,7 @@ static int _decode_folder_get_content_files(mfhttp * conn, void *user_ptr)
                     file_set_revision(tmp_file,
                                       atoll(json_string_value(j_obj)));
                 }
-                // FIXME don't save hex ascii string but binary chars instead
+
                 j_obj = json_object_get(data, "hash");
                 if (j_obj != NULL) {
                     file_set_hash(tmp_file, json_string_value(j_obj));

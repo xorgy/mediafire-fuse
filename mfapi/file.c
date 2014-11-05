@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <openssl/sha.h>
 
 #include "file.h"
 #include "apicalls.h"
@@ -30,7 +31,9 @@
 struct mffile {
     char            quickkey[MFAPI_MAX_LEN_KEY + 1];
     char            parent[MFAPI_MAX_LEN_NAME + 1];
-    char            hash[65];
+    /* the hex representation takes twice the amount of the binary length plus
+     * 1 for the terminating zero byte */
+    char            hash[SHA256_DIGEST_LENGTH * 2 + 1];
     char            name[MFAPI_MAX_LEN_NAME + 1];
     time_t          created;
     uint64_t        revision;
