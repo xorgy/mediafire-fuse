@@ -21,7 +21,7 @@
 
 #include <stdio.h>
 
-int xdelta3_diff(FILE *old, FILE *new, FILE *diff);
-int xdelta3_patch(FILE *old, FILE *diff, FILE *new);
+int             xdelta3_diff(FILE * old, FILE * new, FILE * diff);
+int             xdelta3_patch(FILE * old, FILE * diff, FILE * new);
 
 #endif

@@ -20,10 +20,10 @@
 #include <sys/stat.h>
 #include <stdlib.h>
 #include <string.h>
-#include <inttypes.h>
 #undef _POSIX_SOURCE
 #include "../3rdparty/xdelta3-3.0.8/xdelta3.h"
 #include "../3rdparty/xdelta3-3.0.8/xdelta3.c"
+#include "../3rdparty/xdelta3-3.0.8/xdelta3-decode.h"
 
 //---------------------------------------------------------------------------
 static int code(int encode, FILE * InFile, FILE * SrcFile, FILE * OutFile,
@@ -104,12 +104,12 @@ static int code(int encode, FILE * InFile, FILE * SrcFile, FILE * OutFile,
     return 0;
 }
 
-int xdelta3_diff(FILE *old, FILE *new, FILE *diff)
+int xdelta3_diff(FILE * old, FILE * new, FILE * diff)
 {
     return code(1, new, old, diff, 0x1000);
 }
 
-int xdelta3_patch(FILE *old, FILE *diff, FILE *new)
+int xdelta3_patch(FILE * old, FILE * diff, FILE * new)
 {
     return code(0, diff, old, new, 0x1000);
 }
