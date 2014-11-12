@@ -164,13 +164,13 @@ struct h_entry {
     /* we do not add the parent here because it is not used anywhere */
     /* char parent[20]; */
     /* local revision */
-    uint64_t        revision;
+    uint64_t        remote_revision;
     /* creation time */
     uint64_t        ctime;
     /* Whether or not this h_entry needs to be updated before it can be used.
      * This value is set to true when directories and files are added as
      * children of a directory but their content has not bee retrieved yet */
-    bool            needs_update;
+    uint64_t        local_revision;
     /* the containing folder */
     union {
         /* during runtime this is a pointer to the containing h_entry struct */
@@ -610,7 +610,8 @@ static struct h_entry *folder_tree_lookup_path(folder_tree * tree,
 
     for (;;) {
         // make sure that curr_dir is up to date
-        if (curr_dir->atime == 0 && curr_dir->needs_update == true) {
+        if (curr_dir->atime == 0
+            && curr_dir->local_revision != curr_dir->remote_revision) {
             folder_tree_rebuild_helper(tree, conn, curr_dir);
         }
         // path with a trailing slash, so the remainder is of zero length
@@ -629,7 +630,8 @@ static struct h_entry *folder_tree_lookup_path(folder_tree * tree,
                     result = curr_dir->children[i];
 
                     // make sure that result is up to date
-                    if (result->atime == 0 && result->needs_update == true) {
+                    if (result->atime == 0 &&
+                        && result->local_revision != result->remote_revision) {
                         folder_tree_rebuild_helper(tree, conn, result);
                     }
                     break;
@@ -843,7 +845,7 @@ int folder_tree_open_file(folder_tree * tree, mfconn * conn, const char *path)
     /* check if the requested file is already in the cache */
     cachefile =
         strdup_printf("%s/%s_%d", tree->filecache, entry->key,
-                      entry->revision);
+                      entry->remote_revision);
     fd = open(cachefile, O_RDWR);
     if (fd > 0) {
         /* file existed - return handle */
@@ -1127,7 +1129,7 @@ static struct h_entry *folder_tree_add_file(folder_tree * tree, mffile * file,
      * function */
     old_entry = folder_tree_lookup_key(tree, key);
     if (old_entry != NULL) {
-        old_revision = old_entry->revision;
+        old_revision = old_entry->local_revision;
     }
 
     new_entry = folder_tree_allocate_entry(tree, key, new_parent);
@@ -1135,10 +1137,14 @@ static struct h_entry *folder_tree_add_file(folder_tree * tree, mffile * file,
     strncpy(new_entry->key, key, sizeof(new_entry->key));
     strncpy(new_entry->name, file_get_name(file), sizeof(new_entry->name));
     new_entry->parent = new_parent;
-    new_entry->revision = file_get_revision(file);
+    new_entry->remote_revision = file_get_revision(file);
     new_entry->ctime = file_get_created(file);
     new_entry->fsize = file_get_size(file);
-    new_entry->needs_update = false;
+    if (old_entry != NULL) {
+        new_entry->local_revision = old_revision;
+    } else {
+        new_entry->local_revision = 0;
+    }
 
     /* convert the hex string into its binary representation */
     hex2binary(file_get_hash(file), new_entry->hash);
@@ -1147,16 +1153,6 @@ static struct h_entry *folder_tree_add_file(folder_tree * tree, mffile * file,
     if (new_entry->atime == 0)
         new_entry->atime = 1;
 
-    /* if the revisions of the old and new entry differ, we have to
-     * update its content from the remote the next time the file is accessed
-     *
-     * we also have to fetch the remote content if the file was only just
-     * added and did not exist before
-     */
-    if ((old_entry != NULL && old_revision < new_entry->revision)
-        || old_entry == NULL) {
-        new_entry->needs_update = true;
-    }
     return new_entry;
 }
 
@@ -1200,7 +1196,7 @@ static struct h_entry *folder_tree_add_folder(folder_tree * tree,
      * function */
     old_entry = folder_tree_lookup_key(tree, key);
     if (old_entry != NULL) {
-        old_revision = old_entry->revision;
+        old_revision = old_entry->local_revision;
     }
 
     new_entry = folder_tree_allocate_entry(tree, key, new_parent);
@@ -1212,19 +1208,13 @@ static struct h_entry *folder_tree_add_folder(folder_tree * tree,
     name = folder_get_name(folder);
     if (name != NULL)
         strncpy(new_entry->name, name, sizeof(new_entry->name));
-    new_entry->revision = folder_get_revision(folder);
+    new_entry->remote_revision = folder_get_revision(folder);
     new_entry->ctime = folder_get_created(folder);
     new_entry->parent = new_parent;
-    new_entry->needs_update = false;
-
-    /* if the revisions of the old and new entry differ, we have to
-     * update its content from the remote
-     *
-     * we also have to fetch the remote content if the folder was only just
-     * added and did not exist before */
-    if ((old_entry != NULL && old_revision < new_entry->revision)
-        || old_entry == NULL) {
-        new_entry->needs_update = true;
+    if (old_entry != NULL) {
+        new_entry->local_revision = old_revision;
+    } else {
+        new_entry->local_revision = 0;
     }
 
     return new_entry;
@@ -1319,7 +1309,7 @@ static int folder_tree_rebuild_helper(folder_tree * tree, mfconn * conn,
     free(file_result);
 
     /* since the children have been updated, no update is needed anymore */
-    curr_entry->needs_update = false;
+    curr_entry->local_revision = curr_entry->remote_revision;
 
     return 0;
 }
@@ -1623,7 +1613,8 @@ void folder_tree_update(folder_tree * tree, mfconn * conn)
                 /* only do anything if the revision of the change is greater
                  * than the revision of the locally stored entry */
                 tmp_entry = folder_tree_lookup_key(tree, key);
-                if (tmp_entry != NULL && tmp_entry->revision >= revision) {
+                if (tmp_entry != NULL
+                    && tmp_entry->remote_revision >= revision) {
                     break;
                 }
 
@@ -1643,7 +1634,8 @@ void folder_tree_update(folder_tree * tree, mfconn * conn)
                 /* only do anything if the revision of the change is greater
                  * than the revision of the locally stored entry */
                 tmp_entry = folder_tree_lookup_key(tree, key);
-                if (tmp_entry != NULL && tmp_entry->revision >= revision) {
+                if (tmp_entry != NULL
+                    && tmp_entry->remote_revision >= revision) {
                     break;
                 }
                 /* if a file changed, update its info */
