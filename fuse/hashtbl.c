@@ -1466,6 +1466,8 @@ static int folder_tree_update_file_info(folder_tree * tree, mfconn * conn,
                 key);
         folder_tree_update_folder_info(tree, conn, file_get_parent(file));
     }
+    /* parent should exist now, so look it up again */
+    parent = folder_tree_lookup_key(tree, file_get_parent(file));
 
     /* store the updated entry in the hashtable */
     new_entry = folder_tree_add_file(tree, file, parent);
@@ -1532,6 +1534,8 @@ static int folder_tree_update_folder_info(folder_tree * tree, mfconn * conn,
                 key);
         folder_tree_update_folder_info(tree, conn, folder_get_parent(folder));
     }
+    /* parent should exist now, so look it up again */
+    parent = folder_tree_lookup_key(tree, folder_get_parent(folder));
 
     /* store the updated entry in the hashtable */
     new_entry = folder_tree_add_folder(tree, folder, parent);
