@@ -175,7 +175,12 @@ static void mediafirefs_destroy()
 
     fprintf(stderr, "storing hashtable\n");
 
-    fd = fopen("hashtable.dump", "w+");
+    fd = fopen(ctx->dircache, "w+");
+
+    if (fd == NULL) {
+        fprintf(stderr, "cannot open %s for writing\n", ctx->dircache);
+        return;
+    }
 
     folder_tree_store(ctx->tree, fd);
 
