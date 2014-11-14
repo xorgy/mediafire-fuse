@@ -95,8 +95,13 @@ enum {
     KEY_VERSION,
 };
 
-mfconn         *conn;
-folder_tree    *tree;
+struct mediafirefs_context_private {
+    mfconn         *conn;
+    folder_tree    *tree;
+    char           *configfile;
+    char           *dircache;
+    char           *filecache;
+};
 
 struct mediafirefs_user_options {
     char           *username;
@@ -142,8 +147,11 @@ static int mediafirefs_getattr(const char *path, struct stat *stbuf)
      * FIXME: only call folder_tree_update if it has not been called for a set
      * amount of time
      */
-    folder_tree_update(tree, conn);
-    return folder_tree_getattr(tree, conn, path, stbuf);
+    struct mediafirefs_context_private *ctx;
+
+    ctx = fuse_get_context()->private_data;
+    folder_tree_update(ctx->tree, ctx->conn);
+    return folder_tree_getattr(ctx->tree, ctx->conn, path, stbuf);
 }
 
 static int mediafirefs_readdir(const char *path, void *buf,
@@ -152,25 +160,30 @@ static int mediafirefs_readdir(const char *path, void *buf,
 {
     (void)offset;
     (void)info;
+    struct mediafirefs_context_private *ctx;
 
-    return folder_tree_readdir(tree, conn, path, buf, filldir);
+    ctx = fuse_get_context()->private_data;
+    return folder_tree_readdir(ctx->tree, ctx->conn, path, buf, filldir);
 }
 
 static void mediafirefs_destroy()
 {
     FILE           *fd;
+    struct mediafirefs_context_private *ctx;
+
+    ctx = fuse_get_context()->private_data;
 
     fprintf(stderr, "storing hashtable\n");
 
     fd = fopen("hashtable.dump", "w+");
 
-    folder_tree_store(tree, fd);
+    folder_tree_store(ctx->tree, fd);
 
     fclose(fd);
 
-    folder_tree_destroy(tree);
+    folder_tree_destroy(ctx->tree);
 
-    mfconn_destroy(conn);
+    mfconn_destroy(ctx->conn);
 }
 
 static int mediafirefs_mkdir(const char *path, mode_t mode)
@@ -181,6 +194,9 @@ static int mediafirefs_mkdir(const char *path, mode_t mode)
     int             retval;
     char           *basename;
     const char     *key;
+    struct mediafirefs_context_private *ctx;
+
+    ctx = fuse_get_context()->private_data;
 
     /* we don't need to check whether the path already existed because the
      * getattr call made before this one takes care of that
@@ -214,11 +230,11 @@ static int mediafirefs_mkdir(const char *path, mode_t mode)
     if (dirname[0] == '\0') {
         key = NULL;
     } else {
-        key = folder_tree_path_get_key(tree, conn, dirname);
+        key = folder_tree_path_get_key(ctx->tree, ctx->conn, dirname);
     }
 
-    retval = mfconn_api_folder_create(conn, key, basename);
-    mfconn_update_secret_key(conn);
+    retval = mfconn_api_folder_create(ctx->conn, key, basename);
+    mfconn_update_secret_key(ctx->conn);
     if (retval != 0) {
         fprintf(stderr, "mfconn_api_folder_create unsuccessful\n");
         // FIXME: find better errno in this case
@@ -227,7 +243,7 @@ static int mediafirefs_mkdir(const char *path, mode_t mode)
 
     free(dirname);
 
-    folder_tree_update(tree, conn);
+    folder_tree_update(ctx->tree, ctx->conn);
 
     return 0;
 }
@@ -236,6 +252,9 @@ static int mediafirefs_rmdir(const char *path)
 {
     const char     *key;
     int             retval;
+    struct mediafirefs_context_private *ctx;
+
+    ctx = fuse_get_context()->private_data;
 
     /* no need to check
      *  - if path is directory
@@ -245,14 +264,14 @@ static int mediafirefs_rmdir(const char *path)
      * because getattr was called before and already made sure
      */
 
-    key = folder_tree_path_get_key(tree, conn, path);
+    key = folder_tree_path_get_key(ctx->tree, ctx->conn, path);
     if (key == NULL) {
         fprintf(stderr, "key is NULL\n");
         return -ENOENT;
     }
 
-    retval = mfconn_api_folder_delete(conn, key);
-    mfconn_update_secret_key(conn);
+    retval = mfconn_api_folder_delete(ctx->conn, key);
+    mfconn_update_secret_key(ctx->conn);
     if (retval != 0) {
         fprintf(stderr, "mfconn_api_folder_create unsuccessful\n");
         // FIXME: find better errno in this case
@@ -260,7 +279,7 @@ static int mediafirefs_rmdir(const char *path)
     }
 
     /* retrieve remote changes to not get out of sync */
-    folder_tree_update(tree, conn);
+    folder_tree_update(ctx->tree, ctx->conn);
 
     return 0;
 }
@@ -269,13 +288,16 @@ static int mediafirefs_open(const char *path, struct fuse_file_info *file_info)
 {
     int             fd;
     struct mediafirefs_openfile *openfile;
+    struct mediafirefs_context_private *ctx;
+
+    ctx = fuse_get_context()->private_data;
 
     if ((file_info->flags & O_ACCMODE) != O_RDONLY) {
         fprintf(stderr, "can only open read-only");
         return -EACCES;
     }
 
-    fd = folder_tree_open_file(tree, conn, path);
+    fd = folder_tree_open_file(ctx->tree, ctx->conn, path);
     if (fd < 0) {
         fprintf(stderr, "folder_tree_file_open unsuccessful\n");
         return fd;
@@ -497,7 +519,7 @@ static void parse_arguments(int *argc, char ***argv,
 }
 
 static void connect_mf(struct mediafirefs_user_options *options,
-                       char *dircache, char *filecache)
+                       struct mediafirefs_context_private *ctx)
 {
     FILE           *fp;
 
@@ -514,41 +536,40 @@ static void connect_mf(struct mediafirefs_user_options *options,
         exit(1);
     }
 
-    conn = mfconn_create(options->server,
-                         options->username,
-                         options->password, options->app_id, options->api_key);
+    ctx->conn = mfconn_create(options->server, options->username,
+                              options->password, options->app_id,
+                              options->api_key);
 
-    if (conn == NULL) {
+    if (ctx->conn == NULL) {
         fprintf(stderr, "Cannot establish connection\n");
         exit(1);
     }
 
-    fp = fopen(dircache, "r");
+    fp = fopen(ctx->dircache, "r");
     if (fp != NULL) {
         // file exists
         fprintf(stderr, "loading hashtable\n");
 
-        tree = folder_tree_load(fp, filecache);
+        ctx->tree = folder_tree_load(fp, ctx->filecache);
 
         fclose(fp);
 
-        folder_tree_update(tree, conn);
+        folder_tree_update(ctx->tree, ctx->conn);
     } else {
         // file doesn't exist
         fprintf(stderr, "creating new hashtable\n");
-        tree = folder_tree_create(filecache);
+        ctx->tree = folder_tree_create(ctx->filecache);
 
-        folder_tree_rebuild(tree, conn);
+        folder_tree_rebuild(ctx->tree, ctx->conn);
     }
 
     //folder_tree_housekeep(tree);
 
     fprintf(stderr, "tree before starting fuse:\n");
-    folder_tree_debug(tree);
+    folder_tree_debug(ctx->tree);
 }
 
-static void setup_conf_and_cache_dir(char **configfile, char **dircache,
-                                     char **filecache)
+static void setup_conf_and_cache_dir(struct mediafirefs_context_private *ctx)
 {
     const char     *homedir;
     const char     *configdir;
@@ -588,20 +609,20 @@ static void setup_conf_and_cache_dir(char **configfile, char **dircache,
         exit(1);
     }
 
-    *configfile = strdup_printf("%s/config", configdir);
+    ctx->configfile = strdup_printf("%s/config", configdir);
     /* test if the configuration file can be opened */
-    fd = open(*configfile, O_RDONLY);
+    fd = open(ctx->configfile, O_RDONLY);
     if (fd < 0) {
-        free(*configfile);
-        *configfile = NULL;
+        free(ctx->configfile);
+        ctx->configfile = NULL;
     } else {
         close(fd);
     }
 
-    *dircache = strdup_printf("%s/directorytree", cachedir);
+    ctx->dircache = strdup_printf("%s/directorytree", cachedir);
 
-    *filecache = strdup_printf("%s/files", cachedir);
-    if (mkdir(*filecache, 0755) != 0 && errno != EEXIST) {
+    ctx->filecache = strdup_printf("%s/files", cachedir);
+    if (mkdir(ctx->filecache, 0755) != 0 && errno != EEXIST) {
         perror("mkdir");
         exit(1);
     }
@@ -614,30 +635,31 @@ int main(int argc, char *argv[])
 {
     int             ret,
                     i;
-    char           *configfile;
-    char           *dircache;
-    char           *filecache;
+    struct mediafirefs_context_private *ctx;
 
     struct mediafirefs_user_options options = {
         NULL, NULL, NULL, NULL, -1, NULL
     };
 
-    setup_conf_and_cache_dir(&configfile, &dircache, &filecache);
+    ctx = calloc(1, sizeof(struct mediafirefs_context_private));
 
-    parse_arguments(&argc, &argv, &options, configfile);
+    setup_conf_and_cache_dir(ctx);
 
-    connect_mf(&options, dircache, filecache);
+    parse_arguments(&argc, &argv, &options, ctx->configfile);
 
-    ret = fuse_main(argc, argv, &mediafirefs_oper, NULL);
+    connect_mf(&options, ctx);
+
+    ret = fuse_main(argc, argv, &mediafirefs_oper, ctx);
 
     for (i = 0; i < argc; i++) {
         free(argv[i]);
     }
     free(argv);
 
-    free(configfile);
-    free(dircache);
-    free(filecache);
+    free(ctx->configfile);
+    free(ctx->dircache);
+    free(ctx->filecache);
+    free(ctx);
 
     return ret;
 }
