@@ -49,10 +49,21 @@ fi
 
 tree /mnt
 
-printf "foobar" | diff - /mnt/Untitled.txt
+diff=`printf "foobar" | diff - /mnt/Untitled.txt >/dev/null 2>&1 && echo 0 || echo 1`
+
+if [ $diff -ne 0 ]; then
+	printf "foobar" | diff - /mnt/Untitled.txt || true
+fi
 
 sleep 2
 
 fusermount -u /mnt
 
 wait "$fusepid"
+valg=$?
+
+if [ $diff -eq 0 -a $valg -eq 0 ]; then
+	exit 0
+else
+	exit 1
+fi
