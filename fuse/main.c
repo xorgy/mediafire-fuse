@@ -553,9 +553,14 @@ static void connect_mf(struct mediafirefs_user_options *options,
     fp = fopen(ctx->dircache, "r");
     if (fp != NULL) {
         // file exists
-        fprintf(stderr, "loading hashtable\n");
+        fprintf(stderr, "loading hashtable from %s\n", ctx->dircache);
 
         ctx->tree = folder_tree_load(fp, ctx->filecache);
+
+        if (ctx->tree == NULL) {
+            fprintf(stderr, "cannot load directory hashtable\n");
+            exit(1);
+        }
 
         fclose(fp);
 
