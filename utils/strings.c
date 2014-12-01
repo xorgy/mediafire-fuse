@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2013 Bryan Christ <bryan.christ@mediafire.com>
+ *               2014 Johannes Schauer <j.schauer@email.de>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2, as published by
@@ -16,12 +17,16 @@
  *
  */
 
+#define _POSIX_C_SOURCE 200809L // for getline
+
 #include <ctype.h>
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <termios.h>
 
 #include "strings.h"
 #include "stringv.h"
@@ -180,84 +185,38 @@ void string_chomp(char *string)
     return;
 }
 
-/*
-void
-string_strip_head(char *string,int c)
+char           *string_line_from_stdin(bool hide)
 {
-    int     count = 0;
-    int     len;
-    char    *pos;
+    char           *line = NULL;
+    size_t          len;
+    ssize_t         bytes_read;
+    struct termios  old,
+                    new;
 
-    if(string == NULL) return;
-
-    len = strlen(string);
-    if(len == 0) return;
-
-    pos = string;
-
-    while(count < len)
-    {
-        
-        if(c <= 0)
-        {
-            if(isaspace((char)pos[0])
-            {
-                pos++;
-                count++;
-                continue;
-            }
-
-            break;
-        }
-
-        if(
-
-    // fix a path with leading slashes
-    while(strlen(string) > 0)
-    {
-        if(c > 0)
-        {
-            if(string[0] == c)
-            {
-                
-
-        if(string[0] == (c)
-        {
-            string++;
-            continue;
-        }
-
-        len = strlen(path);
-        buffer = (char*)calloc(len + 1,sizeof(char));
-        strncpy(buffer,path,len);
+    if (hide) {
+        if (tcgetattr(STDIN_FILENO, &old) != 0)
+            return NULL;
+        new = old;
+        new.c_lflag &= ~ECHO;
+        if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &new) != 0)
+            return NULL;
     }
-*/
 
-/*
-    A negative value shifts the string left, while a positive value
-    shifts the string right.  The vacuum-space is zero filled.
-*/
-/*
-void
-string_shift(char *string,ssize_t vector)
-{
-    char        *pos;
-    ssize_t     len;
-    ssize_t     i;
+    bytes_read = getline(&line, &len, stdin);
 
-    if(string == NULL) return;
-
-    len = strlen(string);
-    if(len <= ABSINT(vector)) return;
-
-    // shift left
-    if(vector < 0)
-    {
-        pos = string + (ABSINT(vector));
-        strcpy(string,pos);
-        string[len - ABSINT(vector) + 1] = '\0';
-
-        return;
+    if (hide) {
+        tcsetattr(STDIN_FILENO, TCSAFLUSH, &old);
     }
+
+    if (bytes_read < 3) {
+        if (line != NULL) {
+            free(line);
+            line = NULL;
+        }
+    }
+
+    if (line[strlen(line) - 1] == '\n')
+        line[strlen(line) - 1] = '\0';
+
+    return line;
 }
-*/

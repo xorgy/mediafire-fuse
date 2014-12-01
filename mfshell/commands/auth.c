@@ -17,22 +17,14 @@
  *
  */
 
-#define _POSIX_C_SOURCE 200809L // for getline
-
 #include <stddef.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <termios.h>
-#include <unistd.h>
+#include <stdbool.h>
 
 #include "../mfshell.h"
+#include "../../utils/strings.h"
 #include "../../mfapi/mfconn.h"
 #include "../commands.h"        // IWYU pragma: keep
-
-static char    *_get_login_from_user(void);
-
-static char    *_get_passwd_from_user(void);
 
 int mfshell_cmd_auth(mfshell * mfshell, int argc, char *const argv[])
 {
@@ -46,12 +38,15 @@ int mfshell_cmd_auth(mfshell * mfshell, int argc, char *const argv[])
 
     switch (argc) {
         case 1:
-            username = _get_login_from_user();
-            password = _get_passwd_from_user();
+            printf("login: ");
+            username = string_line_from_stdin(false);
+            printf("passwd: ");
+            password = string_line_from_stdin(true);
             break;
         case 2:
             username = argv[1];
-            password = _get_passwd_from_user();
+            printf("passwd: ");
+            password = string_line_from_stdin(true);
             break;
         case 3:
             username = argv[1];
@@ -74,60 +69,4 @@ int mfshell_cmd_auth(mfshell * mfshell, int argc, char *const argv[])
         printf("\n\rAuthentication FAILURE\n\r");
 
     return (mfshell->conn != NULL);
-}
-
-char           *_get_login_from_user(void)
-{
-    char           *login = NULL;
-    size_t          len;
-    ssize_t         bytes_read;
-
-    printf("login: ");
-    bytes_read = getline(&login, &len, stdin);
-
-    if (bytes_read < 3) {
-        if (login != NULL) {
-            free(login);
-            login = NULL;
-        }
-    }
-
-    if (login[strlen(login) - 1] == '\n')
-        login[strlen(login) - 1] = '\0';
-
-    return login;
-}
-
-char           *_get_passwd_from_user(void)
-{
-    char           *passwd = NULL;
-    size_t          len;
-    ssize_t         bytes_read;
-    struct termios  old,
-                    new;
-
-    printf("passwd: ");
-
-    if (tcgetattr(STDIN_FILENO, &old) != 0)
-        return NULL;
-    new = old;
-    new.c_lflag &= ~ECHO;
-    if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &new) != 0)
-        return NULL;
-
-    bytes_read = getline(&passwd, &len, stdin);
-
-    tcsetattr(STDIN_FILENO, TCSAFLUSH, &old);
-
-    if (bytes_read < 3) {
-        if (passwd != NULL) {
-            free(passwd);
-            passwd = NULL;
-        }
-    }
-
-    if (passwd[strlen(passwd) - 1] == '\n')
-        passwd[strlen(passwd) - 1] = '\0';
-
-    return passwd;
 }

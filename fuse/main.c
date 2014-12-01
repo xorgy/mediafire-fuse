@@ -536,11 +536,6 @@ static void connect_mf(struct mediafirefs_user_options *options,
         options->server = "www.mediafire.com";
     }
 
-    if (options->username == NULL || options->password == NULL) {
-        fprintf(stderr, "You must specify username and password\n");
-        exit(1);
-    }
-
     ctx->conn = mfconn_create(options->server, options->username,
                               options->password, options->app_id,
                               options->api_key);
@@ -656,6 +651,15 @@ int main(int argc, char *argv[])
     setup_conf_and_cache_dir(ctx);
 
     parse_arguments(&argc, &argv, &options, ctx->configfile);
+
+    if (options.username == NULL) {
+        printf("login: ");
+        options.username = string_line_from_stdin(false);
+    }
+    if (options.password == NULL) {
+        printf("passwd: ");
+        options.password = string_line_from_stdin(true);
+    }
 
     connect_mf(&options, ctx);
 
