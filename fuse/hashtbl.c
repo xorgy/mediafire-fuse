@@ -721,7 +721,7 @@ int folder_tree_readdir(folder_tree * tree, mfconn * conn, const char *path,
 int folder_tree_open_file(folder_tree * tree, mfconn * conn, const char *path)
 {
     struct h_entry *entry;
-    int retval;
+    int             retval;
 
     entry = folder_tree_lookup_path(tree, conn, path);
 

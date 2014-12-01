@@ -19,9 +19,10 @@
 #ifndef __FUSE_FILECACHE_H__
 #define __FUSE_FILECACHE_H__
 
-int filecache_open_file(const char * quickkey, uint64_t local_revision,
-        uint64_t remote_revision, uint64_t fsize, const unsigned char * fhash,
-        const char * filecache, mfconn * conn);
-
+int             filecache_open_file(const char *quickkey,
+                                    uint64_t local_revision,
+                                    uint64_t remote_revision, uint64_t fsize,
+                                    const unsigned char *fhash,
+                                    const char *filecache, mfconn * conn);
 
 #endif

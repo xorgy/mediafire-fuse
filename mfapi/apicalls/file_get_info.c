@@ -105,7 +105,6 @@ static int _decode_file_get_info(mfhttp * conn, void *data)
     if (obj != NULL) {
         file_set_parent(file, json_string_value(obj));
     }
-
     // infer that the parent folder must be root
     if (obj == NULL && quickkey != NULL)
         file_set_parent(file, NULL);

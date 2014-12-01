@@ -57,8 +57,8 @@ int mfshell_cmd_updates(mfshell * mfshell, int argc, char *const argv[])
             target_revision = atoll(argv[3]);
             break;
         default:
-        fprintf(stderr, "Invalid number of arguments\n");
-        return -1;
+            fprintf(stderr, "Invalid number of arguments\n");
+            return -1;
     }
 
     quickkey = argv[1];

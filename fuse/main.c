@@ -35,6 +35,7 @@
 #include <wordexp.h>
 #include <stdint.h>
 #include <fcntl.h>
+#include <stdbool.h>
 
 #include "../mfapi/mfconn.h"
 #include "../mfapi/apicalls.h"

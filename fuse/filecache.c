@@ -17,33 +17,54 @@
  */
 
 #include <unistd.h>
-#include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
 #include <inttypes.h>
 #include <openssl/sha.h>
+#include <bits/fcntl-linux.h>
+#include <stdint.h>
+#include <stdlib.h>
 
 #include "../utils/hash.h"
 #include "../utils/xdelta3.h"
 #include "../mfapi/file.h"
 #include "../mfapi/apicalls.h"
 #include "../mfapi/patch.h"
+#include "../mfapi/mfconn.h"
 #include "../utils/http.h"
 #include "../utils/strings.h"
 
-static int filecache_check_integrity(const char * cachefile, uint64_t fsize, const unsigned char * fhash);
-static int filecache_check_integrity_size(const char * cachefile, uint64_t fsize);
-static int filecache_check_integrity_hash(const char * cachefile, const unsigned char * fhash);
-static int filecache_update_file(const char * filecache_path, mfconn * conn, const char * quickkey, uint64_t local_revision, uint64_t remote_revision);
-static int filecache_download_file(const char * filecache_path, const char * quickkey, uint64_t remote_revision, mfconn * conn);
-static int filecache_download_patch(mfconn * conn, const char * quickkey, uint64_t source_revision, uint64_t target_revision, const char * phash, const char * filecache_path);
-static int filecache_patch_file(const char * filecache_path, const char * quickkey, uint64_t source_revision, uint64_t target_revision);
+static int      filecache_check_integrity(const char *cachefile,
+                                          uint64_t fsize,
+                                          const unsigned char *fhash);
+static int      filecache_check_integrity_size(const char *cachefile,
+                                               uint64_t fsize);
+static int      filecache_check_integrity_hash(const char *cachefile,
+                                               const unsigned char *fhash);
+static int      filecache_update_file(const char *filecache_path,
+                                      mfconn * conn, const char *quickkey,
+                                      uint64_t local_revision,
+                                      uint64_t remote_revision);
+static int      filecache_download_file(const char *filecache_path,
+                                        const char *quickkey,
+                                        uint64_t remote_revision,
+                                        mfconn * conn);
+static int      filecache_download_patch(mfconn * conn, const char *quickkey,
+                                         uint64_t source_revision,
+                                         uint64_t target_revision,
+                                         const char *phash,
+                                         const char *filecache_path);
+static int      filecache_patch_file(const char *filecache_path,
+                                     const char *quickkey,
+                                     uint64_t source_revision,
+                                     uint64_t target_revision);
 
-int filecache_open_file(const char * quickkey, uint64_t local_revision,
-        uint64_t remote_revision, uint64_t fsize, const unsigned char * fhash,
-        const char * filecache_path, mfconn * conn)
+int filecache_open_file(const char *quickkey, uint64_t local_revision,
+                        uint64_t remote_revision, uint64_t fsize,
+                        const unsigned char *fhash,
+                        const char *filecache_path, mfconn * conn)
 {
     char           *cachefile;
     int             fd;
@@ -51,8 +72,7 @@ int filecache_open_file(const char * quickkey, uint64_t local_revision,
 
     /* check if the requested file is already in the cache */
     cachefile =
-        strdup_printf("%s/%s_%d", filecache_path, quickkey,
-                      remote_revision);
+        strdup_printf("%s/%s_%d", filecache_path, quickkey, remote_revision);
     fd = open(cachefile, O_RDWR);
     if (fd > 0) {
         /* file existed - return handle */
@@ -67,15 +87,15 @@ int filecache_open_file(const char * quickkey, uint64_t local_revision,
      * Otherwise, download the file anew */
 
     cachefile =
-        strdup_printf("%s/%s_%d", filecache_path, quickkey,
-                      local_revision);
+        strdup_printf("%s/%s_%d", filecache_path, quickkey, local_revision);
     fd = open(cachefile, O_RDWR);
     free(cachefile);
     if (fd > 0) {
         close(fd);
         /* file exists, so we have to update it with one or more patches from
          * the remote */
-        retval = filecache_update_file(filecache_path, conn, quickkey, local_revision, remote_revision);
+        retval = filecache_update_file(filecache_path, conn, quickkey,
+                                       local_revision, remote_revision);
         if (retval != 0) {
             fprintf(stderr, "update_file failed\n");
             return -1;
@@ -83,7 +103,8 @@ int filecache_open_file(const char * quickkey, uint64_t local_revision,
 
     } else {
         /* download the file */
-        retval = filecache_download_file(filecache_path, quickkey, remote_revision, conn);
+        retval = filecache_download_file(filecache_path, quickkey,
+                                         remote_revision, conn);
         if (retval != 0) {
             fprintf(stderr, "filecache_download_file failed\n");
             return -1;
@@ -93,8 +114,7 @@ int filecache_open_file(const char * quickkey, uint64_t local_revision,
     /* check whether the patched or newly downloaded file matches the hash we
      * have stored */
     cachefile =
-        strdup_printf("%s/%s_%d", filecache_path, quickkey,
-                      remote_revision);
+        strdup_printf("%s/%s_%d", filecache_path, quickkey, remote_revision);
     retval = filecache_check_integrity(cachefile, fsize, fhash);
     if (retval != 0) {
         fprintf(stderr, "checking integrity failed\n");
@@ -110,7 +130,9 @@ int filecache_open_file(const char * quickkey, uint64_t local_revision,
     return fd;
 }
 
-static int filecache_check_integrity(const char * path, uint64_t fsize, const unsigned char * fhash) {
+static int filecache_check_integrity(const char *path, uint64_t fsize,
+                                     const unsigned char *fhash)
+{
     int             retval;
 
     retval = filecache_check_integrity_size(path, fsize);
@@ -128,7 +150,7 @@ static int filecache_check_integrity(const char * path, uint64_t fsize, const un
     return 0;
 }
 
-static int filecache_check_integrity_size(const char * path, uint64_t fsize)
+static int filecache_check_integrity_size(const char *path, uint64_t fsize)
 {
     struct stat     file_info;
     int             retval;
@@ -155,7 +177,8 @@ static int filecache_check_integrity_size(const char * path, uint64_t fsize)
     return 0;
 }
 
-static int filecache_check_integrity_hash(const char * path, const unsigned char * fhash)
+static int filecache_check_integrity_hash(const char *path,
+                                          const unsigned char *fhash)
 {
     int             retval;
     FILE           *fh;
@@ -191,7 +214,9 @@ static int filecache_check_integrity_hash(const char * path, const unsigned char
     return 0;
 }
 
-static int filecache_download_file(const char * filecache_path, const char * quickkey, uint64_t remote_revision, mfconn * conn)
+static int filecache_download_file(const char *filecache_path,
+                                   const char *quickkey,
+                                   uint64_t remote_revision, mfconn * conn)
 {
     const char     *url;
     mffile         *file;
@@ -239,7 +264,10 @@ static int filecache_download_file(const char * filecache_path, const char * qui
     return 0;
 }
 
-static int filecache_update_file(const char * filecache_path, mfconn * conn, const char * quickkey, uint64_t local_revision, uint64_t remote_revision)
+static int filecache_update_file(const char *filecache_path, mfconn * conn,
+                                 const char *quickkey,
+                                 uint64_t local_revision,
+                                 uint64_t remote_revision)
 {
     unsigned char   hash2[SHA256_DIGEST_LENGTH];
     int             retval;
@@ -247,23 +275,23 @@ static int filecache_update_file(const char * filecache_path, mfconn * conn, con
     uint64_t        last_target_revision;
     char           *cachefile;
 
-    mfpatch **patches = NULL;
+    mfpatch       **patches = NULL;
 
     retval = mfconn_api_device_get_updates(conn, quickkey,
-            local_revision, remote_revision,
-            &patches);
+                                           local_revision, remote_revision,
+                                           &patches);
     mfconn_update_secret_key(conn);
 
     if (retval != 0) {
         fprintf(stderr, "device/get_updates api call unsuccessful\n");
         return -1;
     }
-
     // if no patches are returned, then the full file has to be downloaded
     if (patches[0] == NULL) {
         free(patches);
 
-        retval = filecache_download_file(filecache_path, quickkey, remote_revision, conn);
+        retval = filecache_download_file(filecache_path, quickkey,
+                                         remote_revision, conn);
         if (retval != 0) {
             fprintf(stderr, "filecache_download_file failed\n");
             return -1;
@@ -278,12 +306,18 @@ static int filecache_update_file(const char * filecache_path, mfconn * conn, con
         /* verify that the source revision is equal to the last target
          * revision */
         if (patch_get_source_revision(patches[i]) != last_target_revision) {
-            fprintf(stderr, "the source revision is unequal the last target revision\n");
+            fprintf(stderr, "the source revision is unequal the last "
+                    "target revision\n");
             break;
         }
         last_target_revision = patch_get_target_revision(patches[i]);
 
-        retval = filecache_download_patch(conn, quickkey, patch_get_source_revision(patches[i]), patch_get_target_revision(patches[i]), patch_get_hash(patches[i]), filecache_path);
+        retval =
+            filecache_download_patch(conn, quickkey,
+                                     patch_get_source_revision(patches[i]),
+                                     patch_get_target_revision(patches[i]),
+                                     patch_get_hash(patches[i]),
+                                     filecache_path);
         if (retval != 0) {
             fprintf(stderr, "filecache_download_patch failed\n");
             break;
@@ -292,7 +326,7 @@ static int filecache_update_file(const char * filecache_path, mfconn * conn, con
         /* verify that the file to patch has the right hash */
         cachefile =
             strdup_printf("%s/%s_%d", filecache_path, quickkey,
-                    patch_get_source_revision(patches[i]));
+                          patch_get_source_revision(patches[i]));
         hex2binary(patch_get_source_hash(patches[i]), hash2);
         retval = filecache_check_integrity_hash(cachefile, hash2);
         free(cachefile);
@@ -302,7 +336,9 @@ static int filecache_update_file(const char * filecache_path, mfconn * conn, con
         }
 
         /* now apply the patch in patchfile to the file in cachefile */
-        retval = filecache_patch_file(filecache_path, quickkey, patch_get_source_revision(patches[i]), patch_get_target_revision(patches[i]));
+        retval = filecache_patch_file(filecache_path, quickkey,
+                                      patch_get_source_revision(patches[i]),
+                                      patch_get_target_revision(patches[i]));
         if (retval != 0) {
             fprintf(stderr, "filecache_patch_file failed\n");
             break;
@@ -311,7 +347,7 @@ static int filecache_update_file(const char * filecache_path, mfconn * conn, con
         /* verify that the patched file has the right hash */
         cachefile =
             strdup_printf("%s/%s_%d", filecache_path, quickkey,
-                    patch_get_target_revision(patches[i]));
+                          patch_get_target_revision(patches[i]));
         hex2binary(patch_get_target_hash(patches[i]), hash2);
         retval = filecache_check_integrity_hash(cachefile, hash2);
         free(cachefile);
@@ -326,7 +362,8 @@ static int filecache_update_file(const char * filecache_path, mfconn * conn, con
     /* check if the terminating NULL was reached or if processing was aborted
      * before that */
     if (patches[i] != NULL) {
-        for (; patches[i] != NULL; i++) free(patches[i]);
+        for (; patches[i] != NULL; i++)
+            free(patches[i]);
         free(patches);
         return -1;
     }
@@ -336,14 +373,19 @@ static int filecache_update_file(const char * filecache_path, mfconn * conn, con
     /* verify that the last target revision is equal to the requested remote
      * revision */
     if (last_target_revision != remote_revision) {
-        fprintf(stderr, "last_target_revision is not equal to the requested remote revision\n");
+        fprintf(stderr, "last_target_revision is not equal to the requested "
+                "remote revision\n");
         return -1;
     }
 
     return 0;
 }
 
-static int filecache_download_patch(mfconn * conn, const char * quickkey, uint64_t source_revision, uint64_t target_revision, const char * phash, const char * filecache_path)
+static int filecache_download_patch(mfconn * conn, const char *quickkey,
+                                    uint64_t source_revision,
+                                    uint64_t target_revision,
+                                    const char *phash,
+                                    const char *filecache_path)
 {
     mfpatch        *patch;
     const char     *url;
@@ -355,8 +397,7 @@ static int filecache_download_patch(mfconn * conn, const char * quickkey, uint64
     /* first retrieve the patch url */
     patch = patch_alloc();
     retval = mfconn_api_device_get_patch(conn, patch, quickkey,
-            source_revision,
-            target_revision);
+                                         source_revision, target_revision);
     mfconn_update_secret_key(conn);
 
     if (retval == -1) {
@@ -367,7 +408,8 @@ static int filecache_download_patch(mfconn * conn, const char * quickkey, uint64
 
     /* verify if the retrieved patch hash is the expected patch hash */
     if (strcmp(phash, patch_get_hash(patch)) != 0) {
-        fprintf(stderr, "the expected patch hash is not equal the hash returned by device/get_patch\n");
+        fprintf(stderr, "the expected patch hash is not equal the hash "
+                "returned by device/get_patch\n");
         patch_free(patch);
         return -1;
     }
@@ -383,7 +425,7 @@ static int filecache_download_patch(mfconn * conn, const char * quickkey, uint64
 
     patchfile =
         strdup_printf("%s/%s_patch_%d_%d", filecache_path, quickkey,
-                source_revision, target_revision);
+                      source_revision, target_revision);
 
     http = http_create();
     retval = http_get_file(http, url, patchfile);
@@ -411,7 +453,10 @@ static int filecache_download_patch(mfconn * conn, const char * quickkey, uint64
     return 0;
 }
 
-static int filecache_patch_file(const char * filecache_path, const char * quickkey, uint64_t source_revision, uint64_t target_revision)
+static int filecache_patch_file(const char *filecache_path,
+                                const char *quickkey,
+                                uint64_t source_revision,
+                                uint64_t target_revision)
 {
     char           *patchfile;
     char           *sourcefile;
@@ -422,8 +467,7 @@ static int filecache_patch_file(const char * filecache_path, const char * quickk
     int             retval;
 
     sourcefile =
-        strdup_printf("%s/%s_%d", filecache_path, quickkey,
-                source_revision);
+        strdup_printf("%s/%s_%d", filecache_path, quickkey, source_revision);
     sourcefile_fh = fopen(sourcefile, "r");
     if (sourcefile_fh == NULL) {
         fprintf(stderr, "cannot open %s\n", sourcefile);
@@ -435,7 +479,7 @@ static int filecache_patch_file(const char * filecache_path, const char * quickk
 
     patchfile =
         strdup_printf("%s/%s_patch_%d_%d", filecache_path, quickkey,
-                source_revision, target_revision);
+                      source_revision, target_revision);
     patchfile_fh = fopen(patchfile, "r");
     if (patchfile_fh == NULL) {
         fprintf(stderr, "cannot open %s\n", patchfile);
@@ -447,8 +491,7 @@ static int filecache_patch_file(const char * filecache_path, const char * quickk
     free(patchfile);
 
     targetfile =
-        strdup_printf("%s/%s_%d", filecache_path, quickkey,
-                target_revision);
+        strdup_printf("%s/%s_%d", filecache_path, quickkey, target_revision);
     targetfile_fh = fopen(targetfile, "w");
     if (targetfile_fh == NULL) {
         fprintf(stderr, "cannot open %s\n", targetfile);

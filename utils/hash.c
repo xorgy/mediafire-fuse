@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <openssl/sha.h>
 #include <openssl/md5.h>
+#include <stddef.h>
 
 #define bufsize 32768
 
@@ -130,7 +131,7 @@ void hex2binary(const char *hex, unsigned char *binary)
     }
 }
 
-char *binary2hex(const unsigned char *binary, size_t length)
+char           *binary2hex(const unsigned char *binary, size_t length)
 {
     char           *out;
     char           *p;
@@ -161,7 +162,7 @@ char *binary2hex(const unsigned char *binary, size_t length)
  */
 int base36_decode_triplet(const char *key)
 {
-    return base36_decoding_table[(int)(key)[0]]*36*36
-         + base36_decoding_table[(int)(key)[1]]*36
-         + base36_decoding_table[(int)(key)[2]];
+    return base36_decoding_table[(int)(key)[0]] * 36 * 36
+        + base36_decoding_table[(int)(key)[1]] * 36
+        + base36_decoding_table[(int)(key)[2]];
 }
