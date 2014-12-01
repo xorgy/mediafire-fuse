@@ -394,7 +394,7 @@ static void parse_config_file(int *argc, char ***argv, char *configfile)
 
     if ((fp = fopen(configfile, "r")) == NULL) {
         fprintf(stderr, "Cannot open configuration file %s\n", configfile);
-        exit(1);
+        return;
     }
 
     while ((read = getline(&line, &len, fp)) != -1) {
@@ -482,7 +482,7 @@ static void parse_arguments(int *argc, char ***argv,
 
     if (options->configfile != NULL) {
         parse_config_file(argc, argv, options->configfile);
-    } else {
+    } else if (configfile != NULL) {
         parse_config_file(argc, argv, configfile);
     }
 
