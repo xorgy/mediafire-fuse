@@ -24,6 +24,7 @@
 
 #include "file.h"
 #include "folder.h"
+#include "patch.h"
 #include "mfconn.h"
 
 #define MFAPI_MAX_LEN_KEY 15
@@ -80,5 +81,16 @@ int             mfconn_api_device_get_status(mfconn * conn,
 
 int             mfconn_api_device_get_changes(mfconn * conn, uint64_t revision, struct mfconn_device_change
                                               **changes);
+
+int             mfconn_api_device_get_updates(mfconn * conn,
+                                              const char *quickkey,
+                                              uint64_t revision,
+                                              uint64_t target_revision,
+                                              mfpatch *** patches);
+
+int             mfconn_api_device_get_patch(mfconn * conn, mfpatch * patch,
+                                            const char *quickkey,
+                                            uint64_t source_revision,
+                                            uint64_t target_revision);
 
 #endif

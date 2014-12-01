@@ -17,10 +17,12 @@
  *
  */
 
+#define _XOPEN_SOURCE           // for strptime
 #include <jansson.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "../../utils/http.h"
 #include "../../utils/json.h"
@@ -74,6 +76,8 @@ static int _decode_file_get_info(mfhttp * conn, void *data)
     json_t         *quickkey;
     int             retval = 0;
     mffile         *file;
+    char           *ret;
+    struct tm       tm;
 
     if (data == NULL)
         return -1;
@@ -101,9 +105,31 @@ static int _decode_file_get_info(mfhttp * conn, void *data)
     if (obj != NULL) {
         file_set_parent(file, json_string_value(obj));
     }
+
     // infer that the parent folder must be root
     if (obj == NULL && quickkey != NULL)
         file_set_parent(file, NULL);
+
+    obj = json_object_get(node, "created");
+    if (obj != NULL) {
+        memset(&tm, 0, sizeof(struct tm));
+        ret = strptime(json_string_value(obj), "%F %T", &tm);
+        if (ret[0] != '\0') {
+            fprintf(stderr, "cannot parse time\n");
+        } else {
+            file_set_created(file, mktime(&tm));
+        }
+    }
+
+    obj = json_object_get(node, "revision");
+    if (obj != NULL) {
+        file_set_revision(file, atoll(json_string_value(obj)));
+    }
+
+    obj = json_object_get(node, "size");
+    if (obj != NULL) {
+        file_set_size(file, atoll(json_string_value(obj)));
+    }
 
     if (quickkey == NULL)
         retval = -1;

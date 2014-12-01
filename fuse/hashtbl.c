@@ -36,13 +36,16 @@
 #include <openssl/sha.h>
 
 #include "hashtbl.h"
+#include "filecache.h"
 #include "../mfapi/mfconn.h"
 #include "../mfapi/file.h"
+#include "../mfapi/patch.h"
 #include "../mfapi/folder.h"
 #include "../mfapi/apicalls.h"
 #include "../utils/strings.h"
 #include "../utils/http.h"
 #include "../utils/hash.h"
+#include "../utils/xdelta3.h"
 
 /*
  * we build a hashtable using the first three characters of the file or folder
@@ -50,108 +53,6 @@
  * this means that the resulting hashtable has to have 36^3=46656 buckets.
  */
 #define NUM_BUCKETS 46656
-
-/*
- * we use this table to convert from a base36 char (ignoring case) to an
- * integer or from a hex string to binary (in the latter case letters g-z and
- * G-Z remain unused)
- * we "waste" these 128 bytes of memory so that we don't need branching
- * instructions when decoding
- * we only need 128 bytes because the input is a *signed* char
- */
-static unsigned char base36_decoding_table[] = {
-/* 0x00 */ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-/* 0x10 */ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-/* 0x20 */ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-/* 0x30 */ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 0, 0, 0, 0, 0,
-/* 0x40 */ 0, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
-/* 0x50 */ 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 0, 0, 0, 0, 0,
-/* 0x60 */ 0, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
-/* 0x70 */ 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 0, 0, 0, 0, 0
-};
-
-/*
- * table to convert from a byte into the two hexadecimal digits representing
- * it
- */
-static char     base16_encoding_table[][2] = {
-    "00", "01", "02", "03", "04", "05", "06", "07", "08", "09", "0A", "0B",
-    "0C", "0D", "0E", "0F", "10", "11", "12", "13", "14", "15", "16", "17",
-    "18", "19", "1A", "1B", "1C", "1D", "1E", "1F", "20", "21", "22", "23",
-    "24", "25", "26", "27", "28", "29", "2A", "2B", "2C", "2D", "2E", "2F",
-    "30", "31", "32", "33", "34", "35", "36", "37", "38", "39", "3A", "3B",
-    "3C", "3D", "3E", "3F", "40", "41", "42", "43", "44", "45", "46", "47",
-    "48", "49", "4A", "4B", "4C", "4D", "4E", "4F", "50", "51", "52", "53",
-    "54", "55", "56", "57", "58", "59", "5A", "5B", "5C", "5D", "5E", "5F",
-    "60", "61", "62", "63", "64", "65", "66", "67", "68", "69", "6A", "6B",
-    "6C", "6D", "6E", "6F", "70", "71", "72", "73", "74", "75", "76", "77",
-    "78", "79", "7A", "7B", "7C", "7D", "7E", "7F", "80", "81", "82", "83",
-    "84", "85", "86", "87", "88", "89", "8A", "8B", "8C", "8D", "8E", "8F",
-    "90", "91", "92", "93", "94", "95", "96", "97", "98", "99", "9A", "9B",
-    "9C", "9D", "9E", "9F", "A0", "A1", "A2", "A3", "A4", "A5", "A6", "A7",
-    "A8", "A9", "AA", "AB", "AC", "AD", "AE", "AF", "B0", "B1", "B2", "B3",
-    "B4", "B5", "B6", "B7", "B8", "B9", "BA", "BB", "BC", "BD", "BE", "BF",
-    "C0", "C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "C9", "CA", "CB",
-    "CC", "CD", "CE", "CF", "D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7",
-    "D8", "D9", "DA", "DB", "DC", "DD", "DE", "DF", "E0", "E1", "E2", "E3",
-    "E4", "E5", "E6", "E7", "E8", "E9", "EA", "EB", "EC", "ED", "EE", "EF",
-    "F0", "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "FA", "FB",
-    "FC", "FD", "FE", "FF"
-};
-
-/*
- * a macro to convert a char* of the key into a hash of its first three
- * characters, treating those first three characters as if they represented a
- * number in base36
- *
- * in the future this could be made more dynamic by using the ability of
- * strtoll to convert numbers of base36 and then only retrieving the desired
- * amount of high-bits for the desired size of the hashtable
- */
-#define HASH_OF_KEY(key) base36_decoding_table[(int)(key)[0]]*36*36+\
-    base36_decoding_table[(int)(key)[1]]*36+\
-    base36_decoding_table[(int)(key)[2]]
-
-/* decodes a zero terminated string containing hex characters into their
- * binary representation. The length of the string must be even as pairs of
- * characters are converted to one output byte. The output buffer must be at
- * least half the length of the input string.
- */
-static void hex2binary(const char *hex, unsigned char *binary)
-{
-    unsigned char   val1,
-                    val2;
-    const char     *c1,
-                   *c2;
-    unsigned char  *b;
-
-    for (b = binary, c1 = hex, c2 = hex + 1;
-         *c1 != '\0' && *c2 != '\0'; b++, c1 += 2, c2 += 2) {
-        val1 = base36_decoding_table[(int)(*c1)];
-        val2 = base36_decoding_table[(int)(*c2)];
-        *b = (val1 << 4) | val2;
-    }
-}
-
-static char    *binary2hex(unsigned char *binary, size_t length)
-{
-    char           *out;
-    char           *p;
-    size_t          i;
-
-    out = malloc(length * 2 + 1);
-    if (out == NULL) {
-        fprintf(stderr, "cannot allocate memory\n");
-        return NULL;
-    }
-    for (i = 0; i < length; i++) {
-        p = base16_encoding_table[binary[i]];
-        out[i * 2] = p[0];
-        out[i * 2 + 1] = p[1];
-    }
-    out[length * 2] = '\0';
-    return out;
-}
 
 struct h_entry {
     /*
@@ -165,12 +66,13 @@ struct h_entry {
     /* char parent[20]; */
     /* local revision */
     uint64_t        remote_revision;
+    /* the revision of the local version. For folders, this is the last
+     * revision for which the folder contents have been retrieved. For files
+     * this is the last revision for which the file contents have been
+     * retrieved */
+    uint64_t        local_revision;
     /* creation time */
     uint64_t        ctime;
-    /* Whether or not this h_entry needs to be updated before it can be used.
-     * This value is set to true when directories and files are added as
-     * children of a directory but their content has not bee retrieved yet */
-    uint64_t        local_revision;
     /* the containing folder */
     union {
         /* during runtime this is a pointer to the containing h_entry struct */
@@ -350,7 +252,7 @@ int folder_tree_store(folder_tree * tree, FILE * stream)
             if (tmp_parent == &(tree->root)) {
                 tree->buckets[i][j]->parent_offs = 0;
             } else {
-                bucket_id = HASH_OF_KEY(tmp_parent->key);
+                bucket_id = base36_decode_triplet(tmp_parent->key);
                 found = false;
                 for (k = 0; k < tree->bucket_lens[bucket_id]; k++) {
                     if (tree->buckets[bucket_id][k] == tmp_parent) {
@@ -489,7 +391,7 @@ folder_tree    *folder_tree_load(FILE * stream, char *filecache)
         parent->children[parent->num_children - 1] = ordered_entries[i];
 
         /* put the entry into the hashtable */
-        bucket_id = HASH_OF_KEY(ordered_entries[i]->key);
+        bucket_id = base36_decode_triplet(ordered_entries[i]->key);
         tree->bucket_lens[bucket_id]++;
         tree->buckets[bucket_id] =
             (struct h_entry **)realloc(tree->buckets[bucket_id],
@@ -564,7 +466,7 @@ static struct h_entry *folder_tree_lookup_key(folder_tree * tree,
         return &(tree->root);
     }
     /* retrieve the right bucket for this key */
-    bucket_id = HASH_OF_KEY(key);
+    bucket_id = base36_decode_triplet(key);
 
     for (i = 0; i < tree->bucket_lens[bucket_id]; i++) {
         if (strcmp(tree->buckets[bucket_id][i]->key, key) == 0) {
@@ -630,7 +532,7 @@ static struct h_entry *folder_tree_lookup_path(folder_tree * tree,
                     result = curr_dir->children[i];
 
                     // make sure that result is up to date
-                    if (result->atime == 0 &&
+                    if (result->atime == 0
                         && result->local_revision != result->remote_revision) {
                         folder_tree_rebuild_helper(tree, conn, result);
                     }
@@ -819,17 +721,7 @@ int folder_tree_readdir(folder_tree * tree, mfconn * conn, const char *path,
 int folder_tree_open_file(folder_tree * tree, mfconn * conn, const char *path)
 {
     struct h_entry *entry;
-    char           *cachefile;
-    int             fd;
-    struct stat     file_info;
-    uint64_t        bytes_read;
-    const char     *url;
-    mffile         *file;
-    int             retval;
-    mfhttp         *http;
-    FILE           *fh;
-    unsigned char   hash[SHA256_DIGEST_LENGTH];
-    char           *hexhash;
+    int retval;
 
     entry = folder_tree_lookup_path(tree, conn, path);
 
@@ -837,116 +729,23 @@ int folder_tree_open_file(folder_tree * tree, mfconn * conn, const char *path)
     if (entry == NULL || entry->atime == 0) {
         return -ENOENT;
     }
+    fprintf(stderr, "opening %s with local %" PRIu64 " and remote %" PRIu64
+            "\n", entry->key, entry->local_revision, entry->remote_revision);
 
-    /* TODO: check entry->needs_update
-     *       check if local size is equal to remote size
-     *       check if local version exists and needs updating */
-
-    /* check if the requested file is already in the cache */
-    cachefile =
-        strdup_printf("%s/%s_%d", tree->filecache, entry->key,
-                      entry->remote_revision);
-    fd = open(cachefile, O_RDWR);
-    if (fd > 0) {
-        /* file existed - return handle */
-        free(cachefile);
-        return fd;
-    }
-
-    /* download the file */
-    file = file_alloc();
-    retval = mfconn_api_file_get_links(conn, file, (char *)entry->key);
-    mfconn_update_secret_key(conn);
-
+    retval = filecache_open_file(entry->key, entry->local_revision,
+                                 entry->remote_revision, entry->fsize,
+                                 entry->hash, tree->filecache, conn);
     if (retval == -1) {
-        fprintf(stderr, "mfconn_api_file_get_links failed\n");
-        free(cachefile);
-        file_free(file);
+        fprintf(stderr, "filecache_open_file failed\n");
         return -1;
     }
 
-    url = file_get_direct_link(file);
+    /* make sure that the local_revision is equal to the remote revision
+     * because filecache_open_file took care of doing any updating if it was
+     * necessary */
+    entry->local_revision = entry->remote_revision;
 
-    if (url == NULL) {
-        fprintf(stderr, "file_get_direct_link failed\n");
-        free(cachefile);
-        file_free(file);
-        return -1;
-    }
-
-    http = http_create();
-    retval = http_get_file(http, url, cachefile);
-    http_destroy(http);
-
-    if (retval != 0) {
-        fprintf(stderr, "download failed\n");
-        free(cachefile);
-        file_free(file);
-        return -1;
-    }
-
-    memset(&file_info, 0, sizeof(file_info));
-    retval = stat(cachefile, &file_info);
-
-    if (retval != 0) {
-        fprintf(stderr, "stat failed\n");
-        free(cachefile);
-        file_free(file);
-        return -1;
-    }
-
-    bytes_read = file_info.st_size;
-
-    if (bytes_read != entry->fsize) {
-        fprintf(stderr,
-                "expected %" PRIu64 " bytes but got %" PRIu64 " bytes\n",
-                entry->fsize, bytes_read);
-        free(cachefile);
-        file_free(file);
-        return -1;
-    }
-
-    /* size matches - now compare the hash as well */
-    fh = fopen(cachefile, "r");
-    if (fh == NULL) {
-        perror("cannot open file");
-        free(cachefile);
-        file_free(file);
-        return -1;
-    }
-
-    retval = calc_sha256(fh, hash);
-    if (retval != 0) {
-        fprintf(stderr, "failed to calculate hash\n");
-        free(cachefile);
-        file_free(file);
-        fclose(fh);
-        return -1;
-    }
-
-    fclose(fh);
-
-    if (memcmp(entry->hash, hash, SHA256_DIGEST_LENGTH) != 0) {
-        fprintf(stderr, "hashes are not equal\n");
-        hexhash = binary2hex(entry->hash, SHA256_DIGEST_LENGTH);
-        fprintf(stderr, "remote:     %s\n", hexhash);
-        free(hexhash);
-        hexhash = binary2hex(hash, SHA256_DIGEST_LENGTH);
-        fprintf(stderr, "downloaded: %s\n", hexhash);
-        free(hexhash);
-        free(cachefile);
-        file_free(file);
-        return -1;
-    }
-
-    file_free(file);
-
-    fd = open(cachefile, O_RDWR);
-
-    free(cachefile);
-
-    /* return the file handle */
-    return fd;
+    return retval;
 }
 
 static bool folder_tree_is_root(struct h_entry *entry)
@@ -993,7 +792,7 @@ static struct h_entry *folder_tree_allocate_entry(folder_tree * tree,
                 "key is NULL but this is fine, we just create it now\n");
         /* entry was not found, so append it to the end of the bucket */
         entry = (struct h_entry *)calloc(1, sizeof(struct h_entry));
-        bucket_id = HASH_OF_KEY(key);
+        bucket_id = base36_decode_triplet(key);
         tree->bucket_lens[bucket_id]++;
         tree->buckets[bucket_id] =
             realloc(tree->buckets[bucket_id],
@@ -1328,7 +1127,7 @@ static void folder_tree_remove(folder_tree * tree, const char *key)
         return;
     }
 
-    bucket_id = HASH_OF_KEY(key);
+    bucket_id = base36_decode_triplet(key);
 
     /* check if the key exists */
     found = 0;

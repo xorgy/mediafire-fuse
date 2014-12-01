@@ -56,6 +56,8 @@ struct mfcmd    commands[] = {
     {"status", "", "device status", mfshell_cmd_status},
     {"changes", "<revision>", "device changes (default: 0)",
      mfshell_cmd_changes},
+    {"updates", "[quickkey] [revision]", "list available updates for a file",
+     mfshell_cmd_updates},
     {NULL, NULL, NULL, NULL}
 };
 

@@ -79,4 +79,7 @@ int             mfshell_cmd_status(mfshell * mfshell, int argc,
 int             mfshell_cmd_changes(mfshell * mfshell, int argc,
                                     char *const argv[]);
 
+int             mfshell_cmd_updates(mfshell * mfshell, int argc,
+                                    char *const argv[]);
+
 #endif

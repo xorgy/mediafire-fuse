@@ -112,7 +112,7 @@ static int _decode_folder_get_info(mfhttp * conn, void *data)
 
     revision = json_object_get(node, "revision");
     if (revision != NULL) {
-        folder_set_revision(folder, atol(json_string_value(revision)));
+        folder_set_revision(folder, atoll(json_string_value(revision)));
     }
 
     created = json_object_get(node, "created");
