@@ -63,6 +63,7 @@ static struct fuse_operations mediafirefs_oper = {
     .open = mediafirefs_open,
     .read = mediafirefs_read,
     .release = mediafirefs_release,
+    .unlink = mediafirefs_unlink,
 /*    .create = mediafirefs_create,
     .fsync = mediafirefs_fsync,
     .getxattr = mediafirefs_getxattr,
@@ -73,7 +74,6 @@ static struct fuse_operations mediafirefs_oper = {
     .setxattr = mediafirefs_setxattr,
     .statfs = mediafirefs_statfs,
     .truncate = mediafirefs_truncate,
-    .unlink = mediafirefs_unlink,
     .utime = mediafirefs_utime,
     .write = mediafirefs_write,*/
 };

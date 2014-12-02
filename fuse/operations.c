@@ -241,6 +241,42 @@ int mediafirefs_rmdir(const char *path)
     return 0;
 }
 
+int mediafirefs_unlink(const char *path)
+{
+    const char     *key;
+    int             retval;
+    struct mediafirefs_context_private *ctx;
+
+    ctx = fuse_get_context()->private_data;
+
+    /* no need to check
+     *  - if path is directory
+     *  - if directory is empty
+     *  - if directory is root
+     *
+     * because getattr was called before and already made sure
+     */
+
+    key = folder_tree_path_get_key(ctx->tree, ctx->conn, path);
+    if (key == NULL) {
+        fprintf(stderr, "key is NULL\n");
+        return -ENOENT;
+    }
+
+    retval = mfconn_api_file_delete(ctx->conn, key);
+    mfconn_update_secret_key(ctx->conn);
+    if (retval != 0) {
+        fprintf(stderr, "mfconn_api_file_create unsuccessful\n");
+        // FIXME: find better errno in this case
+        return -EAGAIN;
+    }
+
+    /* retrieve remote changes to not get out of sync */
+    folder_tree_update(ctx->tree, ctx->conn);
+
+    return 0;
+}
+
 int mediafirefs_open(const char *path, struct fuse_file_info *file_info)
 {
     int             fd;

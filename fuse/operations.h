@@ -40,6 +40,7 @@ int             mediafirefs_readdir(const char *path, void *buf,
 void            mediafirefs_destroy();
 int             mediafirefs_mkdir(const char *path, mode_t mode);
 int             mediafirefs_rmdir(const char *path);
+int             mediafirefs_unlink(const char *path);
 int             mediafirefs_open(const char *path,
                                  struct fuse_file_info *file_info);
 int             mediafirefs_read(const char *path, char *buf, size_t size,
