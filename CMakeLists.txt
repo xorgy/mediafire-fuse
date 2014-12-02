@@ -18,6 +18,7 @@ add_library(mfapi SHARED
 	mfapi/apicalls/file_get_info.c
 	mfapi/apicalls/user_get_info.c
 	mfapi/apicalls/file_get_links.c
+	mfapi/apicalls/file_delete.c
 	mfapi/apicalls/user_session.c
 	mfapi/apicalls/folder_get_info.c
 	mfapi/apicalls/folder_create.c
@@ -55,6 +56,7 @@ add_executable(mediafire-shell
 	mfshell/commands/pwd.c
 	mfshell/commands/whoami.c
 	mfshell/commands/rmdir.c
+	mfshell/commands/rm.c
 	mfshell/commands/status.c
 	mfshell/commands/changes.c
 	mfshell/config.c
