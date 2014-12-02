@@ -24,5 +24,10 @@ int             calc_sha256(FILE * file, unsigned char *hash);
 int             base36_decode_triplet(const char *key);
 void            hex2binary(const char *hex, unsigned char *binary);
 char           *binary2hex(const unsigned char *binary, size_t length);
+int             file_check_integrity(const char *path, uint64_t fsize,
+                                     const unsigned char *fhash);
+int             file_check_integrity_size(const char *path, uint64_t fsize);
+int             file_check_integrity_hash(const char *path,
+                                          const unsigned char *fhash);
 
 #endif

@@ -17,11 +17,9 @@
  */
 
 #include <unistd.h>
-#include <sys/stat.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
-#include <inttypes.h>
 #include <openssl/sha.h>
 #include <bits/fcntl-linux.h>
 #include <stdint.h>
@@ -36,13 +34,6 @@
 #include "../utils/http.h"
 #include "../utils/strings.h"
 
-static int      filecache_check_integrity(const char *cachefile,
-                                          uint64_t fsize,
-                                          const unsigned char *fhash);
-static int      filecache_check_integrity_size(const char *cachefile,
-                                               uint64_t fsize);
-static int      filecache_check_integrity_hash(const char *cachefile,
-                                               const unsigned char *fhash);
 static int      filecache_update_file(const char *filecache_path,
                                       mfconn * conn, const char *quickkey,
                                       uint64_t local_revision,
@@ -115,7 +106,7 @@ int filecache_open_file(const char *quickkey, uint64_t local_revision,
      * have stored */
     cachefile =
         strdup_printf("%s/%s_%d", filecache_path, quickkey, remote_revision);
-    retval = filecache_check_integrity(cachefile, fsize, fhash);
+    retval = file_check_integrity(cachefile, fsize, fhash);
     if (retval != 0) {
         fprintf(stderr, "checking integrity failed\n");
         free(cachefile);
@@ -128,90 +119,6 @@ int filecache_open_file(const char *quickkey, uint64_t local_revision,
 
     /* return the file handle */
     return fd;
-}
-
-static int filecache_check_integrity(const char *path, uint64_t fsize,
-                                     const unsigned char *fhash)
-{
-    int             retval;
-
-    retval = filecache_check_integrity_size(path, fsize);
-    if (retval != 0) {
-        fprintf(stderr, "filecache_check_integrity_size failed\n");
-        return -1;
-    }
-
-    retval = filecache_check_integrity_hash(path, fhash);
-    if (retval != 0) {
-        fprintf(stderr, "filecache_check_integrity_hash failed\n");
-        return -1;
-    }
-
-    return 0;
-}
-
-static int filecache_check_integrity_size(const char *path, uint64_t fsize)
-{
-    struct stat     file_info;
-    int             retval;
-    uint64_t        bytes_read;
-
-    /* check if the size of the downloaded file matches the expected size */
-    memset(&file_info, 0, sizeof(file_info));
-    retval = stat(path, &file_info);
-
-    if (retval != 0) {
-        fprintf(stderr, "stat failed\n");
-        return -1;
-    }
-
-    bytes_read = file_info.st_size;
-
-    if (bytes_read != fsize) {
-        fprintf(stderr,
-                "expected %" PRIu64 " bytes but got %" PRIu64 " bytes\n",
-                fsize, bytes_read);
-        return -1;
-    }
-
-    return 0;
-}
-
-static int filecache_check_integrity_hash(const char *path,
-                                          const unsigned char *fhash)
-{
-    int             retval;
-    FILE           *fh;
-    unsigned char   hash[SHA256_DIGEST_LENGTH];
-    char           *hexhash;
-
-    fh = fopen(path, "r");
-    if (fh == NULL) {
-        perror("cannot open file");
-        return -1;
-    }
-
-    retval = calc_sha256(fh, hash);
-    if (retval != 0) {
-        fprintf(stderr, "failed to calculate hash\n");
-        fclose(fh);
-        return -1;
-    }
-
-    fclose(fh);
-
-    if (memcmp(fhash, hash, SHA256_DIGEST_LENGTH) != 0) {
-        fprintf(stderr, "hashes are not equal\n");
-        hexhash = binary2hex(fhash, SHA256_DIGEST_LENGTH);
-        fprintf(stderr, "remote:     %s\n", hexhash);
-        free(hexhash);
-        hexhash = binary2hex(hash, SHA256_DIGEST_LENGTH);
-        fprintf(stderr, "downloaded: %s\n", hexhash);
-        free(hexhash);
-        return -1;
-    }
-
-    return 0;
 }
 
 static int filecache_download_file(const char *filecache_path,
@@ -328,7 +235,7 @@ static int filecache_update_file(const char *filecache_path, mfconn * conn,
             strdup_printf("%s/%s_%d", filecache_path, quickkey,
                           patch_get_source_revision(patches[i]));
         hex2binary(patch_get_source_hash(patches[i]), hash2);
-        retval = filecache_check_integrity_hash(cachefile, hash2);
+        retval = file_check_integrity_hash(cachefile, hash2);
         free(cachefile);
         if (retval != 0) {
             fprintf(stderr, "the source file has the wrong hash\n");
@@ -349,7 +256,7 @@ static int filecache_update_file(const char *filecache_path, mfconn * conn,
             strdup_printf("%s/%s_%d", filecache_path, quickkey,
                           patch_get_target_revision(patches[i]));
         hex2binary(patch_get_target_hash(patches[i]), hash2);
-        retval = filecache_check_integrity_hash(cachefile, hash2);
+        retval = file_check_integrity_hash(cachefile, hash2);
         free(cachefile);
         if (retval != 0) {
             fprintf(stderr, "the target file has the wrong hash\n");
@@ -440,10 +347,10 @@ static int filecache_download_patch(mfconn * conn, const char *quickkey,
 
     /* verify the integrity of the patch */
     hex2binary(patch_get_hash(patch), hash2);
-    retval = filecache_check_integrity_hash(patchfile, hash2);
+    retval = file_check_integrity_hash(patchfile, hash2);
 
     if (retval != 0) {
-        fprintf(stderr, "filecache_check_integrity_hash failed for patch\n");
+        fprintf(stderr, "file_check_integrity_hash failed for patch\n");
         patch_free(patch);
         return -1;
     }

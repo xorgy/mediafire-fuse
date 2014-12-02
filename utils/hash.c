@@ -21,6 +21,11 @@
 #include <openssl/sha.h>
 #include <openssl/md5.h>
 #include <stddef.h>
+#include <inttypes.h>
+#include <sys/stat.h>
+#include <string.h>
+
+#include "hash.h"
 
 #define bufsize 32768
 
@@ -165,4 +170,87 @@ int base36_decode_triplet(const char *key)
     return base36_decoding_table[(int)(key)[0]] * 36 * 36
         + base36_decoding_table[(int)(key)[1]] * 36
         + base36_decoding_table[(int)(key)[2]];
+}
+
+int file_check_integrity(const char *path, uint64_t fsize,
+                         const unsigned char *fhash)
+{
+    int             retval;
+
+    retval = file_check_integrity_size(path, fsize);
+    if (retval != 0) {
+        fprintf(stderr, "file_check_integrity_size failed\n");
+        return -1;
+    }
+
+    retval = file_check_integrity_hash(path, fhash);
+    if (retval != 0) {
+        fprintf(stderr, "file_check_integrity_hash failed\n");
+        return -1;
+    }
+
+    return 0;
+}
+
+int file_check_integrity_size(const char *path, uint64_t fsize)
+{
+    struct stat     file_info;
+    int             retval;
+    uint64_t        bytes_read;
+
+    /* check if the size of the downloaded file matches the expected size */
+    memset(&file_info, 0, sizeof(file_info));
+    retval = stat(path, &file_info);
+
+    if (retval != 0) {
+        fprintf(stderr, "stat failed\n");
+        return -1;
+    }
+
+    bytes_read = file_info.st_size;
+
+    if (bytes_read != fsize) {
+        fprintf(stderr,
+                "expected %" PRIu64 " bytes but got %" PRIu64 " bytes\n",
+                fsize, bytes_read);
+        return -1;
+    }
+
+    return 0;
+}
+
+int file_check_integrity_hash(const char *path, const unsigned char *fhash)
+{
+    int             retval;
+    FILE           *fh;
+    unsigned char   hash[SHA256_DIGEST_LENGTH];
+    char           *hexhash;
+
+    fh = fopen(path, "r");
+    if (fh == NULL) {
+        perror("cannot open file");
+        return -1;
+    }
+
+    retval = calc_sha256(fh, hash);
+    if (retval != 0) {
+        fprintf(stderr, "failed to calculate hash\n");
+        fclose(fh);
+        return -1;
+    }
+
+    fclose(fh);
+
+    if (memcmp(fhash, hash, SHA256_DIGEST_LENGTH) != 0) {
+        fprintf(stderr, "hashes are not equal\n");
+        hexhash = binary2hex(fhash, SHA256_DIGEST_LENGTH);
+        fprintf(stderr, "remote:     %s\n", hexhash);
+        free(hexhash);
+        hexhash = binary2hex(hash, SHA256_DIGEST_LENGTH);
+        fprintf(stderr, "downloaded: %s\n", hexhash);
+        free(hexhash);
+        return -1;
+    }
+
+    return 0;
 }
