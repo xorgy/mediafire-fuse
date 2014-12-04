@@ -31,6 +31,12 @@ struct mediafirefs_context_private {
     char           *configfile;
     char           *dircache;
     char           *filecache;
+    /* stores all currently open temporary files which are to be uploaded when
+     * they are closed.
+     * we use a normal array because the number of open temporary files will
+     * never be very high but is limited by the number of threads */
+    char          **tmpfiles;
+    size_t          num_tmpfiles;
 };
 
 int             mediafirefs_getattr(const char *path, struct stat *stbuf);
@@ -46,7 +52,12 @@ int             mediafirefs_open(const char *path,
 int             mediafirefs_read(const char *path, char *buf, size_t size,
                                  off_t offset,
                                  struct fuse_file_info *file_info);
+int             mediafirefs_write(const char *path, const char *buf,
+                                  size_t size, off_t offset,
+                                  struct fuse_file_info *file_info);
 int             mediafirefs_release(const char *path,
                                     struct fuse_file_info *file_info);
+int             mediafirefs_create(const char *path, mode_t mode,
+                                   struct fuse_file_info *file_info);
 
 #endif

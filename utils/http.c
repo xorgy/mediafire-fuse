@@ -277,7 +277,7 @@ http_read_file_cb(char *data, size_t size, size_t nmemb, void *user_ptr)
 }
 
 int
-http_post_file(mfhttp * conn, const char *url, const char *path,
+http_post_file(mfhttp * conn, const char *url, FILE * fh,
                const char *filename, uint64_t filesize, const char *fhash,
                int (*data_handler) (mfhttp * conn, void *data), void *data)
 {
@@ -318,10 +318,9 @@ http_post_file(mfhttp * conn, const char *url, const char *path,
     curl_easy_setopt(conn->curl_handle, CURLOPT_WRITEDATA, (void *)conn);
     curl_easy_setopt(conn->curl_handle, CURLOPT_POSTFIELDSIZE, filesize);
 
-    conn->stream = fopen(path, "r");
+    conn->stream = fh;
     fprintf(stderr, "POST: %s\n", url);
     retval = curl_easy_perform(conn->curl_handle);
-    fclose(conn->stream);
     curl_slist_free_all(custom_headers);
     if (retval != CURLE_OK) {
         fprintf(stderr, "error curl_easy_perform %s\n\r", conn->error_buf);

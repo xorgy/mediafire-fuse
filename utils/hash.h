@@ -20,7 +20,8 @@
 #define _MFSHELL_HASH_H_
 
 int             calc_md5(FILE * file, unsigned char *hash);
-int             calc_sha256(FILE * file, unsigned char *hash);
+int             calc_sha256(FILE * file, unsigned char *hash,
+                            uint64_t * file_size);
 int             base36_decode_triplet(const char *key);
 void            hex2binary(const char *hex, unsigned char *binary);
 char           *binary2hex(const unsigned char *binary, size_t length);

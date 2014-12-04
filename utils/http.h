@@ -39,7 +39,7 @@ int             http_get_file(mfhttp * conn, const char *url,
 json_t         *http_parse_buf_json(mfhttp * conn, size_t flags,
                                     json_error_t * error);
 int             http_post_file(mfhttp * conn, const char *url,
-                               const char *path, const char *filename,
+                               FILE * fh, const char *filename,
                                uint64_t filesize, const char *fhash,
                                int (*data_handler) (mfhttp * conn, void *data),
                                void *data);

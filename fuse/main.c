@@ -62,10 +62,11 @@ static struct fuse_operations mediafirefs_oper = {
     .rmdir = mediafirefs_rmdir,
     .open = mediafirefs_open,
     .read = mediafirefs_read,
+    .write = mediafirefs_write,
     .release = mediafirefs_release,
     .unlink = mediafirefs_unlink,
-/*    .create = mediafirefs_create,
-    .fsync = mediafirefs_fsync,
+    .create = mediafirefs_create,
+/*    .fsync = mediafirefs_fsync,
     .getxattr = mediafirefs_getxattr,
     .init = mediafirefs_init,
     .listxattr = mediafirefs_listxattr,
@@ -74,8 +75,7 @@ static struct fuse_operations mediafirefs_oper = {
     .setxattr = mediafirefs_setxattr,
     .statfs = mediafirefs_statfs,
     .truncate = mediafirefs_truncate,
-    .utime = mediafirefs_utime,
-    .write = mediafirefs_write,*/
+    .utime = mediafirefs_utime,*/
 };
 
 static void usage(const char *progname)
@@ -404,6 +404,9 @@ int main(int argc, char *argv[])
     }
 
     connect_mf(&options, ctx);
+
+    ctx->tmpfiles = NULL;
+    ctx->num_tmpfiles = 0;
 
     ret = fuse_main(argc, argv, &mediafirefs_oper, ctx);
 

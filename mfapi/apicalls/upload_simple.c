@@ -24,8 +24,8 @@
 #include <string.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <openssl/sha.h>
-#include <sys/stat.h>
 
 #include "../../utils/http.h"
 #include "../../utils/json.h"
@@ -37,40 +37,29 @@ static int      _decode_upload_simple(mfhttp * conn, void *data);
 
 int
 mfconn_api_upload_simple(mfconn * conn, const char *folderkey,
-                         const char *file_path, const char *file_name,
-                         char **upload_key)
+                         FILE * fh, const char *file_name, char **upload_key)
 {
     const char     *api_call;
     int             retval;
     mfhttp         *http;
-    FILE           *fh;
     unsigned char   hash[SHA256_DIGEST_LENGTH];
     char           *file_hash;
-    struct stat     file_info;
+    uint64_t        file_size;
 
     if (conn == NULL)
         return -1;
 
-    fh = fopen(file_path, "r");
-    if (fh == NULL) {
-        perror("cannot open file");
-        fprintf(stderr, "cannot open %s\n", file_path);
+    if (fh == NULL)
         return -1;
-    }
 
-    retval = calc_sha256(fh, hash);
-    fclose(fh);
+    // make sure that we are at the beginning of the file
+    rewind(fh);
+
+    // calculate hash
+    retval = calc_sha256(fh, hash, &file_size);
 
     if (retval != 0) {
         fprintf(stderr, "failed to calculate hash\n");
-        return -1;
-    }
-
-    memset(&file_info, 0, sizeof(file_info));
-    retval = stat(file_path, &file_info);
-
-    if (retval != 0) {
-        fprintf(stderr, "stat failed\n");
         return -1;
     }
 
@@ -87,9 +76,12 @@ mfconn_api_upload_simple(mfconn * conn, const char *folderkey,
                                             "&folder_key=%s", folderkey);
     }
 
+    // make sure that we are at the beginning of the file
+    rewind(fh);
+
     http = http_create();
-    retval = http_post_file(http, api_call, file_path, file_name,
-                            file_info.st_size, file_hash,
+    retval = http_post_file(http, api_call, fh, file_name,
+                            file_size, file_hash,
                             _decode_upload_simple, upload_key);
     http_destroy(http);
 
@@ -118,7 +110,11 @@ static int _decode_upload_simple(mfhttp * conn, void *user_ptr)
 
     j_obj = json_object_get(node, "key");
     if (j_obj != NULL) {
-        *upload_key = strdup(json_string_value(j_obj));
+        if (strcmp(json_string_value(j_obj), "") == 0) {
+            *upload_key = NULL;
+        } else {
+            *upload_key = strdup(json_string_value(j_obj));
+        }
     } else {
         *upload_key = NULL;
     }

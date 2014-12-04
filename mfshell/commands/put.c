@@ -39,6 +39,7 @@ int mfshell_cmd_put(mfshell * mfshell, int argc, char *const argv[])
     char           *upload_key;
     int             status;
     int             fileerror;
+    FILE           *fh;
 
     if (mfshell == NULL)
         return -1;
@@ -58,25 +59,34 @@ int mfshell_cmd_put(mfshell * mfshell, int argc, char *const argv[])
 
     file_path = argv[1];
 
+    fh = fopen(file_path, "r");
+    if (fh == NULL) {
+        perror("fopen");
+        fprintf(stderr, "cannot open %s\n", file_path);
+        return -1;
+    }
     // create copies because basename modifies it
     temp = strdup(argv[1]);
     file_name = basename(temp);
 
     retval = mfconn_api_upload_simple(mfshell->conn,
                                       folder_get_key(mfshell->folder_curr),
-                                      file_path, file_name, &upload_key);
+                                      fh, file_name, &upload_key);
     mfconn_update_secret_key(mfshell->conn);
 
+    fclose(fh);
     free(temp);
 
-    if (retval != 0) {
+    if (retval != 0 || upload_key == NULL) {
         fprintf(stderr, "mfconn_api_upload_simple failed\n");
         return -1;
     }
 
     fprintf(stderr, "upload_key: %s\n", upload_key);
 
+    // poll for completion
     for (;;) {
+        // no need to update the secret key after this
         retval = mfconn_api_upload_poll_upload(mfshell->conn, upload_key,
                                                &status, &fileerror);
         if (retval != 0) {

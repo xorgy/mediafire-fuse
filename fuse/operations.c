@@ -31,6 +31,7 @@
 #include <bits/fcntl-linux.h>
 #include <fuse/fuse_common.h>
 #include <stdint.h>
+#include <libgen.h>
 
 #include "../mfapi/mfconn.h"
 #include "../mfapi/apicalls.h"
@@ -87,7 +88,14 @@
  */
 
 struct mediafirefs_openfile {
+    // to fread and fwrite from/to the file
     int             fd;
+    // whether or not a patch has to be uploaded when closing
+    bool            is_readonly;
+    // whether or not to do a new file upload when closing
+    // if this is NULL then the file already existed remotely
+    // otherwise a new upload has to be done to the given remote path
+    char           *remote_path;
 };
 
 int mediafirefs_getattr(const char *path, struct stat *stbuf)
@@ -101,10 +109,31 @@ int mediafirefs_getattr(const char *path, struct stat *stbuf)
      * amount of time
      */
     struct mediafirefs_context_private *ctx;
+    int             retval;
+    size_t          i;
 
     ctx = fuse_get_context()->private_data;
     folder_tree_update(ctx->tree, ctx->conn);
-    return folder_tree_getattr(ctx->tree, ctx->conn, path, stbuf);
+    retval = folder_tree_getattr(ctx->tree, ctx->conn, path, stbuf);
+
+    if (retval != 0) {
+        for (i = 0; i < ctx->num_tmpfiles; i++) {
+            if (strcmp(ctx->tmpfiles[i], path) == 0) {
+                stbuf->st_uid = geteuid();
+                stbuf->st_gid = getegid();
+                stbuf->st_ctime = 0;
+                stbuf->st_mtime = 0;
+                stbuf->st_mode = S_IFREG | 0666;
+                stbuf->st_nlink = 1;
+                stbuf->st_atime = 0;
+                stbuf->st_size = 0;
+                retval = 0;
+                break;
+            }
+        }
+    }
+
+    return retval;
 }
 
 int mediafirefs_readdir(const char *path, void *buf, fuse_fill_dir_t filldir,
@@ -286,7 +315,7 @@ int mediafirefs_open(const char *path, struct fuse_file_info *file_info)
     ctx = fuse_get_context()->private_data;
 
     if ((file_info->flags & O_ACCMODE) != O_RDONLY) {
-        fprintf(stderr, "can only open read-only");
+        fprintf(stderr, "can only open read-only\n");
         return -EACCES;
     }
 
@@ -298,7 +327,45 @@ int mediafirefs_open(const char *path, struct fuse_file_info *file_info)
 
     openfile = malloc(sizeof(struct mediafirefs_openfile));
     openfile->fd = fd;
+    openfile->is_readonly = true;
+    openfile->remote_path = NULL;
     file_info->fh = (uint64_t) openfile;
+    return 0;
+}
+
+/*
+ * this is called if the file does not exist yet. It will create a temporary
+ * file and open it.
+ * once the file gets closed, it will be uploaded.
+ */
+int mediafirefs_create(const char *path, mode_t mode,
+                       struct fuse_file_info *file_info)
+{
+    (void)mode;
+
+    int             fd;
+    struct mediafirefs_openfile *openfile;
+    struct mediafirefs_context_private *ctx;
+
+    ctx = fuse_get_context()->private_data;
+
+    fd = folder_tree_tmp_open(ctx->tree);
+    if (fd < 0) {
+        fprintf(stderr, "folder_tree_tmp_open failed\n");
+        return -EACCES;
+    }
+
+    openfile = malloc(sizeof(struct mediafirefs_openfile));
+    openfile->fd = fd;
+    openfile->is_readonly = false;
+    openfile->remote_path = strdup(path);
+    file_info->fh = (uint64_t) openfile;
+
+    // add to tmpfiles
+    ctx->num_tmpfiles++;
+    ctx->tmpfiles = realloc(ctx->tmpfiles, sizeof(char *) * ctx->num_tmpfiles);
+    ctx->tmpfiles[ctx->num_tmpfiles - 1] = openfile->remote_path;
+
     return 0;
 }
 
@@ -310,12 +377,105 @@ int mediafirefs_read(const char *path, char *buf, size_t size, off_t offset,
                  offset);
 }
 
+int mediafirefs_write(const char *path, const char *buf, size_t size,
+                      off_t offset, struct fuse_file_info *file_info)
+{
+    (void)path;
+    return pwrite(((struct mediafirefs_openfile *)file_info->fh)->fd, buf,
+                  size, offset);
+}
+
+/*
+ * note: the return value of release() is ignored by fuse
+ */
 int mediafirefs_release(const char *path, struct fuse_file_info *file_info)
 {
     (void)path;
-    struct mediafirefs_openfile *openfile =
-        (struct mediafirefs_openfile *)file_info->fh;
+
+    FILE           *fh;
+    char           *file_name;
+    char           *dir_name;
+    const char     *folder_key;
+    char           *upload_key;
+    char           *temp1;
+    char           *temp2;
+    int             retval;
+    struct mediafirefs_context_private *ctx;
+    struct mediafirefs_openfile *openfile;
+    int             status;
+    int             fileerror;
+
+    ctx = fuse_get_context()->private_data;
+
+    openfile = (struct mediafirefs_openfile *)file_info->fh;
+
+    // if the file was opened readonly, then no new updates have to be
+    // uploaded
+    if (openfile->is_readonly) {
+        close(openfile->fd);
+        free(openfile);
+        return 0;
+    }
+    // if the file only exists locally, an initial upload has to be done
+    if (openfile->remote_path != NULL) {
+        // pass a copy because dirname and basename may modify their argument
+        temp1 = strdup(openfile->remote_path);
+        file_name = basename(temp1);
+        temp2 = strdup(openfile->remote_path);
+        dir_name = dirname(temp2);
+
+        fh = fdopen(openfile->fd, "r");
+        rewind(fh);
+
+        folder_key = folder_tree_path_get_key(ctx->tree, ctx->conn, dir_name);
+
+        retval = mfconn_api_upload_simple(ctx->conn, folder_key,
+                                          fh, file_name, &upload_key);
+        mfconn_update_secret_key(ctx->conn);
+
+        fclose(fh);
+        free(temp1);
+        free(temp2);
+        free(openfile->remote_path);
+        free(openfile);
+
+        if (retval != 0 || upload_key == NULL) {
+            fprintf(stderr, "mfconn_api_upload_simple failed\n");
+            return -EACCES;
+        }
+        // poll for completion
+        for (;;) {
+            // no need to update the secret key after this
+            retval = mfconn_api_upload_poll_upload(ctx->conn, upload_key,
+                                                   &status, &fileerror);
+            if (retval != 0) {
+                fprintf(stderr, "mfconn_api_upload_poll_upload failed\n");
+                return -1;
+            }
+            fprintf(stderr, "status: %d, filerror: %d\n", status, fileerror);
+            if (status == 99) {
+                fprintf(stderr, "done\n");
+                break;
+            }
+            sleep(1);
+        }
+
+        // remove from tmpfiles
+        ctx->num_tmpfiles--;
+        ctx->tmpfiles = realloc(ctx->tmpfiles,
+                                sizeof(char *) * ctx->num_tmpfiles);
+
+        free(upload_key);
+
+        folder_tree_update(ctx->tree, ctx->conn);
+        return 0;
+    }
+    // the file was not opened readonly and also existed on the remote
+    // thus, we have to check whether any changes were made and if yes, upload
+    // a patch
+    // FIXME: not implemented yet
     close(openfile->fd);
     free(openfile);
-    return 0;
+    folder_tree_update(ctx->tree, ctx->conn);
+    return -ENOSYS;
 }

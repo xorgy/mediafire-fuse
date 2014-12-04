@@ -96,21 +96,32 @@ int calc_md5(FILE * file, unsigned char *hash)
     return 0;
 }
 
-int calc_sha256(FILE * file, unsigned char *hash)
+/*
+ * calculate the SHA256 sum and optionally (if size != NULL) count the file
+ * size
+ */
+int calc_sha256(FILE * file, unsigned char *hash, uint64_t * size)
 {
     int             bytesRead;
     char           *buffer;
     SHA256_CTX      sha256;
+    uint64_t        bytesRead_sum;
 
     SHA256_Init(&sha256);
     buffer = malloc(bufsize);
     if (buffer == NULL) {
         return -1;
     }
+
+    bytesRead_sum = 0;
     while ((bytesRead = fread(buffer, 1, bufsize, file))) {
         SHA256_Update(&sha256, buffer, bytesRead);
+        bytesRead_sum += bytesRead;
     }
     SHA256_Final(hash, &sha256);
+    if (size != NULL) {
+        *size = bytesRead_sum;
+    }
     free(buffer);
     return 0;
 }
@@ -232,7 +243,7 @@ int file_check_integrity_hash(const char *path, const unsigned char *fhash)
         return -1;
     }
 
-    retval = calc_sha256(fh, hash);
+    retval = calc_sha256(fh, hash, NULL);
     if (retval != 0) {
         fprintf(stderr, "failed to calculate hash\n");
         fclose(fh);

@@ -73,4 +73,6 @@ bool            folder_tree_path_is_file(folder_tree * tree, mfconn * conn,
 int             folder_tree_open_file(folder_tree * tree, mfconn * conn,
                                       const char *path);
 
+int             folder_tree_tmp_open(folder_tree * tree);
+
 #endif

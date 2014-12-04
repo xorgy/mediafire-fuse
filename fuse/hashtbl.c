@@ -718,6 +718,28 @@ int folder_tree_readdir(folder_tree * tree, mfconn * conn, const char *path,
     return 0;
 }
 
+int folder_tree_tmp_open(folder_tree * tree)
+{
+    char           *tmpfilename;
+    int             fd;
+
+    tmpfilename = strdup_printf("%s/tmp_XXXXXX", tree->filecache);
+
+    fd = mkstemp(tmpfilename);
+
+    // this will cause the file to be removed immediately after it is closed
+    unlink(tmpfilename);
+
+    if (fd < 0) {
+        fprintf(stderr, "mkstemp failed\n");
+        return -1;
+    }
+
+    free(tmpfilename);
+
+    return fd;
+}
+
 int folder_tree_open_file(folder_tree * tree, mfconn * conn, const char *path)
 {
     struct h_entry *entry;
