@@ -67,6 +67,9 @@ int             mfshell_cmd_mkdir(mfshell * mfshell, int argc,
 int             mfshell_cmd_get(mfshell * mfshell, int argc,
                                 char *const argv[]);
 
+int             mfshell_cmd_put(mfshell * mfshell, int argc,
+                                char *const argv[]);
+
 int             mfshell_cmd_whoami(mfshell * mfshell, int argc,
                                    char *const argv[]);
 

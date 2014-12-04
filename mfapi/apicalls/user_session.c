@@ -65,6 +65,8 @@ mfconn_api_user_get_session_token(mfconn * conn, const char *server,
         mfconn_create_user_signature(conn, username, password, app_id,
                                      app_key);
 
+    // FIXME: username and password have to be urlencoded (maybe using
+    // curl_easy_escape)
     post_args = strdup_printf("email=%s"
                               "&password=%s"
                               "&application_id=%d"

@@ -95,4 +95,13 @@ int             mfconn_api_device_get_patch(mfconn * conn, mfpatch * patch,
                                             uint64_t source_revision,
                                             uint64_t target_revision);
 
+int             mfconn_api_upload_simple(mfconn * conn, const char *folderkey,
+                                         const char *file_path,
+                                         const char *file_name,
+                                         char **upload_key);
+
+int             mfconn_api_upload_poll_upload(mfconn * conn,
+                                              const char *upload_key,
+                                              int *status, int *fileerror);
+
 #endif

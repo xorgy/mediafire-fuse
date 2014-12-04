@@ -21,13 +21,18 @@
 #include <curl/curl.h>
 #include <curl/easy.h>
 #include <stdbool.h>
+#include <inttypes.h>
+#include <stdio.h>
 
 #include "http.h"
+#include "strings.h"
 
 static int      http_progress_cb(void *user_ptr, double dltotal, double dlnow,
                                  double ultotal, double ulnow);
 static size_t   http_read_buf_cb(char *data, size_t size, size_t nmemb,
                                  void *user_ptr);
+static size_t   http_read_file_cb(char *data, size_t size, size_t nmemb,
+                                  void *user_ptr);
 static size_t   http_write_buf_cb(char *data, size_t size, size_t nmemb,
                                   void *user_ptr);
 static size_t   http_write_file_cb(char *data, size_t size, size_t nmemb,
@@ -124,6 +129,7 @@ http_get_buf(mfhttp * conn, const char *url,
     int             retval;
 
     curl_easy_reset(conn->curl_handle);
+    conn->write_buf_len = 0;
     curl_easy_setopt(conn->curl_handle, CURLOPT_URL, url);
     curl_easy_setopt(conn->curl_handle, CURLOPT_READFUNCTION,
                      http_read_buf_cb);
@@ -139,7 +145,6 @@ http_get_buf(mfhttp * conn, const char *url,
     }
     if (data_handler != NULL)
         retval = data_handler(conn, data);
-    conn->write_buf_len = 0;
     return retval;
 }
 
@@ -192,6 +197,7 @@ http_post_buf(mfhttp * conn, const char *url, const char *post_args,
     int             retval;
 
     curl_easy_reset(conn->curl_handle);
+    conn->write_buf_len = 0;
     curl_easy_setopt(conn->curl_handle, CURLOPT_URL, url);
     curl_easy_setopt(conn->curl_handle, CURLOPT_READFUNCTION,
                      http_read_buf_cb);
@@ -200,8 +206,8 @@ http_post_buf(mfhttp * conn, const char *url, const char *post_args,
                      http_write_buf_cb);
     curl_easy_setopt(conn->curl_handle, CURLOPT_WRITEDATA, (void *)conn);
     curl_easy_setopt(conn->curl_handle, CURLOPT_POSTFIELDS, post_args);
-    retval = curl_easy_perform(conn->curl_handle);
     fprintf(stderr, "POST: %s\n", url);
+    retval = curl_easy_perform(conn->curl_handle);
     if (retval != CURLE_OK) {
         fprintf(stderr, "error curl_easy_perform \"%s\" \"%s\"\n\r",
                 curl_easy_strerror(retval), conn->error_buf);
@@ -209,7 +215,6 @@ http_post_buf(mfhttp * conn, const char *url, const char *post_args,
     }
     if (data_handler != NULL)
         retval = data_handler(conn, data);
-    conn->write_buf_len = 0;
     return retval;
 }
 
@@ -227,6 +232,7 @@ int http_get_file(mfhttp * conn, const char *url, const char *path)
     curl_easy_setopt(conn->curl_handle, CURLOPT_WRITEDATA, (void *)conn);
     // FIXME: handle fopen() return value
     conn->stream = fopen(path, "w+");
+    fprintf(stderr, "GET: %s\n", url);
     retval = curl_easy_perform(conn->curl_handle);
     fclose(conn->stream);
     if (retval != CURLE_OK) {
@@ -240,19 +246,88 @@ static          size_t
 http_write_file_cb(char *data, size_t size, size_t nmemb, void *user_ptr)
 {
     mfhttp         *conn;
+    size_t          ret;
 
     if (user_ptr == NULL)
         return 0;
     conn = (mfhttp *) user_ptr;
 
-    fwrite(data, size, nmemb, conn->stream);
+    ret = fwrite(data, size, nmemb, conn->stream);
 
     fprintf(stderr, "\r   %.0f / %.0f", conn->dl_now, conn->dl_len);
 
-    return size * nmemb;
+    return size * ret;
 }
 
-/*int
-http_post_file(mfhttp *conn, const char *url, const char *post_args, FILE *fd)
+static          size_t
+http_read_file_cb(char *data, size_t size, size_t nmemb, void *user_ptr)
 {
-}*/
+    mfhttp         *conn;
+    size_t          ret;
+
+    if (user_ptr == NULL)
+        return 0;
+    conn = (mfhttp *) user_ptr;
+
+    ret = fread(data, size, nmemb, conn->stream);
+
+    fprintf(stderr, "\r   %.0f / %.0f", conn->dl_now, conn->dl_len);
+
+    return size * ret;
+}
+
+int
+http_post_file(mfhttp * conn, const char *url, const char *path,
+               const char *filename, uint64_t filesize, const char *fhash,
+               int (*data_handler) (mfhttp * conn, void *data), void *data)
+{
+    struct curl_slist *custom_headers = NULL;
+    char           *tmpheader;
+    int             retval;
+
+    curl_easy_reset(conn->curl_handle);
+    conn->write_buf_len = 0;
+
+    // the following three pseudo headers are interpreted by the mediafire
+    // server
+    tmpheader = strdup_printf("x-filename: %s", filename);
+    custom_headers = curl_slist_append(custom_headers, tmpheader);
+    free(tmpheader);
+    tmpheader = strdup_printf("x-filesize: %" PRIu64, filesize);
+    custom_headers = curl_slist_append(custom_headers, tmpheader);
+    free(tmpheader);
+    tmpheader = strdup_printf("x-filehash: %s", fhash);
+    custom_headers = curl_slist_append(custom_headers, tmpheader);
+    free(tmpheader);
+    // when using POST, curl implicitly sets
+    // Content-Type: application/x-www-form-urlencoded
+    // make sure it is set to application/octet-stream instead
+    custom_headers = curl_slist_append(custom_headers,
+                                       "Content-Type: application/octet-stream");
+    // when using POST, curl implicitly sets Expect: 100-continue
+    // make sure it is not set
+    custom_headers = curl_slist_append(custom_headers, "Expect:");
+    curl_easy_setopt(conn->curl_handle, CURLOPT_POST, 1);
+    curl_easy_setopt(conn->curl_handle, CURLOPT_HTTPHEADER, custom_headers);
+    curl_easy_setopt(conn->curl_handle, CURLOPT_URL, url);
+    curl_easy_setopt(conn->curl_handle, CURLOPT_READFUNCTION,
+                     http_read_file_cb);
+    curl_easy_setopt(conn->curl_handle, CURLOPT_READDATA, (void *)conn);
+    curl_easy_setopt(conn->curl_handle, CURLOPT_WRITEFUNCTION,
+                     http_write_buf_cb);
+    curl_easy_setopt(conn->curl_handle, CURLOPT_WRITEDATA, (void *)conn);
+    curl_easy_setopt(conn->curl_handle, CURLOPT_POSTFIELDSIZE, filesize);
+
+    conn->stream = fopen(path, "r");
+    fprintf(stderr, "POST: %s\n", url);
+    retval = curl_easy_perform(conn->curl_handle);
+    fclose(conn->stream);
+    curl_slist_free_all(custom_headers);
+    if (retval != CURLE_OK) {
+        fprintf(stderr, "error curl_easy_perform %s\n\r", conn->error_buf);
+        return retval;
+    }
+    if (data_handler != NULL)
+        retval = data_handler(conn, data);
+    return retval;
+}

@@ -174,6 +174,69 @@ const char     *mfconn_create_call_signature(mfconn * conn, const char *url,
     return strdup((const char *)signature_hex);
 }
 
+const char     *mfconn_create_unsigned_get(mfconn * conn, int ssl,
+                                           const char *api, const char *fmt,
+                                           ...)
+{
+    char           *api_request = NULL;
+    char           *api_args = NULL;
+    int             bytes_to_alloc;
+    int             api_args_len;
+    int             api_len;
+    va_list         ap;
+
+    if (conn == NULL)
+        return NULL;
+    if (conn->server == NULL)
+        return NULL;
+
+    // make sure the api (ex: user/get_info.php) is sane
+    if (api == NULL)
+        return NULL;
+    api_len = strlen(api);
+    if (api_len < 3)
+        return NULL;
+
+    // calculate how big of a buffer we need
+    va_start(ap, fmt);
+    api_args_len = (vsnprintf(NULL, 0, fmt, ap) + 1);   // + 1 for NULL
+    va_end(ap);
+
+    // create the correctly sized buffer and process the args
+    api_args = (char *)calloc(api_args_len, sizeof(char));
+
+    // printf("\n\r%d\n\r",api_args_len);
+
+    va_start(ap, fmt);
+    vsnprintf(api_args, api_args_len, fmt, ap);
+    va_end(ap);
+
+    // correct user error of trailing slash
+    if (api[api_len - 1] == '/')
+        return NULL;
+
+    api_request = strdup_printf("%s//%s/api/%s",
+                                (ssl ? "https:" : "http:"), conn->server, api);
+
+    // compute the amount of space requred to realloc() the request
+    bytes_to_alloc = api_args_len;
+    bytes_to_alloc += strlen(api_request);
+    bytes_to_alloc += 1;        // null termination
+
+    // append api GET args to api request
+    api_request = (char *)realloc(api_request, bytes_to_alloc);
+    if (api_request == NULL) {
+        fprintf(stderr, "cannot allocate memory\n");
+        return NULL;
+    }
+
+    strncat(api_request, api_args, api_args_len);
+
+    free(api_args);
+
+    return api_request;
+}
+
 const char     *mfconn_create_signed_get(mfconn * conn, int ssl,
                                          const char *api, const char *fmt, ...)
 {

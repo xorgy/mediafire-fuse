@@ -27,7 +27,10 @@ add_library(mfapi SHARED
 	mfapi/apicalls/device_get_status.c
 	mfapi/apicalls/device_get_changes.c
 	mfapi/apicalls/device_get_patch.c
-	mfapi/apicalls/device_get_updates.c)
+	mfapi/apicalls/device_get_updates.c
+	mfapi/apicalls/upload_simple.c
+	mfapi/apicalls/upload_poll_upload.c
+	)
 
 add_library(mfutils SHARED
 	utils/http.c
@@ -46,6 +49,7 @@ add_executable(mediafire-shell
 	mfshell/commands/debug.c
 	mfshell/commands/file.c
 	mfshell/commands/get.c
+	mfshell/commands/put.c
 	mfshell/commands/help.c
 	mfshell/commands/host.c
 	mfshell/commands/lcd.c

@@ -34,6 +34,10 @@ void            mfconn_destroy(mfconn * conn);
 
 ssize_t         mfconn_download_direct(mffile * file, const char *local_dir);
 
+const char     *mfconn_create_unsigned_get(mfconn * conn, int ssl,
+                                           const char *api, const char *fmt,
+                                           ...);
+
 const char     *mfconn_create_signed_get(mfconn * conn, int ssl,
                                          const char *api, const char *fmt,
                                          ...);
