@@ -1376,8 +1376,12 @@ static int folder_tree_update_folder_info(folder_tree * tree, mfconn * conn,
  * ask the remote if there are changes after the locally stored revision
  *
  * if yes, integrate those changes
+ *
+ * the expect_changes parameter allows to skip the call to device/get_status
+ * because sometimes one knows that there should be a remote change, so it is
+ * useless to waste time on the additional call
  */
-void folder_tree_update(folder_tree * tree, mfconn * conn)
+void folder_tree_update(folder_tree * tree, mfconn * conn, bool expect_changes)
 {
     uint64_t        revision_remote;
     uint64_t        i;
@@ -1387,12 +1391,14 @@ void folder_tree_update(folder_tree * tree, mfconn * conn)
     const char     *key;
     uint64_t        revision;
 
-    mfconn_api_device_get_status(conn, &revision_remote);
-    mfconn_update_secret_key(conn);
+    if (!expect_changes) {
+        mfconn_api_device_get_status(conn, &revision_remote);
+        mfconn_update_secret_key(conn);
 
-    if (tree->revision == revision_remote) {
-        fprintf(stderr, "Request to update but nothing to do\n");
-        return;
+        if (tree->revision == revision_remote) {
+            fprintf(stderr, "Request to update but nothing to do\n");
+            return;
+        }
     }
 
     /*
@@ -1558,7 +1564,7 @@ int folder_tree_rebuild(folder_tree * tree, mfconn * conn)
      * call device/get_changes to get possible remote changes while we walked
      * the tree.
      */
-    folder_tree_update(tree, conn);
+    folder_tree_update(tree, conn, false);
 
     return 0;
 }

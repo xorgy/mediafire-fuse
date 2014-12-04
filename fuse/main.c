@@ -301,7 +301,7 @@ static void connect_mf(struct mediafirefs_user_options *options,
 
         fclose(fp);
 
-        folder_tree_update(ctx->tree, ctx->conn);
+        folder_tree_update(ctx->tree, ctx->conn, false);
     } else {
         // file doesn't exist
         fprintf(stderr, "creating new hashtable\n");

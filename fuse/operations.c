@@ -113,7 +113,7 @@ int mediafirefs_getattr(const char *path, struct stat *stbuf)
     size_t          i;
 
     ctx = fuse_get_context()->private_data;
-    folder_tree_update(ctx->tree, ctx->conn);
+    folder_tree_update(ctx->tree, ctx->conn, false);
     retval = folder_tree_getattr(ctx->tree, ctx->conn, path, stbuf);
 
     if (retval != 0) {
@@ -229,7 +229,7 @@ int mediafirefs_mkdir(const char *path, mode_t mode)
 
     free(dirname);
 
-    folder_tree_update(ctx->tree, ctx->conn);
+    folder_tree_update(ctx->tree, ctx->conn, true);
 
     return 0;
 }
@@ -265,7 +265,7 @@ int mediafirefs_rmdir(const char *path)
     }
 
     /* retrieve remote changes to not get out of sync */
-    folder_tree_update(ctx->tree, ctx->conn);
+    folder_tree_update(ctx->tree, ctx->conn, true);
 
     return 0;
 }
@@ -301,7 +301,7 @@ int mediafirefs_unlink(const char *path)
     }
 
     /* retrieve remote changes to not get out of sync */
-    folder_tree_update(ctx->tree, ctx->conn);
+    folder_tree_update(ctx->tree, ctx->conn, true);
 
     return 0;
 }
@@ -467,7 +467,7 @@ int mediafirefs_release(const char *path, struct fuse_file_info *file_info)
 
         free(upload_key);
 
-        folder_tree_update(ctx->tree, ctx->conn);
+        folder_tree_update(ctx->tree, ctx->conn, true);
         return 0;
     }
     // the file was not opened readonly and also existed on the remote
@@ -476,6 +476,6 @@ int mediafirefs_release(const char *path, struct fuse_file_info *file_info)
     // FIXME: not implemented yet
     close(openfile->fd);
     free(openfile);
-    folder_tree_update(ctx->tree, ctx->conn);
+    folder_tree_update(ctx->tree, ctx->conn, true);
     return -ENOSYS;
 }

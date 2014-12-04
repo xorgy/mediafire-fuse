@@ -45,7 +45,8 @@ int             folder_tree_readdir(folder_tree * tree, mfconn * conn,
                                     const char *path, void *buf,
                                     fuse_fill_dir_t filldir);
 
-void            folder_tree_update(folder_tree * tree, mfconn * conn);
+void            folder_tree_update(folder_tree * tree, mfconn * conn,
+                                   bool expect_changes);
 
 int             folder_tree_store(folder_tree * tree, FILE * stream);
 
