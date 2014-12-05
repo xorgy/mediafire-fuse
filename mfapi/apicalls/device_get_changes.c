@@ -26,7 +26,6 @@
 #include <stdio.h>
 
 #include "../../utils/http.h"
-#include "../../utils/json.h"
 #include "../mfconn.h"
 #include "../apicalls.h"        // IWYU pragma: keep
 
@@ -97,6 +96,7 @@ static int _decode_device_get_changes(mfhttp * conn, void *user_ptr)
     json_error_t    error;
     json_t         *root;
     json_t         *node;
+    json_t         *response;
     json_t         *data;
 
     json_t         *obj_array;
@@ -124,16 +124,16 @@ static int _decode_device_get_changes(mfhttp * conn, void *user_ptr)
         return -1;
     }
 
-    node = json_object_by_path(root, "response");
+    response = json_object_get(root, "response");
 
-    retval = mfapi_check_response(node, "device/get_changes");
+    retval = mfapi_check_response(response, "device/get_changes");
     if (retval != 0) {
         fprintf(stderr, "invalid response\n");
         json_decref(root);
         return retval;
     }
 
-    device_revision = json_object_get(node, "device_revision");
+    device_revision = json_object_get(response, "device_revision");
     if (device_revision == NULL) {
         fprintf(stderr,
                 "response/device_revision is not part of the result\n");
@@ -143,7 +143,7 @@ static int _decode_device_get_changes(mfhttp * conn, void *user_ptr)
 
     len_changes = 0;
 
-    node = json_object_by_path(root, "response/updated");
+    node = json_object_get(response, "updated");
 
     obj_array = json_object_get(node, "files");
     if (json_is_array(obj_array)) {
@@ -175,7 +175,7 @@ static int _decode_device_get_changes(mfhttp * conn, void *user_ptr)
         }
     }
 
-    node = json_object_by_path(root, "response/deleted");
+    node = json_object_get(response, "deleted");
 
     obj_array = json_object_get(node, "files");
     if (json_is_array(obj_array)) {

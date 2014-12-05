@@ -25,7 +25,6 @@
 #include <time.h>
 
 #include "../../utils/http.h"
-#include "../../utils/json.h"
 #include "../mfconn.h"
 #include "../file.h"
 #include "../apicalls.h"        // IWYU pragma: keep
@@ -93,7 +92,7 @@ static int _decode_file_get_info(mfhttp * conn, void *data)
         return -1;
     }
 
-    node = json_object_by_path(root, "response");
+    node = json_object_get(root, "response");
 
     retval = mfapi_check_response(node, "file/get_info");
     if (retval != 0) {
@@ -102,7 +101,7 @@ static int _decode_file_get_info(mfhttp * conn, void *data)
         return retval;
     }
 
-    node = json_object_by_path(root, "response/file_info");
+    node = json_object_get(node, "file_info");
 
     quickkey = json_object_get(node, "quickkey");
     if (quickkey != NULL)

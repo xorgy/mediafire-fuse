@@ -35,7 +35,6 @@ add_library(mfapi SHARED
 
 add_library(mfutils SHARED
 	utils/http.c
-	utils/json.c
 	utils/strings.c
 	utils/stringv.c
 	utils/xdelta3.c

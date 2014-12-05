@@ -28,7 +28,6 @@
 #include <openssl/sha.h>
 
 #include "../../utils/http.h"
-#include "../../utils/json.h"
 #include "../../utils/hash.h"
 #include "../mfconn.h"
 #include "../apicalls.h"        // IWYU pragma: keep
@@ -114,7 +113,7 @@ static int _decode_upload_simple(mfhttp * conn, void *user_ptr)
         return -1;
     }
 
-    node = json_object_by_path(root, "response");
+    node = json_object_get(root, "response");
 
     retval = mfapi_check_response(node, "upload/simple");
     if (retval != 0) {
@@ -123,7 +122,7 @@ static int _decode_upload_simple(mfhttp * conn, void *user_ptr)
         return retval;
     }
 
-    node = json_object_by_path(root, "response/doupload");
+    node = json_object_get(node, "doupload");
 
     j_obj = json_object_get(node, "key");
     if (j_obj != NULL) {

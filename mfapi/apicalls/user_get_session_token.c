@@ -26,7 +26,6 @@
 #include <string.h>
 
 #include "../../utils/http.h"
-#include "../../utils/json.h"
 #include "../../utils/strings.h"
 #include "../mfconn.h"
 #include "../apicalls.h"        // IWYU pragma: keep
@@ -116,7 +115,7 @@ static int _decode_get_session_token(mfhttp * conn, void *user_ptr)
         return -1;
     }
 
-    node = json_object_by_path(root, "response");
+    node = json_object_get(root, "response");
 
     retval = mfapi_check_response(node, "user/get_session_token");
     if (retval != 0) {

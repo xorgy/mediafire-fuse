@@ -22,7 +22,6 @@
 #include <stdlib.h>
 
 #include "../utils/http.h"
-#include "../utils/json.h"
 
 int mfapi_check_response(json_t * response, const char *apicall)
 {
@@ -90,7 +89,7 @@ int mfapi_decode_common(mfhttp * conn, void *user_ptr)
         return -1;
     }
 
-    node = json_object_by_path(root, "response");
+    node = json_object_get(root, "response");
 
     retval = mfapi_check_response(node, apicall);
     if (retval != 0) {

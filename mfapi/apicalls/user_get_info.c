@@ -22,7 +22,6 @@
 #include <stdlib.h>
 
 #include "../../utils/http.h"
-#include "../../utils/json.h"
 #include "../mfconn.h"
 #include "../apicalls.h"        // IWYU pragma: keep
 
@@ -73,7 +72,7 @@ static int _decode_user_get_info(mfhttp * conn, void *data)
         return -1;
     }
 
-    node = json_object_by_path(root, "response");
+    node = json_object_get(root, "response");
 
     retval = mfapi_check_response(node, "user/get_info");
     if (retval != 0) {
@@ -82,7 +81,7 @@ static int _decode_user_get_info(mfhttp * conn, void *data)
         return retval;
     }
 
-    node = json_object_by_path(root, "response/user_info");
+    node = json_object_get(node, "user_info");
 
     email = json_object_get(node, "email");
     if (email != NULL)

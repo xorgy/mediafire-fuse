@@ -25,7 +25,6 @@
 #include <stdlib.h>
 
 #include "../../utils/http.h"
-#include "../../utils/json.h"
 #include "../patch.h"
 #include "../mfconn.h"
 #include "../apicalls.h"        // IWYU pragma: keep
@@ -115,7 +114,7 @@ static int _decode_device_get_updates(mfhttp * conn, void *user_ptr)
         return -1;
     }
 
-    node = json_object_by_path(root, "response");
+    node = json_object_get(root, "response");
 
     retval = mfapi_check_response(node, "device/get_updates");
     if (retval != 0) {

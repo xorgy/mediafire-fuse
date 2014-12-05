@@ -24,7 +24,6 @@
 #include <stdio.h>
 
 #include "../../utils/http.h"
-#include "../../utils/json.h"
 #include "../mfconn.h"
 #include "../patch.h"
 #include "../apicalls.h"        // IWYU pragma: keep
@@ -94,7 +93,7 @@ static int _decode_device_get_patch(mfhttp * conn, void *data)
         return -1;
     }
 
-    node = json_object_by_path(root, "response");
+    node = json_object_get(root, "response");
 
     retval = mfapi_check_response(node, "device/get_patch");
     if (retval != 0) {

@@ -26,7 +26,6 @@
 #include <stdio.h>
 
 #include "../../utils/http.h"
-#include "../../utils/json.h"
 #include "../folder.h"
 #include "../file.h"
 #include "../mfconn.h"
@@ -131,7 +130,7 @@ static int _decode_folder_get_content_folders(mfhttp * conn, void *user_ptr)
         return -1;
     }
 
-    node = json_object_by_path(root, "response");
+    node = json_object_get(root, "response");
 
     retval = mfapi_check_response(node, "folder/get_content");
     if (retval != 0) {
@@ -140,10 +139,7 @@ static int _decode_folder_get_content_folders(mfhttp * conn, void *user_ptr)
         return retval;
     }
 
-    /*json_t *result = json_object_by_path(root, "response/action");
-       fprintf(stderr, "response/action: %s\n", (char*)json_string_value(result)); */
-
-    node = json_object_by_path(root, "response/folder_content");
+    node = json_object_get(node, "folder_content");
 
     folders_array = json_object_get(node, "folders");
     if (!json_is_array(folders_array)) {
@@ -247,7 +243,7 @@ static int _decode_folder_get_content_files(mfhttp * conn, void *user_ptr)
         return -1;
     }
 
-    node = json_object_by_path(root, "response");
+    node = json_object_get(root, "response");
 
     retval = mfapi_check_response(node, "folder/get_content");
     if (retval != 0) {
@@ -256,7 +252,7 @@ static int _decode_folder_get_content_files(mfhttp * conn, void *user_ptr)
         return retval;
     }
 
-    node = json_object_by_path(root, "response/folder_content");
+    node = json_object_get(node, "folder_content");
 
     files_array = json_object_get(node, "files");
     if (!json_is_array(files_array)) {
