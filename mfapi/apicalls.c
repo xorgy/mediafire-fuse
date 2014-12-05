@@ -43,8 +43,9 @@ int mfapi_check_response(json_t * response, const char *apicall)
             fprintf(stderr, "unknown error code\n");
             error_code = -1;
         } else {
-            fprintf(stderr, "error code: %s\n", json_string_value(j_obj));
-            error_code = atol(json_string_value(j_obj));
+            fprintf(stderr, "error code: %" JSON_INTEGER_FORMAT "\n",
+                    json_integer_value(j_obj));
+            error_code = json_integer_value(j_obj);
             if (error_code == 0)
                 error_code = -1;
         }
