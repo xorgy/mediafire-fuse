@@ -93,7 +93,7 @@ static int _decode_file_get_info(mfhttp * conn, void *data)
         return -1;
     }
 
-    node = json_object_by_path(root, "response/file_info");
+    node = json_object_by_path(root, "response");
 
     retval = mfapi_check_response(node, "file/get_info");
     if (retval != 0) {
@@ -101,6 +101,8 @@ static int _decode_file_get_info(mfhttp * conn, void *data)
         json_decref(root);
         return retval;
     }
+
+    node = json_object_by_path(root, "response/file_info");
 
     quickkey = json_object_get(node, "quickkey");
     if (quickkey != NULL)
