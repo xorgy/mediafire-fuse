@@ -58,7 +58,8 @@ int mfconn_api_folder_create(mfconn * conn, const char *parent,
     }
 
     http = http_create();
-    retval = http_get_buf(http, api_call, NULL, NULL);
+    retval = http_get_buf(http, api_call, mfapi_decode_common,
+                          "folder/create");
     http_destroy(http);
 
     free((void *)api_call);

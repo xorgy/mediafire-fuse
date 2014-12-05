@@ -95,6 +95,7 @@ static int _decode_device_get_updates(mfhttp * conn, void *user_ptr)
 
     int             array_sz;
     int             i;
+    int             retval;
 
     mfpatch      ***patches;
     mfpatch        *tmp_patch;
@@ -107,7 +108,20 @@ static int _decode_device_get_updates(mfhttp * conn, void *user_ptr)
 
     root = http_parse_buf_json(conn, 0, &error);
 
+    if (root == NULL) {
+        fprintf(stderr, "http_parse_buf_json failed at line %d\n", error.line);
+        fprintf(stderr, "error message: %s\n", error.text);
+        return -1;
+    }
+
     node = json_object_by_path(root, "response");
+
+    retval = mfapi_check_response(node, "device/get_updates");
+    if (retval != 0) {
+        fprintf(stderr, "invalid response\n");
+        json_decref(root);
+        return retval;
+    }
 
     len_patches = 0;
     obj_array = json_object_get(node, "updates");
@@ -149,8 +163,7 @@ static int _decode_device_get_updates(mfhttp * conn, void *user_ptr)
     // write an empty last element
     (*patches)[len_patches - 1] = NULL;
 
-    if (root != NULL)
-        json_decref(root);
+    json_decref(root);
 
     return 0;
 }

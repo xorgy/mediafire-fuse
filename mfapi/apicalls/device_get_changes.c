@@ -103,6 +103,7 @@ static int _decode_device_get_changes(mfhttp * conn, void *user_ptr)
     json_t         *parent;
     json_t         *revision;
     json_t         *device_revision;
+    int             retval;
 
     int             array_sz;
     int             i = 0;
@@ -116,12 +117,26 @@ static int _decode_device_get_changes(mfhttp * conn, void *user_ptr)
 
     root = http_parse_buf_json(conn, 0, &error);
 
+    if (root == NULL) {
+        fprintf(stderr, "http_parse_buf_json failed at line %d\n", error.line);
+        fprintf(stderr, "error message: %s\n", error.text);
+        return -1;
+    }
+
     node = json_object_by_path(root, "response");
+
+    retval = mfapi_check_response(node, "device/get_changes");
+    if (retval != 0) {
+        fprintf(stderr, "invalid response\n");
+        json_decref(root);
+        return retval;
+    }
 
     device_revision = json_object_get(node, "device_revision");
     if (device_revision == NULL) {
         fprintf(stderr,
                 "response/device_revision is not part of the result\n");
+        json_decref(root);
         return -1;
     }
 
@@ -204,8 +219,7 @@ static int _decode_device_get_changes(mfhttp * conn, void *user_ptr)
     (*changes)[len_changes - 1].revision =
         atoll(json_string_value(device_revision));
 
-    if (root != NULL)
-        json_decref(root);
+    json_decref(root);
 
     return 0;
 }

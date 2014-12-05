@@ -96,11 +96,12 @@ static int _decode_get_session_token(mfhttp * conn, void *user_ptr)
 {
     json_error_t    error;
     json_t         *root = NULL;
-    json_t         *data;
+    json_t         *node;
     json_t         *session_token;
     json_t         *secret_key;
     json_t         *secret_time;
     struct user_get_session_token_response *response;
+    int             retval;
 
     if (user_ptr == NULL)
         return -1;
@@ -109,13 +110,22 @@ static int _decode_get_session_token(mfhttp * conn, void *user_ptr)
 
     root = http_parse_buf_json(conn, 0, &error);
 
-    data = json_object_by_path(root, "response");
-    if (data == NULL) {
-        fprintf(stderr, "json: no /response content\n");
+    if (root == NULL) {
+        fprintf(stderr, "http_parse_buf_json failed at line %d\n", error.line);
+        fprintf(stderr, "error message: %s\n", error.text);
         return -1;
     }
 
-    session_token = json_object_get(data, "session_token");
+    node = json_object_by_path(root, "response");
+
+    retval = mfapi_check_response(node, "user/get_session_token");
+    if (retval != 0) {
+        fprintf(stderr, "invalid response\n");
+        json_decref(root);
+        return retval;
+    }
+
+    session_token = json_object_get(node, "session_token");
     if (session_token == NULL) {
         json_decref(root);
         fprintf(stderr, "json: no /session_token content\n");
@@ -124,7 +134,7 @@ static int _decode_get_session_token(mfhttp * conn, void *user_ptr)
 
     response->session_token = strdup(json_string_value(session_token));
 
-    secret_key = json_object_get(data, "secret_key");
+    secret_key = json_object_get(node, "secret_key");
     if (secret_key != NULL)
         response->secret_key = atoll(json_string_value(secret_key));
 
@@ -132,7 +142,7 @@ static int _decode_get_session_token(mfhttp * conn, void *user_ptr)
        time looks like a float but we must store it as a string to
        remain congruent with the server on decimal place presentation.
      */
-    secret_time = json_object_get(data, "time");
+    secret_time = json_object_get(node, "time");
     if (secret_time != NULL)
         response->secret_time = strdup(json_string_value(secret_time));
 

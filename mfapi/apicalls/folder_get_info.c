@@ -92,6 +92,21 @@ static int _decode_folder_get_info(mfhttp * conn, void *data)
 
     root = http_parse_buf_json(conn, 0, &error);
 
+    if (root == NULL) {
+        fprintf(stderr, "http_parse_buf_json failed at line %d\n", error.line);
+        fprintf(stderr, "error message: %s\n", error.text);
+        return -1;
+    }
+
+    node = json_object_by_path(root, "response");
+
+    retval = mfapi_check_response(node, "folder/get_info");
+    if (retval != 0) {
+        fprintf(stderr, "invalid response\n");
+        json_decref(root);
+        return retval;
+    }
+
     node = json_object_by_path(root, "response/folder_info");
 
     folderkey = json_object_get(node, "folderkey");
@@ -129,8 +144,7 @@ static int _decode_folder_get_info(mfhttp * conn, void *data)
     if (folderkey == NULL)
         retval = -1;
 
-    if (root != NULL)
-        json_decref(root);
+    json_decref(root);
 
     return retval;
 }

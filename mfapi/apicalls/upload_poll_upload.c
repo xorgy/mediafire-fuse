@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stddef.h>
+#include <stdio.h>
 
 #include "../../utils/http.h"
 #include "../../utils/json.h"
@@ -74,6 +75,7 @@ static int _decode_upload_poll_upload(mfhttp * conn, void *user_ptr)
     json_t         *root;
     json_t         *node;
     json_t         *j_obj;
+    int             retval;
 
     struct upload_poll_upload_response *response;
 
@@ -85,6 +87,21 @@ static int _decode_upload_poll_upload(mfhttp * conn, void *user_ptr)
     response->fileerror = 0;
 
     root = http_parse_buf_json(conn, 0, &error);
+
+    if (root == NULL) {
+        fprintf(stderr, "http_parse_buf_json failed at line %d\n", error.line);
+        fprintf(stderr, "error message: %s\n", error.text);
+        return -1;
+    }
+
+    node = json_object_by_path(root, "response");
+
+    retval = mfapi_check_response(node, "upload/poll_upload");
+    if (retval != 0) {
+        fprintf(stderr, "invalid response\n");
+        json_decref(root);
+        return retval;
+    }
 
     node = json_object_by_path(root, "response/doupload");
 
@@ -105,8 +122,7 @@ static int _decode_upload_poll_upload(mfhttp * conn, void *user_ptr)
         response->fileerror = atol(json_string_value(j_obj));
     }
 
-    if (root != NULL)
-        json_decref(root);
+    json_decref(root);
 
     return 0;
 }

@@ -45,7 +45,7 @@ int mfconn_api_file_delete(mfconn * conn, const char *quickkey)
                                         quickkey);
 
     http = http_create();
-    retval = http_get_buf(http, api_call, NULL, NULL);
+    retval = http_get_buf(http, api_call, mfapi_decode_common, "file/delete");
     http_destroy(http);
 
     free((void *)api_call);

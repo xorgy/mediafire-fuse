@@ -59,11 +59,27 @@ static int _decode_user_get_info(mfhttp * conn, void *data)
     json_t         *email;
     json_t         *first_name;
     json_t         *last_name;
+    int             retval;
 
     if (data != NULL)
         return -1;
 
     root = http_parse_buf_json(conn, 0, &error);
+
+    if (root == NULL) {
+        fprintf(stderr, "http_parse_buf_json failed at line %d\n", error.line);
+        fprintf(stderr, "error message: %s\n", error.text);
+        return -1;
+    }
+
+    node = json_object_by_path(root, "response");
+
+    retval = mfapi_check_response(node, "user/get_info");
+    if (retval != 0) {
+        fprintf(stderr, "invalid response\n");
+        json_decref(root);
+        return retval;
+    }
 
     node = json_object_by_path(root, "response/user_info");
 
@@ -81,8 +97,7 @@ static int _decode_user_get_info(mfhttp * conn, void *data)
 
     printf("\n\r");
 
-    if (root != NULL)
-        json_decref(root);
+    json_decref(root);
 
     return 0;
 }

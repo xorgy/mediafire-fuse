@@ -45,7 +45,8 @@ int mfconn_api_folder_delete(mfconn * conn, const char *folderkey)
                                         folderkey);
 
     http = http_create();
-    retval = http_get_buf(http, api_call, NULL, NULL);
+    retval = http_get_buf(http, api_call, mfapi_decode_common,
+                          "folder/delete");
     http_destroy(http);
 
     free((void *)api_call);

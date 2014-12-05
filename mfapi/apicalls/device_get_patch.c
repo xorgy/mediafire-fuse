@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <inttypes.h>
+#include <stdio.h>
 
 #include "../../utils/http.h"
 #include "../../utils/json.h"
@@ -77,6 +78,7 @@ static int _decode_device_get_patch(mfhttp * conn, void *data)
     mfpatch        *patch;
     json_t         *root;
     json_t         *node;
+    int             retval;
 
     if (data == NULL)
         return -1;
@@ -85,7 +87,20 @@ static int _decode_device_get_patch(mfhttp * conn, void *data)
 
     root = http_parse_buf_json(conn, 0, &error);
 
+    if (root == NULL) {
+        fprintf(stderr, "http_parse_buf_json failed at line %d\n", error.line);
+        fprintf(stderr, "error message: %s\n", error.text);
+        return -1;
+    }
+
     node = json_object_by_path(root, "response");
+
+    retval = mfapi_check_response(node, "device/get_patch");
+    if (retval != 0) {
+        fprintf(stderr, "invalid response\n");
+        json_decref(root);
+        return retval;
+    }
 
     obj = json_object_get(node, "patch_hash");
     if (obj != NULL)
@@ -95,8 +110,7 @@ static int _decode_device_get_patch(mfhttp * conn, void *data)
     if (obj != NULL)
         patch_set_link(patch, json_string_value(obj));
 
-    if (root != NULL)
-        json_decref(root);
+    json_decref(root);
 
     return 0;
 }

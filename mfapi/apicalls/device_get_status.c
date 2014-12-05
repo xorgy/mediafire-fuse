@@ -61,6 +61,7 @@ static int _decode_device_get_status(mfhttp * conn, void *data)
     json_t         *node;
     json_t         *device_revision;
     uint64_t       *revision;
+    int             retval;
 
     revision = (uint64_t *) data;
     if (data == NULL)
@@ -68,7 +69,20 @@ static int _decode_device_get_status(mfhttp * conn, void *data)
 
     root = http_parse_buf_json(conn, 0, &error);
 
+    if (root == NULL) {
+        fprintf(stderr, "http_parse_buf_json failed at line %d\n", error.line);
+        fprintf(stderr, "error message: %s\n", error.text);
+        return -1;
+    }
+
     node = json_object_by_path(root, "response");
+
+    retval = mfapi_check_response(node, "device/get_status");
+    if (retval != 0) {
+        fprintf(stderr, "invalid response\n");
+        json_decref(root);
+        return retval;
+    }
 
     device_revision = json_object_get(node, "device_revision");
     if (device_revision != NULL) {
@@ -77,8 +91,7 @@ static int _decode_device_get_status(mfhttp * conn, void *data)
         *revision = atoll(json_string_value(device_revision));
     }
 
-    if (root != NULL)
-        json_decref(root);
+    json_decref(root);
 
     return 0;
 }

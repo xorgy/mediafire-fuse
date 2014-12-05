@@ -97,6 +97,7 @@ static int _decode_upload_simple(mfhttp * conn, void *user_ptr)
     json_t         *root;
     json_t         *node;
     json_t         *j_obj;
+    int             retval;
 
     char          **upload_key;
 
@@ -105,6 +106,21 @@ static int _decode_upload_simple(mfhttp * conn, void *user_ptr)
         return -1;
 
     root = http_parse_buf_json(conn, 0, &error);
+
+    if (root == NULL) {
+        fprintf(stderr, "http_parse_buf_json failed at line %d\n", error.line);
+        fprintf(stderr, "error message: %s\n", error.text);
+        return -1;
+    }
+
+    node = json_object_by_path(root, "response");
+
+    retval = mfapi_check_response(node, "upload/simple");
+    if (retval != 0) {
+        fprintf(stderr, "invalid response\n");
+        json_decref(root);
+        return retval;
+    }
 
     node = json_object_by_path(root, "response/doupload");
 
@@ -119,8 +135,7 @@ static int _decode_upload_simple(mfhttp * conn, void *user_ptr)
         *upload_key = NULL;
     }
 
-    if (root != NULL)
-        json_decref(root);
+    json_decref(root);
 
     return 0;
 }

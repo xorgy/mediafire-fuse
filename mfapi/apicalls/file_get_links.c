@@ -85,7 +85,20 @@ static int _decode_file_get_links(mfhttp * conn, void *data)
 
     root = http_parse_buf_json(conn, 0, &error);
 
+    if (root == NULL) {
+        fprintf(stderr, "http_parse_buf_json failed at line %d\n", error.line);
+        fprintf(stderr, "error message: %s\n", error.text);
+        return -1;
+    }
+
     node = json_object_by_path(root, "response");
+
+    retval = mfapi_check_response(node, "file/get_links");
+    if (retval != 0) {
+        fprintf(stderr, "invalid response\n");
+        json_decref(root);
+        return retval;
+    }
 
     links_array = json_object_get(node, "links");
     if (!json_is_array(links_array)) {
@@ -116,8 +129,7 @@ static int _decode_file_get_links(mfhttp * conn, void *data)
     if (share_link == NULL)
         retval = -1;
 
-    if (root != NULL)
-        json_decref(root);
+    json_decref(root);
 
     return retval;
 }

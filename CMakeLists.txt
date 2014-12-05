@@ -15,6 +15,7 @@ add_library(mfapi SHARED
 	mfapi/file.c
 	mfapi/folder.c
 	mfapi/patch.c
+	mfapi/apicalls.c
 	mfapi/apicalls/file_get_info.c
 	mfapi/apicalls/user_get_info.c
 	mfapi/apicalls/file_get_links.c

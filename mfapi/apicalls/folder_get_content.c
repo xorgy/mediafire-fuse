@@ -109,6 +109,7 @@ static int _decode_folder_get_content_folders(mfhttp * conn, void *user_ptr)
 
     char           *ret;
     struct tm       tm;
+    int             retval;
 
     int             array_sz;
     int             i = 0;
@@ -122,6 +123,21 @@ static int _decode_folder_get_content_folders(mfhttp * conn, void *user_ptr)
         return -1;
 
     root = http_parse_buf_json(conn, 0, &error);
+
+    if (root == NULL) {
+        fprintf(stderr, "http_parse_buf_json failed at line %d\n", error.line);
+        fprintf(stderr, "error message: %s\n", error.text);
+        return -1;
+    }
+
+    node = json_object_by_path(root, "response");
+
+    retval = mfapi_check_response(node, "folder/get_content");
+    if (retval != 0) {
+        fprintf(stderr, "invalid response\n");
+        json_decref(root);
+        return retval;
+    }
 
     /*json_t *result = json_object_by_path(root, "response/action");
        fprintf(stderr, "response/action: %s\n", (char*)json_string_value(result)); */
@@ -206,6 +222,7 @@ static int _decode_folder_get_content_files(mfhttp * conn, void *user_ptr)
     json_t         *quickkey;
     json_t         *file_name;
     json_t         *j_obj;
+    int             retval;
 
     char           *ret;
     struct tm       tm;
@@ -222,6 +239,21 @@ static int _decode_folder_get_content_files(mfhttp * conn, void *user_ptr)
         return -1;
 
     root = http_parse_buf_json(conn, 0, &error);
+
+    if (root == NULL) {
+        fprintf(stderr, "http_parse_buf_json failed at line %d\n", error.line);
+        fprintf(stderr, "error message: %s\n", error.text);
+        return -1;
+    }
+
+    node = json_object_by_path(root, "response");
+
+    retval = mfapi_check_response(node, "folder/get_content");
+    if (retval != 0) {
+        fprintf(stderr, "invalid response\n");
+        json_decref(root);
+        return retval;
+    }
 
     node = json_object_by_path(root, "response/folder_content");
 
@@ -290,8 +322,7 @@ static int _decode_folder_get_content_files(mfhttp * conn, void *user_ptr)
     // write an empty last element
     (*mffile_result)[len_mffile_result - 1] = NULL;
 
-    if (root != NULL)
-        json_decref(root);
+    json_decref(root);
 
     return 0;
 }

@@ -20,6 +20,7 @@
 #ifndef _MFAPI_APICALLS_H_
 #define _MFAPI_APICALLS_H_
 
+#include <jansson.h>
 #include <stdint.h>
 #include <stdio.h>
 
@@ -27,6 +28,7 @@
 #include "folder.h"
 #include "patch.h"
 #include "mfconn.h"
+#include "../utils/http.h"
 
 #define MFAPI_MAX_LEN_KEY 15
 #define MFAPI_MAX_LEN_NAME 255
@@ -45,6 +47,10 @@ struct mfconn_device_change {
     uint64_t        revision;
     char            parent[16];
 };
+
+int             mfapi_check_response(json_t * response, const char *apicall);
+
+int             mfapi_decode_common(mfhttp * conn, void *user_ptr);
 
 int             mfconn_api_file_get_info(mfconn * conn, mffile * file,
                                          const char *quickkey);
