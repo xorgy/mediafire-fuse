@@ -80,7 +80,6 @@ int mfshell_cmd_folder(mfshell * mfshell, int argc, char *const argv[])
     if (retval != 0) {
         fprintf(stderr, "api call unsuccessful\n");
     }
-    mfconn_update_secret_key(mfshell->conn);
 
     folderkey = folder_get_key(folder);
     name = folder_get_name(folder);

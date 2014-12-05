@@ -46,7 +46,6 @@ int mfshell_cmd_status(mfshell * mfshell, int argc, char *const argv[])
     }
     // then files
     retval = mfconn_api_device_get_status(mfshell->conn, &revision);
-    mfconn_update_secret_key(mfshell->conn);
     if (retval == 0) {
         printf("device_revision: %" PRIu64 "\n", revision);
     } else {

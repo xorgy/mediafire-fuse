@@ -73,7 +73,6 @@ int mfshell_cmd_get(mfshell * mfshell, int argc, char *const argv[])
 
     // get file name
     retval = mfconn_api_file_get_info(mfshell->conn, file, (char *)quickkey);
-    mfconn_update_secret_key(mfshell->conn);
 
     if (retval == -1) {
         file_free(file);
@@ -81,7 +80,6 @@ int mfshell_cmd_get(mfshell * mfshell, int argc, char *const argv[])
     }
     // request a direct download (streaming) link
     retval = mfconn_api_file_get_links(mfshell->conn, file, (char *)quickkey);
-    mfconn_update_secret_key(mfshell->conn);
 
     if (retval == -1) {
         file_free(file);

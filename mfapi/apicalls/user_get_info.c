@@ -45,6 +45,7 @@ int mfconn_api_user_get_info(mfconn * conn)
     http = http_create();
     retval = http_get_buf(http, api_call, _decode_user_get_info, NULL);
     http_destroy(http);
+    mfconn_update_secret_key(conn);
 
     free((void *)api_call);
 

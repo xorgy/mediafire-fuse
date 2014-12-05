@@ -53,7 +53,6 @@ int mfshell_cmd_rmdir(mfshell * mfshell, int argc, char *const argv[])
     }
 
     retval = mfconn_api_folder_delete(mfshell->conn, folderkey);
-    mfconn_update_secret_key(mfshell->conn);
 
     return retval;
 }

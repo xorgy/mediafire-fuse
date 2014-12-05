@@ -64,7 +64,6 @@ int mfshell_cmd_links(mfshell * mfshell, int argc, char *const argv[])
     if (retval != 0) {
         fprintf(stderr, "api call unsuccessful\n");
     }
-    mfconn_update_secret_key(mfshell->conn);
 
     share_link = file_get_share_link(file);
     direct_link = file_get_direct_link(file);

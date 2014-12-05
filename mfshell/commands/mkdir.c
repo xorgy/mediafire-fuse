@@ -54,7 +54,6 @@ int mfshell_cmd_mkdir(mfshell * mfshell, int argc, char *const argv[])
 
     retval =
         mfconn_api_folder_create(mfshell->conn, folder_curr, (char *)name);
-    mfconn_update_secret_key(mfshell->conn);
 
     return retval;
 }

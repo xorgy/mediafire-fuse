@@ -76,7 +76,6 @@ int mfshell_cmd_updates(mfshell * mfshell, int argc, char *const argv[])
 
     retval = mfconn_api_device_get_updates(mfshell->conn, quickkey, revision,
                                            target_revision, &patches);
-    mfconn_update_secret_key(mfshell->conn);
 
     if (retval != 0) {
         fprintf(stderr, "api call unsuccessful\n");

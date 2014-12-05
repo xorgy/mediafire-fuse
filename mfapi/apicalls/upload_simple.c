@@ -84,6 +84,7 @@ mfconn_api_upload_simple(mfconn * conn, const char *folderkey,
                             file_size, file_hash,
                             _decode_upload_simple, upload_key);
     http_destroy(http);
+    mfconn_update_secret_key(conn);
 
     free(file_hash);
     free((void *)api_call);

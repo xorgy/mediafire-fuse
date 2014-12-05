@@ -136,7 +136,6 @@ static int filecache_download_file(const char *filecache_path,
 
     file = file_alloc();
     retval = mfconn_api_file_get_links(conn, file, (char *)quickkey);
-    mfconn_update_secret_key(conn);
 
     if (retval == -1) {
         fprintf(stderr, "mfconn_api_file_get_links failed\n");
@@ -187,7 +186,6 @@ static int filecache_update_file(const char *filecache_path, mfconn * conn,
     retval = mfconn_api_device_get_updates(conn, quickkey,
                                            local_revision, remote_revision,
                                            &patches);
-    mfconn_update_secret_key(conn);
 
     if (retval != 0) {
         fprintf(stderr, "device/get_updates api call unsuccessful\n");
@@ -305,7 +303,6 @@ static int filecache_download_patch(mfconn * conn, const char *quickkey,
     patch = patch_alloc();
     retval = mfconn_api_device_get_patch(conn, patch, quickkey,
                                          source_revision, target_revision);
-    mfconn_update_secret_key(conn);
 
     if (retval == -1) {
         fprintf(stderr, "mfconn_api_device_get_patch failed\n");

@@ -89,6 +89,7 @@ mfconn_api_folder_get_content(mfconn * conn, int mode, const char *folderkey,
                          _decode_folder_get_content_files,
                          (void *)mffile_result);
     http_destroy(http);
+    mfconn_update_secret_key(conn);
 
     free((void *)api_call);
 

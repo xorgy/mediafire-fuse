@@ -1076,7 +1076,6 @@ static int folder_tree_rebuild_helper(folder_tree * tree, mfconn * conn,
     retval =
         mfconn_api_folder_get_content(conn, 0, curr_entry->key, &folder_result,
                                       NULL);
-    mfconn_update_secret_key(conn);
     if (retval != 0) {
         fprintf(stderr, "folder/get_content failed\n");
         if (folder_result != NULL) {
@@ -1105,7 +1104,6 @@ static int folder_tree_rebuild_helper(folder_tree * tree, mfconn * conn,
     retval =
         mfconn_api_folder_get_content(conn, 1, curr_entry->key, NULL,
                                       &file_result);
-    mfconn_update_secret_key(conn);
     if (retval != 0) {
         fprintf(stderr, "folder/get_content failed\n");
         if (file_result != NULL) {
@@ -1270,7 +1268,6 @@ static int folder_tree_update_file_info(folder_tree * tree, mfconn * conn,
     file = file_alloc();
 
     retval = mfconn_api_file_get_info(conn, file, key);
-    mfconn_update_secret_key(conn);
     if (retval != 0) {
         fprintf(stderr, "api call unsuccessful\n");
         /* maybe there is a different reason but for now just assume that an
@@ -1332,7 +1329,6 @@ static int folder_tree_update_folder_info(folder_tree * tree, mfconn * conn,
     folder = folder_alloc();
 
     retval = mfconn_api_folder_get_info(conn, folder, key);
-    mfconn_update_secret_key(conn);
     if (retval != 0) {
         fprintf(stderr, "api call unsuccessful\n");
         /* maybe there is a different reason but for now just assume that an
@@ -1393,7 +1389,6 @@ void folder_tree_update(folder_tree * tree, mfconn * conn, bool expect_changes)
 
     if (!expect_changes) {
         mfconn_api_device_get_status(conn, &revision_remote);
-        mfconn_update_secret_key(conn);
 
         if (tree->revision == revision_remote) {
             fprintf(stderr, "Request to update but nothing to do\n");
@@ -1419,7 +1414,6 @@ void folder_tree_update(folder_tree * tree, mfconn * conn, bool expect_changes)
 
     changes = NULL;
     retval = mfconn_api_device_get_changes(conn, tree->revision, &changes);
-    mfconn_update_secret_key(conn);
     if (retval != 0) {
         fprintf(stderr, "device/get_changes() failed\n");
         free(changes);
@@ -1542,7 +1536,6 @@ int folder_tree_rebuild(folder_tree * tree, mfconn * conn)
 
     /* get remote device revision before walking the tree */
     ret = mfconn_api_device_get_status(conn, &revision_before);
-    mfconn_update_secret_key(conn);
     if (ret != 0) {
         fprintf(stderr, "device/get_status call unsuccessful\n");
         return -1;

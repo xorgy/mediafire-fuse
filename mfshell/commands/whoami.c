@@ -45,7 +45,6 @@ int mfshell_cmd_whoami(mfshell * mfshell, int argc, char *const argv[])
     }
 
     retval = mfconn_api_user_get_info(mfshell->conn);
-    mfconn_update_secret_key(mfshell->conn);
 
     return retval;
 }

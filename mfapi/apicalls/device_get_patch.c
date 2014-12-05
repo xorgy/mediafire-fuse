@@ -65,6 +65,7 @@ int mfconn_api_device_get_patch(mfconn * conn, mfpatch * patch,
     retval = http_get_buf(http, api_call, _decode_device_get_patch,
                           (void *)patch);
     http_destroy(http);
+    mfconn_update_secret_key(conn);
 
     free((void *)api_call);
 

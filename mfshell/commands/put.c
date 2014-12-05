@@ -72,7 +72,6 @@ int mfshell_cmd_put(mfshell * mfshell, int argc, char *const argv[])
     retval = mfconn_api_upload_simple(mfshell->conn,
                                       folder_get_key(mfshell->folder_curr),
                                       fh, file_name, &upload_key);
-    mfconn_update_secret_key(mfshell->conn);
 
     fclose(fh);
     free(temp);

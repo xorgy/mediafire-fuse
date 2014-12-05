@@ -220,7 +220,6 @@ int mediafirefs_mkdir(const char *path, mode_t mode)
     }
 
     retval = mfconn_api_folder_create(ctx->conn, key, basename);
-    mfconn_update_secret_key(ctx->conn);
     if (retval != 0) {
         fprintf(stderr, "mfconn_api_folder_create unsuccessful\n");
         // FIXME: find better errno in this case
@@ -257,7 +256,6 @@ int mediafirefs_rmdir(const char *path)
     }
 
     retval = mfconn_api_folder_delete(ctx->conn, key);
-    mfconn_update_secret_key(ctx->conn);
     if (retval != 0) {
         fprintf(stderr, "mfconn_api_folder_create unsuccessful\n");
         // FIXME: find better errno in this case
@@ -293,7 +291,6 @@ int mediafirefs_unlink(const char *path)
     }
 
     retval = mfconn_api_file_delete(ctx->conn, key);
-    mfconn_update_secret_key(ctx->conn);
     if (retval != 0) {
         fprintf(stderr, "mfconn_api_file_create unsuccessful\n");
         // FIXME: find better errno in this case
@@ -431,7 +428,6 @@ int mediafirefs_release(const char *path, struct fuse_file_info *file_info)
 
         retval = mfconn_api_upload_simple(ctx->conn, folder_key,
                                           fh, file_name, &upload_key);
-        mfconn_update_secret_key(ctx->conn);
 
         fclose(fh);
         free(temp1);

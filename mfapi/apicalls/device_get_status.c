@@ -48,6 +48,7 @@ int mfconn_api_device_get_status(mfconn * conn, uint64_t * revision)
         http_get_buf(http, api_call, _decode_device_get_status,
                      (void *)revision);
     http_destroy(http);
+    mfconn_update_secret_key(conn);
 
     free((void *)api_call);
 

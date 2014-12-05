@@ -61,6 +61,7 @@ int mfconn_api_folder_create(mfconn * conn, const char *parent,
     retval = http_get_buf(http, api_call, mfapi_decode_common,
                           "folder/create");
     http_destroy(http);
+    mfconn_update_secret_key(conn);
 
     free((void *)api_call);
 

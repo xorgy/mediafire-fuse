@@ -59,6 +59,7 @@ int mfconn_api_file_get_links(mfconn * conn, mffile * file,
     http = http_create();
     retval = http_get_buf(http, api_call, _decode_file_get_links, file);
     http_destroy(http);
+    mfconn_update_secret_key(conn);
 
     free((void *)api_call);
 

@@ -73,6 +73,7 @@ int mfconn_api_device_get_updates(mfconn * conn, const char *quickkey,
     retval = http_get_buf(http, api_call, _decode_device_get_updates,
                           (void *)patches);
     http_destroy(http);
+    mfconn_update_secret_key(conn);
 
     free((void *)api_call);
 

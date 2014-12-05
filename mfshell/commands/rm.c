@@ -53,7 +53,6 @@ int mfshell_cmd_rm(mfshell * mfshell, int argc, char *const argv[])
     }
 
     retval = mfconn_api_file_delete(mfshell->conn, quickkey);
-    mfconn_update_secret_key(mfshell->conn);
 
     return retval;
 }

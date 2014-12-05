@@ -48,6 +48,7 @@ int mfconn_api_folder_delete(mfconn * conn, const char *folderkey)
     retval = http_get_buf(http, api_call, mfapi_decode_common,
                           "folder/delete");
     http_destroy(http);
+    mfconn_update_secret_key(conn);
 
     free((void *)api_call);
 

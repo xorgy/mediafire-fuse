@@ -57,7 +57,6 @@ int mfshell_cmd_changes(mfshell * mfshell, int argc, char *const argv[])
 
     changes = NULL;
     retval = mfconn_api_device_get_changes(mfshell->conn, revision, &changes);
-    mfconn_update_secret_key(mfshell->conn);
 
     if (retval != 0) {
         fprintf(stderr, "mfconn_api_device_get_changes failed\n");

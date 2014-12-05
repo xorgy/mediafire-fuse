@@ -83,7 +83,6 @@ int mfshell_cmd_chdir(mfshell * mfshell, int argc, char *const argv[])
         }
         retval = mfconn_api_folder_get_info(mfshell->conn,
                                             folder_new, (char *)folderkey);
-        mfconn_update_secret_key(mfshell->conn);
 
         if (retval != 0) {
             fprintf(stderr, "mfconn_api_folder_get_info failed\n");
