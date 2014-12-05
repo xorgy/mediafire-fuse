@@ -74,14 +74,14 @@ int mfshell_cmd_get(mfshell * mfshell, int argc, char *const argv[])
     // get file name
     retval = mfconn_api_file_get_info(mfshell->conn, file, (char *)quickkey);
 
-    if (retval == -1) {
+    if (retval != 0) {
         file_free(file);
         return -1;
     }
     // request a direct download (streaming) link
     retval = mfconn_api_file_get_links(mfshell->conn, file, (char *)quickkey);
 
-    if (retval == -1) {
+    if (retval != 0) {
         file_free(file);
         return -1;
     }

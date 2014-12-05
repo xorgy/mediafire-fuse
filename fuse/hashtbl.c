@@ -1388,7 +1388,11 @@ void folder_tree_update(folder_tree * tree, mfconn * conn, bool expect_changes)
     uint64_t        revision;
 
     if (!expect_changes) {
-        mfconn_api_device_get_status(conn, &revision_remote);
+        retval = mfconn_api_device_get_status(conn, &revision_remote);
+        if (retval != 0) {
+            fprintf(stderr, "device/get_status failed\n");
+            return;
+        }
 
         if (tree->revision == revision_remote) {
             fprintf(stderr, "Request to update but nothing to do\n");

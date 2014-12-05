@@ -137,7 +137,7 @@ static int filecache_download_file(const char *filecache_path,
     file = file_alloc();
     retval = mfconn_api_file_get_links(conn, file, (char *)quickkey);
 
-    if (retval == -1) {
+    if (retval != 0) {
         fprintf(stderr, "mfconn_api_file_get_links failed\n");
         free(cachefile);
         file_free(file);
@@ -304,7 +304,7 @@ static int filecache_download_patch(mfconn * conn, const char *quickkey,
     retval = mfconn_api_device_get_patch(conn, patch, quickkey,
                                          source_revision, target_revision);
 
-    if (retval == -1) {
+    if (retval != 0) {
         fprintf(stderr, "mfconn_api_device_get_patch failed\n");
         patch_free(patch);
         return -1;
