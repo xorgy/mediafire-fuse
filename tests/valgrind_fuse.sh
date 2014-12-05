@@ -32,7 +32,7 @@ fi
 $cmd "${binary_dir}/mediafire-fuse" -s -f -d /mnt &
 fusepid="$!"
 
-# once the file system is found to be mounted, print the tree and unmount
+# wait for the file system to be mointed
 for i in `seq 1 10`; do
 	sleep 1
 	if [ `mount -t fuse.mediafire-fuse | wc -l` -ne 0 ]; then
@@ -40,6 +40,7 @@ for i in `seq 1 10`; do
 	fi
 done
 
+# check if mounting was successful
 if [ `mount -t fuse.mediafire-fuse | wc -l` -eq 0 ]; then
 	echo "cannot mount fuse" >&2
 	fusermount -u /mnt
@@ -47,13 +48,33 @@ if [ `mount -t fuse.mediafire-fuse | wc -l` -eq 0 ]; then
 	exit 1
 fi
 
+# print tree
 tree /mnt
 
-diff=`printf "foobar" | diff - /mnt/Untitled.txt >/dev/null 2>&1 && echo 0 || echo 1`
+# make new directory
+mkdir "/mnt/test"
+
+# create file in new directory
+echo foobar > "/mnt/test/foobar"
+
+# wait a bit because above operation finishes before the release() call finished
+sleep 5
+
+# print tree
+tree /mnt
+
+# check content of new file
+diff=`echo "foobar" | diff - "/mnt/test/foobar" >/dev/null 2>&1 && echo 0 || echo 1`
 
 if [ $diff -ne 0 ]; then
-	printf "foobar" | diff - /mnt/Untitled.txt || true
+	printf "foobar" | diff - "/mnt/test/foobar" || true
 fi
+
+# delete directory and file inside
+rm -rf "/mnt/test"
+
+# print tree
+tree /mnt
 
 sleep 2
 
