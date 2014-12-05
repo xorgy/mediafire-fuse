@@ -54,7 +54,7 @@ int mfconn_api_file_get_info(mfconn * conn, mffile * file,
     if (len != 11 && len != 15)
         return -1;
 
-    api_call = mfconn_create_signed_get(conn, 1, "file/get_info.php",
+    api_call = mfconn_create_signed_get(conn, 0, "file/get_info.php",
                                         "?quick_key=%s&response_format=json",
                                         quickkey);
 
