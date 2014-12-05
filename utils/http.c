@@ -59,6 +59,21 @@ struct mfhttp {
  * keep-alive anyways.
  */
 
+static void http_curl_reset(mfhttp * conn)
+{
+    curl_easy_reset(conn->curl_handle);
+    curl_easy_setopt(conn->curl_handle, CURLOPT_NOPROGRESS, 0);
+    curl_easy_setopt(conn->curl_handle, CURLOPT_PROGRESSFUNCTION,
+                     http_progress_cb);
+    curl_easy_setopt(conn->curl_handle, CURLOPT_PROGRESSDATA, (void *)conn);
+    curl_easy_setopt(conn->curl_handle, CURLOPT_FOLLOWLOCATION, 1);
+    curl_easy_setopt(conn->curl_handle, CURLOPT_SSLENGINE, NULL);
+    curl_easy_setopt(conn->curl_handle, CURLOPT_SSLENGINE_DEFAULT, 1L);
+    curl_easy_setopt(conn->curl_handle, CURLOPT_ERRORBUFFER, conn->error_buf);
+    curl_easy_setopt(conn->curl_handle, CURLOPT_PROXY, getenv("http_proxy"));
+    curl_easy_setopt(conn->curl_handle, CURLOPT_VERBOSE, 0L);
+}
+
 mfhttp         *http_create(void)
 {
     mfhttp         *conn;
@@ -72,20 +87,6 @@ mfhttp         *http_create(void)
     conn->curl_handle = curl_handle;
 
     conn->show_progress = false;
-    curl_easy_setopt(conn->curl_handle, CURLOPT_NOPROGRESS, 0);
-    curl_easy_setopt(conn->curl_handle, CURLOPT_PROGRESSFUNCTION,
-                     http_progress_cb);
-    curl_easy_setopt(conn->curl_handle, CURLOPT_PROGRESSDATA, (void *)conn);
-
-    curl_easy_setopt(conn->curl_handle, CURLOPT_FOLLOWLOCATION, 1);
-
-    curl_easy_setopt(conn->curl_handle, CURLOPT_SSLENGINE, NULL);
-    curl_easy_setopt(conn->curl_handle, CURLOPT_SSLENGINE_DEFAULT, 1L);
-
-    curl_easy_setopt(conn->curl_handle, CURLOPT_ERRORBUFFER, conn->error_buf);
-
-    /*curl_easy_setopt(conn->curl_handle, CURLOPT_VERBOSE, 1L); */
-
     return conn;
 }
 
@@ -128,7 +129,7 @@ http_get_buf(mfhttp * conn, const char *url,
 {
     int             retval;
 
-    curl_easy_reset(conn->curl_handle);
+    http_curl_reset(conn);
     conn->write_buf_len = 0;
     curl_easy_setopt(conn->curl_handle, CURLOPT_URL, url);
     curl_easy_setopt(conn->curl_handle, CURLOPT_READFUNCTION,
@@ -196,7 +197,7 @@ http_post_buf(mfhttp * conn, const char *url, const char *post_args,
 {
     int             retval;
 
-    curl_easy_reset(conn->curl_handle);
+    http_curl_reset(conn);
     conn->write_buf_len = 0;
     curl_easy_setopt(conn->curl_handle, CURLOPT_URL, url);
     curl_easy_setopt(conn->curl_handle, CURLOPT_READFUNCTION,
@@ -222,7 +223,7 @@ int http_get_file(mfhttp * conn, const char *url, const char *path)
 {
     int             retval;
 
-    curl_easy_reset(conn->curl_handle);
+    http_curl_reset(conn);
     curl_easy_setopt(conn->curl_handle, CURLOPT_URL, url);
     curl_easy_setopt(conn->curl_handle, CURLOPT_READFUNCTION,
                      http_read_buf_cb);
@@ -285,7 +286,7 @@ http_post_file(mfhttp * conn, const char *url, FILE * fh,
     char           *tmpheader;
     int             retval;
 
-    curl_easy_reset(conn->curl_handle);
+    http_curl_reset(conn);
     conn->write_buf_len = 0;
 
     // the following three pseudo headers are interpreted by the mediafire
