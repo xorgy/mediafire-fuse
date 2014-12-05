@@ -20,7 +20,7 @@ add_library(mfapi SHARED
 	mfapi/apicalls/user_get_info.c
 	mfapi/apicalls/file_get_links.c
 	mfapi/apicalls/file_delete.c
-	mfapi/apicalls/user_session.c
+	mfapi/apicalls/user_get_session_token.c
 	mfapi/apicalls/folder_get_info.c
 	mfapi/apicalls/folder_create.c
 	mfapi/apicalls/folder_get_content.c
