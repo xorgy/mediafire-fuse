@@ -44,6 +44,7 @@ mfconn_api_upload_simple(mfconn * conn, const char *folderkey,
     unsigned char   hash[SHA256_DIGEST_LENGTH];
     char           *file_hash;
     uint64_t        file_size;
+    int             i;
 
     if (conn == NULL)
         return -1;
@@ -64,29 +65,53 @@ mfconn_api_upload_simple(mfconn * conn, const char *folderkey,
 
     file_hash = binary2hex(hash, SHA256_DIGEST_LENGTH);
 
-    if (folderkey == NULL) {
-        api_call = mfconn_create_signed_get(conn, 0,
-                                            "upload/simple.php",
-                                            "?response_format=json");
-    } else {
-        api_call = mfconn_create_signed_get(conn, 0,
-                                            "upload/simple.php",
-                                            "?response_format=json"
-                                            "&folder_key=%s", folderkey);
+    for (i = 0; i < mfconn_get_max_num_retries(conn); i++) {
+        if (*upload_key != NULL) {
+            free(*upload_key);
+            *upload_key = NULL;
+        }
+
+        if (folderkey == NULL) {
+            api_call = mfconn_create_signed_get(conn, 0,
+                                                "upload/simple.php",
+                                                "?response_format=json");
+        } else {
+            api_call = mfconn_create_signed_get(conn, 0,
+                                                "upload/simple.php",
+                                                "?response_format=json"
+                                                "&folder_key=%s", folderkey);
+        }
+
+        // make sure that we are at the beginning of the file
+        rewind(fh);
+
+        http = http_create();
+        retval = http_post_file(http, api_call, fh, file_name,
+                                file_size, file_hash,
+                                _decode_upload_simple, upload_key);
+        http_destroy(http);
+        mfconn_update_secret_key(conn);
+
+        free((void *)api_call);
+
+        if (retval != 127 && retval != 28)
+            break;
+
+        // if there was either a curl timeout or a token error, get a new
+        // token and try again
+        //
+        // on a curl timeout we get a new token because it is likely that we
+        // lost signature synchronization (we don't know whether the server
+        // accepted or rejected the last call)
+        fprintf(stderr, "got error %d - negotiate a new token\n", retval);
+        retval = mfconn_refresh_token(conn);
+        if (retval != 0) {
+            fprintf(stderr, "failed to get a new token\n");
+            break;
+        }
     }
 
-    // make sure that we are at the beginning of the file
-    rewind(fh);
-
-    http = http_create();
-    retval = http_post_file(http, api_call, fh, file_name,
-                            file_size, file_hash,
-                            _decode_upload_simple, upload_key);
-    http_destroy(http);
-    mfconn_update_secret_key(conn);
-
     free(file_hash);
-    free((void *)api_call);
 
     return retval;
 }

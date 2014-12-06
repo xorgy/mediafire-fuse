@@ -51,38 +51,65 @@ mfconn_api_user_get_session_token(mfconn * conn, const char *server,
     int             retval;
     struct user_get_session_token_response response;
     mfhttp         *http;
+    int             i;
 
     if (conn == NULL)
         return -1;
 
-    // configure url for operation
-    login_url = strdup_printf("https://%s/api/user/get_session_token.php",
-                              server);
+    for (i = 0; i < mfconn_get_max_num_retries(conn); i++) {
+        if (*secret_time != NULL) {
+            free(*secret_time);
+            *secret_time = NULL;
+        }
+        if (*session_token != NULL) {
+            free(*session_token);
+            *session_token = NULL;
+        }
+        // configure url for operation
+        login_url = strdup_printf("https://%s/api/user/get_session_token.php",
+                                  server);
 
-    // create user signature
-    user_signature =
-        mfconn_create_user_signature(conn, username, password, app_id,
-                                     app_key);
+        // create user signature
+        user_signature =
+            mfconn_create_user_signature(conn, username, password, app_id,
+                                         app_key);
 
-    // FIXME: username and password have to be urlencoded (maybe using
-    // curl_easy_escape)
-    post_args = strdup_printf("email=%s"
-                              "&password=%s"
-                              "&application_id=%d"
-                              "&signature=%s"
-                              "&token_version=2"
-                              "&response_format=json",
-                              username, password, app_id, user_signature);
-    free((void *)user_signature);
+        // FIXME: username and password have to be urlencoded (maybe using
+        // curl_easy_escape)
+        post_args = strdup_printf("email=%s"
+                                  "&password=%s"
+                                  "&application_id=%d"
+                                  "&signature=%s"
+                                  "&token_version=2"
+                                  "&response_format=json",
+                                  username, password, app_id, user_signature);
+        free((void *)user_signature);
 
-    http = http_create();
-    retval =
-        http_post_buf(http, login_url, post_args,
-                      _decode_get_session_token, (void *)(&response));
-    http_destroy(http);
+        http = http_create();
+        retval =
+            http_post_buf(http, login_url, post_args,
+                          _decode_get_session_token, (void *)(&response));
+        http_destroy(http);
 
-    free(login_url);
-    free(post_args);
+        free(login_url);
+        free(post_args);
+
+        if (retval != 127 && retval != 28)
+            break;
+
+        // if there was either a curl timeout or a token error, get a new
+        // token and try again
+        //
+        // on a curl timeout we get a new token because it is likely that we
+        // lost signature synchronization (we don't know whether the server
+        // accepted or rejected the last call)
+        fprintf(stderr, "got error %d - negotiate a new token\n", retval);
+        retval = mfconn_refresh_token(conn);
+        if (retval != 0) {
+            fprintf(stderr, "failed to get a new token\n");
+            break;
+        }
+    }
 
     *secret_key = response.secret_key;
     *secret_time = response.secret_time;

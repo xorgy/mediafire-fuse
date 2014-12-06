@@ -42,6 +42,7 @@ mfconn_api_upload_poll_upload(mfconn * conn, const char *upload_key,
     int             retval;
     mfhttp         *http;
     struct upload_poll_upload_response response;
+    int             i;
 
     if (conn == NULL)
         return -1;
@@ -49,18 +50,36 @@ mfconn_api_upload_poll_upload(mfconn * conn, const char *upload_key,
     if (upload_key == NULL)
         return -1;
 
-    // make an UNSIGNED get
-    api_call = mfconn_create_unsigned_get(conn, 0,
-                                          "upload/poll_upload.php",
-                                          "?response_format=json"
-                                          "&key=%s", upload_key);
+    for (i = 0; i < mfconn_get_max_num_retries(conn); i++) {
+        // make an UNSIGNED get
+        api_call = mfconn_create_unsigned_get(conn, 0,
+                                              "upload/poll_upload.php",
+                                              "?response_format=json"
+                                              "&key=%s", upload_key);
 
-    http = http_create();
-    retval = http_get_buf(http, api_call, _decode_upload_poll_upload,
-                          &response);
-    http_destroy(http);
+        http = http_create();
+        retval = http_get_buf(http, api_call, _decode_upload_poll_upload,
+                              &response);
+        http_destroy(http);
 
-    free((void *)api_call);
+        free((void *)api_call);
+
+        if (retval != 127 && retval != 28)
+            break;
+
+        // if there was either a curl timeout or a token error, get a new
+        // token and try again
+        //
+        // on a curl timeout we get a new token because it is likely that we
+        // lost signature synchronization (we don't know whether the server
+        // accepted or rejected the last call)
+        fprintf(stderr, "got error %d - negotiate a new token\n", retval);
+        retval = mfconn_refresh_token(conn);
+        if (retval != 0) {
+            fprintf(stderr, "failed to get a new token\n");
+            break;
+        }
+    }
 
     *status = response.status;
     *fileerror = response.fileerror;

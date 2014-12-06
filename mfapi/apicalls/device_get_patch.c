@@ -38,6 +38,7 @@ int mfconn_api_device_get_patch(mfconn * conn, mfpatch * patch,
     int             len;
     mfhttp         *http;
     int             retval;
+    int             i;
 
     if (conn == NULL)
         return -1;
@@ -53,20 +54,38 @@ int mfconn_api_device_get_patch(mfconn * conn, mfpatch * patch,
     if (len != 15)
         return -1;
 
-    api_call = mfconn_create_signed_get(conn, 0, "device/get_patch.php",
-                                        "?quick_key=%s"
-                                        "&source_revision=%" PRIu64
-                                        "&target_revision=%" PRIu64
-                                        "&response_format=json", quickkey,
-                                        source_revision, target_revision);
+    for (i = 0; i < mfconn_get_max_num_retries(conn); i++) {
+        api_call = mfconn_create_signed_get(conn, 0, "device/get_patch.php",
+                                            "?quick_key=%s"
+                                            "&source_revision=%" PRIu64
+                                            "&target_revision=%" PRIu64
+                                            "&response_format=json", quickkey,
+                                            source_revision, target_revision);
 
-    http = http_create();
-    retval = http_get_buf(http, api_call, _decode_device_get_patch,
-                          (void *)patch);
-    http_destroy(http);
-    mfconn_update_secret_key(conn);
+        http = http_create();
+        retval = http_get_buf(http, api_call, _decode_device_get_patch,
+                              (void *)patch);
+        http_destroy(http);
+        mfconn_update_secret_key(conn);
 
-    free((void *)api_call);
+        free((void *)api_call);
+
+        if (retval != 127 && retval != 28)
+            break;
+
+        // if there was either a curl timeout or a token error, get a new
+        // token and try again
+        //
+        // on a curl timeout we get a new token because it is likely that we
+        // lost signature synchronization (we don't know whether the server
+        // accepted or rejected the last call)
+        fprintf(stderr, "got error %d - negotiate a new token\n", retval);
+        retval = mfconn_refresh_token(conn);
+        if (retval != 0) {
+            fprintf(stderr, "failed to get a new token\n");
+            break;
+        }
+    }
 
     return retval;
 }

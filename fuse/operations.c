@@ -426,6 +426,7 @@ int mediafirefs_release(const char *path, struct fuse_file_info *file_info)
 
         folder_key = folder_tree_path_get_key(ctx->tree, ctx->conn, dir_name);
 
+        upload_key = NULL;
         retval = mfconn_api_upload_simple(ctx->conn, folder_key,
                                           fh, file_name, &upload_key);
 

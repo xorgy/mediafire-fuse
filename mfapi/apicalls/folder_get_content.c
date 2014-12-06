@@ -46,7 +46,8 @@ static int      _decode_folder_get_content_files(mfhttp * conn, void *data);
  * pointers to them.
  */
 long
-mfconn_api_folder_get_content(mfconn * conn, int mode, const char *folderkey,
+mfconn_api_folder_get_content(mfconn * conn, const int mode,
+                              const char *folderkey,
                               mffolder *** mffolder_result,
                               mffile *** mffile_result)
 {
@@ -54,6 +55,8 @@ mfconn_api_folder_get_content(mfconn * conn, int mode, const char *folderkey,
     int             retval;
     char           *content_type;
     mfhttp         *http;
+    int             i,
+                    j;
 
     if (conn == NULL)
         return -1;
@@ -63,34 +66,70 @@ mfconn_api_folder_get_content(mfconn * conn, int mode, const char *folderkey,
     else
         content_type = "files";
 
-    if (folderkey == NULL) {
-        api_call = mfconn_create_signed_get(conn, 0, "folder/get_content.php",
-                                            "?content_type=%s"
-                                            "&response_format=json",
-                                            content_type);
-    } else {
-        api_call = mfconn_create_signed_get(conn, 0, "folder/get_content.php",
-                                            "?folder_key=%s"
-                                            "&content_type=%s"
-                                            "&response_format=json",
-                                            folderkey, content_type);
+    for (i = 0; i < mfconn_get_max_num_retries(conn); i++) {
+        if (mode == 0) {
+            if (*mffolder_result != NULL) {
+                for (j = 0; (*mffolder_result)[j] != NULL; j++) {
+                    folder_free((*mffolder_result)[j]);
+                }
+                free(*mffolder_result);
+                *mffolder_result = NULL;
+            }
+        } else {
+            if (*mffile_result != NULL) {
+                for (j = 0; (*mffile_result)[j] != NULL; j++) {
+                    file_free((*mffile_result)[j]);
+                }
+                free(*mffile_result);
+                *mffile_result = NULL;
+            }
+        }
+
+        if (folderkey == NULL) {
+            api_call = mfconn_create_signed_get(conn, 0,
+                                                "folder/get_content.php",
+                                                "?content_type=%s"
+                                                "&response_format=json",
+                                                content_type);
+        } else {
+            api_call = mfconn_create_signed_get(conn, 0,
+                                                "folder/get_content.php",
+                                                "?folder_key=%s"
+                                                "&content_type=%s"
+                                                "&response_format=json",
+                                                folderkey, content_type);
+        }
+
+        http = http_create();
+        if (mode == 0)
+            retval = http_get_buf(http, api_call,
+                                  _decode_folder_get_content_folders,
+                                  (void *)mffolder_result);
+        else
+            retval = http_get_buf(http, api_call,
+                                  _decode_folder_get_content_files,
+                                  (void *)mffile_result);
+        http_destroy(http);
+        mfconn_update_secret_key(conn);
+
+        free((void *)api_call);
+
+        if (retval != 127 && retval != 28)
+            break;
+
+        // if there was either a curl timeout or a token error, get a new
+        // token and try again
+        //
+        // on a curl timeout we get a new token because it is likely that we
+        // lost signature synchronization (we don't know whether the server
+        // accepted or rejected the last call)
+        fprintf(stderr, "got error %d - negotiate a new token\n", retval);
+        retval = mfconn_refresh_token(conn);
+        if (retval != 0) {
+            fprintf(stderr, "failed to get a new token\n");
+            break;
+        }
     }
-
-    http = http_create();
-    if (mode == 0)
-        retval =
-            http_get_buf(http, api_call,
-                         _decode_folder_get_content_folders,
-                         (void *)mffolder_result);
-    else
-        retval =
-            http_get_buf(http, api_call,
-                         _decode_folder_get_content_files,
-                         (void *)mffile_result);
-    http_destroy(http);
-    mfconn_update_secret_key(conn);
-
-    free((void *)api_call);
 
     return retval;
 }

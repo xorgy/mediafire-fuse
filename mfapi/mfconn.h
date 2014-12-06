@@ -28,7 +28,9 @@ typedef struct mfconn mfconn;
 
 mfconn         *mfconn_create(const char *server, const char *username,
                               const char *password, int app_id,
-                              const char *app_key);
+                              const char *app_key, int max_num_retries);
+
+int             mfconn_refresh_token(mfconn * conn);
 
 void            mfconn_destroy(mfconn * conn);
 
@@ -54,4 +56,7 @@ const char     *mfconn_get_session_token(mfconn * conn);
 const char     *mfconn_get_secret_time(mfconn * conn);
 
 uint32_t        mfconn_get_secret_key(mfconn * conn);
+
+int             mfconn_get_max_num_retries(mfconn * conn);
+
 #endif

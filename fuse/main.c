@@ -280,7 +280,7 @@ static void connect_mf(struct mediafirefs_user_options *options,
 
     ctx->conn = mfconn_create(options->server, options->username,
                               options->password, options->app_id,
-                              options->api_key);
+                              options->api_key, 3);
 
     if (ctx->conn == NULL) {
         fprintf(stderr, "Cannot establish connection\n");

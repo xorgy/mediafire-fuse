@@ -61,7 +61,7 @@ int             mfconn_api_file_get_links(mfconn * conn, mffile * file,
 int             mfconn_api_folder_create(mfconn * conn, const char *parent,
                                          const char *name);
 
-long            mfconn_api_folder_get_content(mfconn * conn, int mode,
+long            mfconn_api_folder_get_content(mfconn * conn, const int mode,
                                               const char *folderkey,
                                               mffolder *** folder_result,
                                               mffile *** file_result);

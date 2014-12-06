@@ -35,11 +35,16 @@ struct mfconn {
     uint32_t        secret_key;
     char           *secret_time;
     char           *session_token;
+    char           *username;
+    char           *password;
+    int             app_id;
+    char           *app_key;
+    int             max_num_retries;
 };
 
 mfconn         *mfconn_create(const char *server, const char *username,
                               const char *password, int app_id,
-                              const char *app_key)
+                              const char *app_key, int max_num_retries)
 {
     mfconn         *conn;
     int             retval;
@@ -59,24 +64,59 @@ mfconn         *mfconn_create(const char *server, const char *username,
     conn = (mfconn *) calloc(1, sizeof(mfconn));
 
     conn->server = strdup(server);
+    conn->username = strdup(username);
+    conn->password = strdup(password);
+    conn->app_id = app_id;
+    if (app_key != NULL)
+        conn->app_key = strdup(app_key);
+    else
+        conn->app_key = NULL;
+    conn->max_num_retries = max_num_retries;
+    conn->secret_time = NULL;
+    conn->session_token = NULL;
     retval = mfconn_api_user_get_session_token(conn, conn->server,
-                                               username, password, app_id,
-                                               app_key,
+                                               conn->username, conn->password,
+                                               conn->app_id, conn->app_key,
                                                &(conn->secret_key),
                                                &(conn->secret_time),
                                                &(conn->session_token));
 
-    if (retval == 0)
-        return conn;
-    else {
+    if (retval != 0) {
         fprintf(stderr, "error: mfconn_api_user_get_session_token\n");
         return NULL;
     }
+
+    return conn;
+}
+
+int mfconn_refresh_token(mfconn * conn)
+{
+    int             retval;
+
+    free(conn->secret_time);
+    conn->secret_time = NULL;
+    free(conn->session_token);
+    conn->session_token = NULL;
+    retval = mfconn_api_user_get_session_token(conn, conn->server,
+                                               conn->username, conn->password,
+                                               conn->app_id, conn->app_key,
+                                               &(conn->secret_key),
+                                               &(conn->secret_time),
+                                               &(conn->session_token));
+    if (retval != 0) {
+        fprintf(stderr, "user/get_session_token failed\n");
+        return -1;
+    }
+    return 0;
 }
 
 void mfconn_destroy(mfconn * conn)
 {
     free(conn->server);
+    free(conn->username);
+    free(conn->password);
+    if (conn->app_key != NULL)
+        free(conn->app_key);
     free(conn->secret_time);
     free(conn->session_token);
     free(conn);
@@ -333,4 +373,9 @@ const char     *mfconn_get_secret_time(mfconn * conn)
 uint32_t mfconn_get_secret_key(mfconn * conn)
 {
     return conn->secret_key;
+}
+
+int mfconn_get_max_num_retries(mfconn * conn)
+{
+    return conn->max_num_retries;
 }

@@ -30,6 +30,7 @@ int mfconn_api_folder_delete(mfconn * conn, const char *folderkey)
     const char     *api_call;
     int             retval;
     mfhttp         *http;
+    int             i;
 
     if (conn == NULL)
         return -1;
@@ -40,17 +41,36 @@ int mfconn_api_folder_delete(mfconn * conn, const char *folderkey)
     if (strlen(folderkey) != 13)
         return -1;
 
-    api_call = mfconn_create_signed_get(conn, 0, "folder/delete.php",
-                                        "?folder_key=%s&response_format=json",
-                                        folderkey);
+    for (i = 0; i < mfconn_get_max_num_retries(conn); i++) {
+        api_call = mfconn_create_signed_get(conn, 0, "folder/delete.php",
+                                            "?folder_key=%s"
+                                            "&response_format=json",
+                                            folderkey);
 
-    http = http_create();
-    retval = http_get_buf(http, api_call, mfapi_decode_common,
-                          "folder/delete");
-    http_destroy(http);
-    mfconn_update_secret_key(conn);
+        http = http_create();
+        retval = http_get_buf(http, api_call, mfapi_decode_common,
+                              "folder/delete");
+        http_destroy(http);
+        mfconn_update_secret_key(conn);
 
-    free((void *)api_call);
+        free((void *)api_call);
+
+        if (retval != 127 && retval != 28)
+            break;
+
+        // if there was either a curl timeout or a token error, get a new
+        // token and try again
+        //
+        // on a curl timeout we get a new token because it is likely that we
+        // lost signature synchronization (we don't know whether the server
+        // accepted or rejected the last call)
+        fprintf(stderr, "got error %d - negotiate a new token\n", retval);
+        retval = mfconn_refresh_token(conn);
+        if (retval != 0) {
+            fprintf(stderr, "failed to get a new token\n");
+            break;
+        }
+    }
 
     return retval;
 }
