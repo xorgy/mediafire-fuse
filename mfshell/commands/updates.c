@@ -24,7 +24,6 @@
 #include <inttypes.h>
 
 #include "../../mfapi/apicalls.h"
-#include "../../mfapi/mfconn.h"
 #include "../../mfapi/patch.h"
 #include "../mfshell.h"
 #include "../commands.h"        // IWYU pragma: keep

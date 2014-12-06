@@ -29,7 +29,6 @@
 #include "../../mfapi/apicalls.h"
 #include "../mfshell.h"
 #include "../../mfapi/file.h"
-#include "../../mfapi/mfconn.h"
 #include "../commands.h"        // IWYU pragma: keep
 #include "../../utils/strings.h"
 #include "../../utils/http.h"

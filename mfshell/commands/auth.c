@@ -61,7 +61,7 @@ int mfshell_cmd_auth(mfshell * mfshell, int argc, char *const argv[])
         return -1;
 
     mfshell->conn = mfconn_create(mfshell->server, username, password,
-                                  mfshell->app_id, mfshell->app_key);
+                                  mfshell->app_id, mfshell->app_key, 3);
 
     if (mfshell->conn != NULL)
         printf("\n\rAuthentication SUCCESS\n\r");

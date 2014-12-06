@@ -26,7 +26,6 @@
 
 #include "../../mfapi/apicalls.h"
 #include "../mfshell.h"
-#include "../../mfapi/mfconn.h"
 #include "../../mfapi/folder.h"
 #include "../commands.h"        // IWYU pragma: keep
 

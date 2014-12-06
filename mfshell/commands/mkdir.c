@@ -22,7 +22,6 @@
 #include "../../mfapi/apicalls.h"
 #include "../mfshell.h"
 #include "../../mfapi/folder.h"
-#include "../../mfapi/mfconn.h"
 #include "../commands.h"        // IWYU pragma: keep
 
 int mfshell_cmd_mkdir(mfshell * mfshell, int argc, char *const argv[])
