@@ -25,10 +25,13 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <inttypes.h>
 #include <openssl/sha.h>
+#include <curl/curl.h>
 
 #include "../../utils/http.h"
 #include "../../utils/hash.h"
+#include "../../utils/strings.h"
 #include "../mfconn.h"
 #include "../apicalls.h"        // IWYU pragma: keep
 
@@ -45,6 +48,8 @@ mfconn_api_upload_simple(mfconn * conn, const char *folderkey,
     char           *file_hash;
     uint64_t        file_size;
     int             i;
+    struct curl_slist *custom_headers = NULL;
+    char           *tmpheader;
 
     if (conn == NULL)
         return -1;
@@ -70,6 +75,10 @@ mfconn_api_upload_simple(mfconn * conn, const char *folderkey,
             free(*upload_key);
             *upload_key = NULL;
         }
+        if (custom_headers != NULL) {
+            curl_slist_free_all(custom_headers);
+            custom_headers = NULL;
+        }
 
         if (folderkey == NULL) {
             api_call = mfconn_create_signed_get(conn, 0,
@@ -85,13 +94,28 @@ mfconn_api_upload_simple(mfconn * conn, const char *folderkey,
         // make sure that we are at the beginning of the file
         rewind(fh);
 
+        // the following three pseudo headers are interpreted by the mediafire
+        // server
+        tmpheader = strdup_printf("x-filename: %s", file_name);
+        custom_headers = curl_slist_append(custom_headers, tmpheader);
+        free(tmpheader);
+        tmpheader = strdup_printf("x-filesize: %" PRIu64, file_size);
+        custom_headers = curl_slist_append(custom_headers, tmpheader);
+        free(tmpheader);
+        tmpheader = strdup_printf("x-filehash: %s", file_hash);
+        custom_headers = curl_slist_append(custom_headers, tmpheader);
+        free(tmpheader);
+
         http = http_create();
-        retval = http_post_file(http, api_call, fh, file_name,
-                                file_size, file_hash,
+        retval = http_post_file(http, api_call, fh, &custom_headers, file_size,
                                 _decode_upload_simple, upload_key);
         http_destroy(http);
         mfconn_update_secret_key(conn);
 
+        if (custom_headers != NULL) {
+            curl_slist_free_all(custom_headers);
+            custom_headers = NULL;
+        }
         free((void *)api_call);
 
         if (retval != 127 && retval != 28)

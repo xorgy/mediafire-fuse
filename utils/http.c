@@ -21,11 +21,9 @@
 #include <curl/curl.h>
 #include <curl/easy.h>
 #include <stdbool.h>
-#include <inttypes.h>
 #include <stdio.h>
 
 #include "http.h"
-#include "strings.h"
 
 static int      http_progress_cb(void *user_ptr, double dltotal, double dlnow,
                                  double ultotal, double ulnow);
@@ -280,37 +278,25 @@ http_read_file_cb(char *data, size_t size, size_t nmemb, void *user_ptr)
 
 int
 http_post_file(mfhttp * conn, const char *url, FILE * fh,
-               const char *filename, uint64_t filesize, const char *fhash,
+               struct curl_slist **custom_headers, uint64_t filesize,
                int (*data_handler) (mfhttp * conn, void *data), void *data)
 {
-    struct curl_slist *custom_headers = NULL;
-    char           *tmpheader;
     int             retval;
 
     http_curl_reset(conn);
     conn->write_buf_len = 0;
 
-    // the following three pseudo headers are interpreted by the mediafire
-    // server
-    tmpheader = strdup_printf("x-filename: %s", filename);
-    custom_headers = curl_slist_append(custom_headers, tmpheader);
-    free(tmpheader);
-    tmpheader = strdup_printf("x-filesize: %" PRIu64, filesize);
-    custom_headers = curl_slist_append(custom_headers, tmpheader);
-    free(tmpheader);
-    tmpheader = strdup_printf("x-filehash: %s", fhash);
-    custom_headers = curl_slist_append(custom_headers, tmpheader);
-    free(tmpheader);
     // when using POST, curl implicitly sets
     // Content-Type: application/x-www-form-urlencoded
     // make sure it is set to application/octet-stream instead
-    custom_headers = curl_slist_append(custom_headers,
-                                       "Content-Type: application/octet-stream");
+    *custom_headers =
+        curl_slist_append(*custom_headers,
+                          "Content-Type: application/octet-stream");
     // when using POST, curl implicitly sets Expect: 100-continue
     // make sure it is not set
-    custom_headers = curl_slist_append(custom_headers, "Expect:");
+    *custom_headers = curl_slist_append(*custom_headers, "Expect:");
     curl_easy_setopt(conn->curl_handle, CURLOPT_POST, 1);
-    curl_easy_setopt(conn->curl_handle, CURLOPT_HTTPHEADER, custom_headers);
+    curl_easy_setopt(conn->curl_handle, CURLOPT_HTTPHEADER, *custom_headers);
     curl_easy_setopt(conn->curl_handle, CURLOPT_URL, url);
     curl_easy_setopt(conn->curl_handle, CURLOPT_READFUNCTION,
                      http_read_file_cb);
@@ -323,7 +309,8 @@ http_post_file(mfhttp * conn, const char *url, FILE * fh,
     conn->stream = fh;
     fprintf(stderr, "POST: %s\n", url);
     retval = curl_easy_perform(conn->curl_handle);
-    curl_slist_free_all(custom_headers);
+    curl_slist_free_all(*custom_headers);
+    *custom_headers = NULL;
     if (retval != CURLE_OK) {
         fprintf(stderr, "error curl_easy_perform %s\n\r", conn->error_buf);
         return retval;
