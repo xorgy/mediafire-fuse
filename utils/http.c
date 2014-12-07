@@ -282,10 +282,14 @@ http_post_file(mfhttp * conn, const char *url, FILE * fh,
                int (*data_handler) (mfhttp * conn, void *data), void *data)
 {
     int             retval;
+    struct curl_slist *fallback_headers;
 
     http_curl_reset(conn);
     conn->write_buf_len = 0;
 
+    if (custom_headers == NULL) {
+        custom_headers = &fallback_headers;
+    }
     // when using POST, curl implicitly sets
     // Content-Type: application/x-www-form-urlencoded
     // make sure it is set to application/octet-stream instead

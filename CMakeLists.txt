@@ -30,6 +30,7 @@ add_library(mfapi SHARED
 	mfapi/apicalls/device_get_patch.c
 	mfapi/apicalls/device_get_updates.c
 	mfapi/apicalls/upload_simple.c
+	mfapi/apicalls/upload_patch.c
 	mfapi/apicalls/upload_poll_upload.c
 	)
 
