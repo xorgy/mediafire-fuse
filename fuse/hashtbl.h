@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <sys/types.h>
 
 #include "../mfapi/mfconn.h"
 
@@ -72,8 +73,12 @@ bool            folder_tree_path_is_file(folder_tree * tree, mfconn * conn,
                                          const char *path);
 
 int             folder_tree_open_file(folder_tree * tree, mfconn * conn,
-                                      const char *path);
+                                      const char *path, mode_t mode,
+                                      bool update);
 
 int             folder_tree_tmp_open(folder_tree * tree);
+
+int             folder_tree_upload_patch(folder_tree * tree, mfconn * conn,
+                                         const char *path);
 
 #endif

@@ -41,6 +41,7 @@
 #include "hashtbl.h"
 #include "operations.h"
 #include "../utils/strings.h"
+#include "../utils/stringv.h"
 
 enum {
     KEY_HELP,
@@ -410,8 +411,8 @@ int main(int argc, char *argv[])
 
     connect_mf(&options, ctx);
 
-    ctx->tmpfiles = NULL;
-    ctx->num_tmpfiles = 0;
+    ctx->sv_writefiles = stringv_alloc();
+    ctx->sv_readonlyfiles = stringv_alloc();
 
     ret = fuse_main(argc, argv, &mediafirefs_oper, ctx);
 
@@ -423,6 +424,8 @@ int main(int argc, char *argv[])
     free(ctx->configfile);
     free(ctx->dircache);
     free(ctx->filecache);
+    stringv_free(ctx->sv_writefiles);
+    stringv_free(ctx->sv_readonlyfiles);
     free(ctx);
 
     return ret;

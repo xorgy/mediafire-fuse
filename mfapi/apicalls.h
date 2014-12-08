@@ -107,8 +107,11 @@ int             mfconn_api_upload_simple(mfconn * conn, const char *folderkey,
                                          char **upload_key);
 
 int             mfconn_api_upload_patch(mfconn * conn, const char *quickkey,
-                                        FILE * source_fh, FILE * target_fh,
-                                        FILE * patch_fh, char **upload_key);
+                                        const char *source_hash,
+                                        const char *target_hash,
+                                        uint64_t target_size,
+                                        const char *patch_path,
+                                        char **upload_key);
 
 int             mfconn_api_upload_poll_upload(mfconn * conn,
                                               const char *upload_key,

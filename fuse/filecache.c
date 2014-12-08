@@ -26,6 +26,9 @@
 #endif
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <sys/types.h>
 
 #include "../utils/hash.h"
 #include "../utils/xdelta3.h"
@@ -54,25 +57,200 @@ static int      filecache_patch_file(const char *filecache_path,
                                      uint64_t source_revision,
                                      uint64_t target_revision);
 
+int filecache_upload_patch(const char *quickkey, uint64_t local_revision,
+                           const char *filecache_path, mfconn * conn)
+{
+    FILE           *source_fh;
+    FILE           *target_fh;
+    FILE           *patchfile_fh;
+    unsigned char   hash[SHA256_DIGEST_LENGTH];
+    char           *source_hash;
+    char           *target_hash;
+    uint64_t        target_size;
+    char           *cachefile;
+    char           *newfile;
+    char           *patch_file;
+    int             retval;
+    char           *upload_key;
+    int             status;
+    int             fileerror;
+
+    cachefile = strdup_printf("%s/%s_%d", filecache_path, quickkey,
+                              local_revision);
+
+    source_fh = fopen(cachefile, "r");
+    if (source_fh == NULL) {
+        fprintf(stderr, "cannot open %s\n", cachefile);
+        free(cachefile);
+        return -1;
+    }
+    free(cachefile);
+
+    newfile = strdup_printf("%s/%s_%d_new", filecache_path, quickkey,
+                            local_revision);
+
+    target_fh = fopen(newfile, "r");
+    if (target_fh == NULL) {
+        fprintf(stderr, "cannot open %s\n", newfile);
+        free(newfile);
+        fclose(source_fh);
+        return -1;
+    }
+    free(newfile);
+
+    retval = calc_sha256(source_fh, hash, NULL);
+
+    if (retval != 0) {
+        fprintf(stderr, "failed to calculate hash\n");
+        fclose(source_fh);
+        fclose(target_fh);
+        return -1;
+    }
+
+    source_hash = binary2hex(hash, SHA256_DIGEST_LENGTH);
+
+    retval = calc_sha256(target_fh, hash, &target_size);
+
+    if (retval != 0) {
+        fprintf(stderr, "failed to calculate hash\n");
+        fclose(source_fh);
+        fclose(target_fh);
+        return -1;
+    }
+
+    target_hash = binary2hex(hash, SHA256_DIGEST_LENGTH);
+
+    if (strcmp(source_hash, target_hash) == 0) {
+        // no changes were done
+        free(source_hash);
+        free(target_hash);
+        return 0;
+    }
+
+    patch_file = strdup_printf("%s/%s_patch_%d_new", filecache_path, quickkey,
+                               local_revision);
+
+    patchfile_fh = fopen(patch_file, "w");
+    if (patchfile_fh == NULL) {
+        fprintf(stderr, "cannot open %s\n", patch_file);
+        fclose(source_fh);
+        fclose(target_fh);
+        return -1;
+    }
+
+    rewind(source_fh);
+    rewind(target_fh);
+    retval = xdelta3_diff(source_fh, target_fh, patchfile_fh);
+    fclose(source_fh);
+    fclose(target_fh);
+    fclose(patchfile_fh);
+
+    upload_key = NULL;
+    retval = mfconn_api_upload_patch(conn, quickkey, source_hash, target_hash,
+                                     target_size, patch_file, &upload_key);
+
+    if (retval != 0 || upload_key == NULL) {
+        fprintf(stderr, "mfconn_api_upload_patch failed\n");
+        return -1;
+    }
+    // poll for completion
+    for (;;) {
+        // no need to update the secret key after this
+        retval = mfconn_api_upload_poll_upload(conn, upload_key,
+                                               &status, &fileerror);
+        if (retval != 0) {
+            fprintf(stderr, "mfconn_api_upload_poll_upload failed\n");
+            return -1;
+        }
+        fprintf(stderr, "status: %d, filerror: %d\n", status, fileerror);
+        if (status == 99) {
+            fprintf(stderr, "done\n");
+            break;
+        }
+        sleep(1);
+    }
+
+    free(upload_key);
+
+    return 0;
+}
+
 int filecache_open_file(const char *quickkey, uint64_t local_revision,
                         uint64_t remote_revision, uint64_t fsize,
                         const unsigned char *fhash,
-                        const char *filecache_path, mfconn * conn)
+                        const char *filecache_path, mfconn * conn, mode_t mode,
+                        bool update)
 {
     char           *cachefile;
+    char           *newfile;
     int             fd;
     int             retval;
+    const int       BUFSIZE = 4096;
+    char            buf[BUFSIZE];
+    size_t          size;
+    int             source;
+    int             dest;
 
-    /* check if the requested file is already in the cache */
-    cachefile =
-        strdup_printf("%s/%s_%d", filecache_path, quickkey, remote_revision);
-    fd = open(cachefile, O_RDWR);
-    if (fd > 0) {
-        /* file existed - return handle */
-        free(cachefile);
-        return fd;
+    if (update) {
+        cachefile = strdup_printf("%s/%s_%d", filecache_path, quickkey,
+                                  remote_revision);
+    } else {
+        cachefile = strdup_printf("%s/%s_%d", filecache_path, quickkey,
+                                  local_revision);
     }
-    free(cachefile);
+    /* check if the requested file is already in the cache */
+    if ((mode & O_ACCMODE) == O_RDONLY) {
+        // if file is opened in readonly mode, we try to open it directly
+        fd = open(cachefile, mode);
+        free(cachefile);
+        if (fd > 0) {
+            /* file existed - return handle */
+            return fd;
+        }
+        // if the file cannot be opened, then it has to be retrieved
+    } else {
+        // if file is opened writable then a temporary file has to be opened
+        // instead to upload a patch if necessary
+        if (update) {
+            newfile = strdup_printf("%s/%s_%d_new", filecache_path, quickkey,
+                                    remote_revision);
+        } else {
+            newfile = strdup_printf("%s/%s_%d_new", filecache_path, quickkey,
+                                    local_revision);
+        }
+        fd = open(newfile, mode);
+        if (fd > 0) {
+            /* file existed - return handle */
+            free(newfile);
+            free(cachefile);
+            return fd;
+        }
+        // the temporary file wasn't available, so we copy it from the
+        // original
+        source = open(cachefile, O_RDONLY);
+        free(cachefile);
+        if (fd > 0) {
+            dest = open(newfile, O_WRONLY | O_CREAT, 0644);
+            while ((size = read(source, buf, BUFSIZE)) > 0) {
+                write(dest, buf, size);
+            }
+            close(source);
+            close(dest);
+            fd = open(newfile, mode);
+            free(newfile);
+            return fd;
+        }
+        free(newfile);
+        // if the source file cannot be opened for copying, then it has to be
+        // retrieved
+    }
+
+    // if no updating is requested and we end up here, then something failed
+    // but since we must not update, this is a failure
+    if (!update) {
+        fprintf(stderr, "no updating but cannot open\n");
+        return -1;
+    }
 
     /* if the file with remote revision didn't exist, then check whether an
      * old revision exists and in that case update that.
@@ -81,7 +259,7 @@ int filecache_open_file(const char *quickkey, uint64_t local_revision,
 
     cachefile =
         strdup_printf("%s/%s_%d", filecache_path, quickkey, local_revision);
-    fd = open(cachefile, O_RDWR);
+    fd = open(cachefile, O_RDONLY);
     free(cachefile);
     if (fd > 0) {
         close(fd);
@@ -115,7 +293,24 @@ int filecache_open_file(const char *quickkey, uint64_t local_revision,
         return -1;
     }
 
-    fd = open(cachefile, O_RDWR);
+    if ((mode & O_ACCMODE) == O_RDONLY) {
+        // if file is opened in readonly mode, we open it directly
+        fd = open(cachefile, mode);
+    } else {
+        // if file is opened writable then a temporary file has to be opened
+        // instead to upload a patch if necessary
+        newfile = strdup_printf("%s/%s_%d_new", filecache_path, quickkey,
+                                remote_revision);
+        source = open(cachefile, O_RDONLY);
+        dest = open(newfile, O_WRONLY | O_CREAT, 0644);
+        while ((size = read(source, buf, BUFSIZE)) > 0) {
+            write(dest, buf, size);
+        }
+        close(source);
+        close(dest);
+        fd = open(newfile, mode);
+        free(newfile);
+    }
 
     free(cachefile);
 

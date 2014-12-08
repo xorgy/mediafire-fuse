@@ -26,11 +26,9 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <inttypes.h>
-#include <openssl/sha.h>
 #include <curl/curl.h>
 
 #include "../../utils/http.h"
-#include "../../utils/hash.h"
 #include "../../utils/strings.h"
 #include "../mfconn.h"
 #include "../apicalls.h"        // IWYU pragma: keep
@@ -44,8 +42,7 @@ mfconn_api_upload_simple(mfconn * conn, const char *folderkey,
     const char     *api_call;
     int             retval;
     mfhttp         *http;
-    unsigned char   hash[SHA256_DIGEST_LENGTH];
-    char           *file_hash;
+    long            l_file_size;
     uint64_t        file_size;
     int             i;
     struct curl_slist *custom_headers = NULL;
@@ -57,18 +54,21 @@ mfconn_api_upload_simple(mfconn * conn, const char *folderkey,
     if (fh == NULL)
         return -1;
 
-    // make sure that we are at the beginning of the file
-    rewind(fh);
-
-    // calculate hash
-    retval = calc_sha256(fh, hash, &file_size);
-
+    retval = fseek(fh, 0, SEEK_END);
     if (retval != 0) {
-        fprintf(stderr, "failed to calculate hash\n");
+        fprintf(stderr, "fseek failed\n");
         return -1;
     }
 
-    file_hash = binary2hex(hash, SHA256_DIGEST_LENGTH);
+    l_file_size = ftell(fh);
+    if (l_file_size == -1) {
+        fprintf(stderr, "ftell failed\n");
+        return -1;
+    }
+    file_size = l_file_size;
+
+    // make sure that we are at the beginning of the file
+    rewind(fh);
 
     for (i = 0; i < mfconn_get_max_num_retries(conn); i++) {
         if (*upload_key != NULL) {
@@ -102,9 +102,6 @@ mfconn_api_upload_simple(mfconn * conn, const char *folderkey,
         tmpheader = strdup_printf("x-filesize: %" PRIu64, file_size);
         custom_headers = curl_slist_append(custom_headers, tmpheader);
         free(tmpheader);
-        tmpheader = strdup_printf("x-filehash: %s", file_hash);
-        custom_headers = curl_slist_append(custom_headers, tmpheader);
-        free(tmpheader);
 
         http = http_create();
         retval = http_post_file(http, api_call, fh, &custom_headers, file_size,
@@ -134,8 +131,6 @@ mfconn_api_upload_simple(mfconn * conn, const char *folderkey,
             break;
         }
     }
-
-    free(file_hash);
 
     return retval;
 }

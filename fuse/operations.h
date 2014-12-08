@@ -24,6 +24,7 @@
 #include <sys/types.h>
 #include "../mfapi/mfconn.h"
 #include "hashtbl.h"
+#include "../utils/stringv.h"
 
 struct mediafirefs_context_private {
     mfconn         *conn;
@@ -31,12 +32,14 @@ struct mediafirefs_context_private {
     char           *configfile;
     char           *dircache;
     char           *filecache;
-    /* stores all currently open temporary files which are to be uploaded when
-     * they are closed.
-     * we use a normal array because the number of open temporary files will
-     * never be very high but is limited by the number of threads */
-    char          **tmpfiles;
-    size_t          num_tmpfiles;
+    /* stores:
+     *  - all currently open temporary files which are to be uploaded when
+     *    they are closed.
+     *  - all files that are opened for writing
+     */
+    stringv        *sv_writefiles;
+    /* stores all files that have been opened for reading only */
+    stringv        *sv_readonlyfiles;
 };
 
 int             mediafirefs_getattr(const char *path, struct stat *stbuf);

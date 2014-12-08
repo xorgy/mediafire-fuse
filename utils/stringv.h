@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013 Bryan Christ <bryan.christ@mediafire.com>
+ * Copyright (C) 2014 Johannes Schauer <j.schauer@email.de>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2, as published by
@@ -19,23 +19,18 @@
 #ifndef _STRING_V_H_
 #define _STRING_V_H_
 
-#include <stddef.h>
+#include <stdbool.h>
 
-#define     STRINGV_FREE_ALL    1
+typedef struct stringv stringv;
 
-// count number of strings in a NULL in a string vector
-size_t          stringv_len(char **array);
+stringv        *stringv_alloc(void);
 
-// free all of the strings in a vector and optionally the vector pointer
-void            stringv_free(char **array, int b_free);
+void            stringv_free(stringv * sv);
 
-// deep copy of string vector.  returns a new vector pointer
-char          **stringv_copy(char **array);
+bool            stringv_mem(stringv * sv, const char *e);
 
-// returns a NULL terminated vector array to every location 'token' is found
-char          **stringv_find(char *string, char *token, int limit);
+int             stringv_add(stringv * sv, const char *e);
 
-// returns a NULL terminated vector array of items delimited by 'token'
-char          **stringv_split(char *string, char *token, int limit);
+int             stringv_del(stringv * sv, const char *e);
 
 #endif

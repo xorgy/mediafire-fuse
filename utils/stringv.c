@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013 Bryan Christ <bryan.christ@mediafire.com>
+ * Copyright (C) 2014 Johannes Schauer <j.schauer@email.de>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2, as published by
@@ -18,166 +18,90 @@
 
 #define _POSIX_C_SOURCE 200809L // for strdup
 
-#include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
+#include <stddef.h>
 
 #include "stringv.h"
 
-size_t stringv_len(char **array)
+struct stringv {
+    size_t          len;
+    char          **array;
+};
+
+stringv        *stringv_alloc(void)
 {
-    size_t          count = 0;
-    char          **pos;
+    stringv        *sv;
 
-    if (array == NULL)
-        return 0;
-
-    pos = array;
-    while (pos[0] != NULL) {
-        pos++;
-        count++;
-    }
-
-    return count;
+    sv = (stringv *) calloc(1, sizeof(stringv));
+    sv->len = 0;
+    sv->array = NULL;
+    return sv;
 }
 
-void stringv_free(char **array, int b_free)
+void stringv_free(stringv * sv)
 {
-    char          **pos;
+    size_t          i;
 
-    if (array == NULL)
-        return;
-
-    pos = array;
-
-    while ((*pos) != NULL) {
-        free(*pos);
-        ++pos;
+    for (i = 0; i < sv->len; i++) {
+        free(sv->array[i]);
     }
-
-    if (b_free == STRINGV_FREE_ALL)
-        free(array);
-
-    return;
+    free(sv->array);
+    free(sv);
 }
 
-char          **stringv_copy(char **array)
+bool stringv_mem(stringv * sv, const char *e)
 {
-    uint32_t        array_len;
-    char          **array_pos;
+    size_t          i;
 
-    char          **dup_array;
-    char          **dup_pos;
-
-    if (array == NULL)
-        return (char **)NULL;
-
-    array_pos = array;
-
-    array_len = stringv_len(array);
-
-    if (array_len > UINT32_MAX - 1)
-        array_len = UINT32_MAX - 1;
-
-    dup_array = (char **)calloc(array_len, sizeof(char *));
-    dup_pos = dup_array;
-
-    while ((*array_pos) != NULL) {
-        *dup_pos = strdup((const char *)*array_pos);
-
-        array_pos++;
-        dup_pos++;
+    for (i = 0; i < sv->len; i++) {
+        if (strcmp(sv->array[i], e) == 0)
+            return true;
     }
-
-    return dup_array;
+    return false;
 }
 
-char          **stringv_find(char *string, char *token, int limit)
+int stringv_add(stringv * sv, const char *e)
 {
-    char          **results = NULL;
-    char           *pos = NULL;
-    int             count = 0;
+    sv->len++;
+    sv->array = realloc(sv->array, sizeof(char *) * sv->len);
+    if (sv->array == NULL) {
+        fprintf(stderr, "failed to realloc\n");
+        return -1;
+    }
+    sv->array[sv->len - 1] = strdup(e);
+    if (sv->array[sv->len - 1] == NULL) {
+        fprintf(stderr, "failed to strdup\n");
+        return -1;
+    }
+    return 0;
+}
 
-    if (string == NULL)
-        return (char **)NULL;
-    if (token == NULL)
-        return (char **)NULL;
-    if (limit == 0)
-        return (char **)NULL;
+int stringv_del(stringv * sv, const char *e)
+{
+    size_t          i;
 
-    pos = string;
-
-    if (strlen(token) > strlen(string))
-        return (char **)NULL;
-
-    while (count != limit) {
-        pos = strstr(pos, token);
-        if (pos == NULL)
+    for (i = 0; i < sv->len; i++) {
+        if (strcmp(sv->array[i], e) == 0) {
+            free(sv->array[i]);
             break;
-
-        count++;
-        results =
-            (char **)realloc((void *)results, sizeof(char *) * count + 1);
-
-        results[count - 1] = pos;
+        }
     }
-
-    if (count == 0)
-        return (char **)NULL;
-
-    results[count] = (char *)NULL;
-
-    return results;
-}
-
-char          **stringv_split(char *string, char *token, int limit)
-{
-    char          **results = NULL;
-    char           *curr = NULL;
-    char           *next = NULL;
-    int             count = 0;
-    unsigned int    len;
-    size_t          copy_len = 0;
-
-    if (string == NULL)
-        return (char **)NULL;
-    if (token == NULL)
-        return (char **)NULL;
-    if (limit == 0)
-        return (char **)NULL;
-
-    len = strlen(string);
-    if (strlen(token) > len)
-        return (char **)NULL;
-
-    curr = string;
-
-    do {
-        // alloc space for current item plus NULL vector terminator
-        results = (char **)realloc(results, sizeof(char *) * (count + 2));
-
-        // find the next occurrence
-        next = strstr(curr, token);
-
-        if (next != NULL)
-            copy_len = next - curr;
-        else
-            copy_len = strlen(curr);
-
-        results[count] = (char *)calloc(copy_len + 1, sizeof(char));
-        memcpy(results[count], curr, copy_len);
-
-        count++;
-
-        if (next == NULL)
-            break;
-
-        curr = next;
-        curr++;
+    if (i == sv->len) {
+        fprintf(stderr, "not found\n");
+        return -1;
     }
-    while (count < limit);
-
-    results[count] = NULL;
-
-    return results;
+    // shift the remaining entries one place to the left
+    memmove(sv->array + i, sv->array + i + 1,
+            sizeof(char *) * (sv->len - i - 1));
+    sv->len--;
+    if (sv->len == 0) {
+        free(sv->array);
+        sv->array = NULL;
+    } else {
+        sv->array = realloc(sv->array, sizeof(char *) * sv->len);
+    }
+    return 0;
 }

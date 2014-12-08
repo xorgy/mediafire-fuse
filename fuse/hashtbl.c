@@ -34,24 +34,17 @@
 #include <fcntl.h>
 #include <stdint.h>
 #include <stddef.h>
-#include <pwd.h>
 #include <inttypes.h>
-#ifdef __linux
-#include <bits/fcntl-linux.h>
-#endif
 #include <openssl/sha.h>
 
 #include "hashtbl.h"
 #include "filecache.h"
 #include "../mfapi/mfconn.h"
 #include "../mfapi/file.h"
-#include "../mfapi/patch.h"
 #include "../mfapi/folder.h"
 #include "../mfapi/apicalls.h"
 #include "../utils/strings.h"
-#include "../utils/http.h"
 #include "../utils/hash.h"
-#include "../utils/xdelta3.h"
 
 /*
  * we build a hashtable using the first three characters of the file or folder
@@ -746,7 +739,31 @@ int folder_tree_tmp_open(folder_tree * tree)
     return fd;
 }
 
-int folder_tree_open_file(folder_tree * tree, mfconn * conn, const char *path)
+int folder_tree_upload_patch(folder_tree * tree, mfconn * conn,
+                             const char *path)
+{
+    struct h_entry *entry;
+    int             retval;
+
+    entry = folder_tree_lookup_path(tree, conn, path);
+    /* either file not found or found entry is not a file */
+    if (entry == NULL || entry->atime == 0) {
+        return -ENOENT;
+    }
+
+    retval = filecache_upload_patch(entry->key, entry->local_revision,
+                                    tree->filecache, conn);
+
+    if (retval != 0) {
+        fprintf(stderr, "filecache_upload_patch failed\n");
+        return -1;
+    }
+
+    return 0;
+}
+
+int folder_tree_open_file(folder_tree * tree, mfconn * conn, const char *path,
+                          mode_t mode, bool update)
 {
     struct h_entry *entry;
     int             retval;
@@ -762,16 +779,19 @@ int folder_tree_open_file(folder_tree * tree, mfconn * conn, const char *path)
 
     retval = filecache_open_file(entry->key, entry->local_revision,
                                  entry->remote_revision, entry->fsize,
-                                 entry->hash, tree->filecache, conn);
+                                 entry->hash, tree->filecache, conn, mode,
+                                 update);
     if (retval == -1) {
         fprintf(stderr, "filecache_open_file failed\n");
         return -1;
     }
 
-    /* make sure that the local_revision is equal to the remote revision
-     * because filecache_open_file took care of doing any updating if it was
-     * necessary */
-    entry->local_revision = entry->remote_revision;
+    if (update) {
+        /* make sure that the local_revision is equal to the remote revision
+         * because filecache_open_file took care of doing any updating if it
+         * was necessary */
+        entry->local_revision = entry->remote_revision;
+    }
 
     return retval;
 }

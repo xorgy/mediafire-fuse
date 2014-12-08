@@ -95,12 +95,11 @@
 struct mediafirefs_openfile {
     // to fread and fwrite from/to the file
     int             fd;
+    char           *path;
     // whether or not a patch has to be uploaded when closing
     bool            is_readonly;
     // whether or not to do a new file upload when closing
-    // if this is NULL then the file already existed remotely
-    // otherwise a new upload has to be done to the given remote path
-    char           *remote_path;
+    bool            is_local;
 };
 
 int mediafirefs_getattr(const char *path, struct stat *stbuf)
@@ -115,27 +114,21 @@ int mediafirefs_getattr(const char *path, struct stat *stbuf)
      */
     struct mediafirefs_context_private *ctx;
     int             retval;
-    size_t          i;
 
     ctx = fuse_get_context()->private_data;
     folder_tree_update(ctx->tree, ctx->conn, false);
     retval = folder_tree_getattr(ctx->tree, ctx->conn, path, stbuf);
 
-    if (retval != 0) {
-        for (i = 0; i < ctx->num_tmpfiles; i++) {
-            if (strcmp(ctx->tmpfiles[i], path) == 0) {
-                stbuf->st_uid = geteuid();
-                stbuf->st_gid = getegid();
-                stbuf->st_ctime = 0;
-                stbuf->st_mtime = 0;
-                stbuf->st_mode = S_IFREG | 0666;
-                stbuf->st_nlink = 1;
-                stbuf->st_atime = 0;
-                stbuf->st_size = 0;
-                retval = 0;
-                break;
-            }
-        }
+    if (retval != 0 && stringv_mem(ctx->sv_writefiles, path)) {
+        stbuf->st_uid = geteuid();
+        stbuf->st_gid = getegid();
+        stbuf->st_ctime = 0;
+        stbuf->st_mtime = 0;
+        stbuf->st_mode = S_IFREG | 0666;
+        stbuf->st_nlink = 1;
+        stbuf->st_atime = 0;
+        stbuf->st_size = 0;
+        retval = 0;
     }
 
     return retval;
@@ -308,20 +301,60 @@ int mediafirefs_unlink(const char *path)
     return 0;
 }
 
+/*
+ * the following restrictions apply:
+ *  1. a file can be opened in read-only mode more than once at a time
+ *  2. a file can only be be opened in write-only or read-write mode if it is
+ *     not open for writing at the same time
+ *  3. a file that is only local and has not been uploaded yet cannot be read
+ *     from
+ *  4. a file that has opened in any way will not be updated to its latest
+ *     remote revision until all its opened handles are closed
+ *
+ *  Point 2 is enforced by a lookup in the writefiles string vector. If the
+ *  path is in there then it was either just created locally or opened with
+ *  write-only or read-write. In both cases it must not be opened for
+ *  writing again.
+ *
+ *  Point 3 is enforced by the lookup in the hashtable failing.
+ *
+ *  Point 4 is enforced by checking if the current path is in the writefiles or
+ *  readonlyfiles string vector and if yes, no updating will be done.
+ */
 int mediafirefs_open(const char *path, struct fuse_file_info *file_info)
 {
     int             fd;
+    bool            is_open;
     struct mediafirefs_openfile *openfile;
     struct mediafirefs_context_private *ctx;
 
     ctx = fuse_get_context()->private_data;
 
-    if ((file_info->flags & O_ACCMODE) != O_RDONLY) {
-        fprintf(stderr, "can only open read-only\n");
+    /* if file is not opened read-only, check if it was already opened in a
+     * not read-only mode and abort if yes */
+    if ((file_info->flags & O_ACCMODE) != O_RDONLY
+        && stringv_mem(ctx->sv_writefiles, path)) {
+        fprintf(stderr, "file %s was already opened for writing\n", path);
         return -EACCES;
     }
 
-    fd = folder_tree_open_file(ctx->tree, ctx->conn, path);
+    is_open = false;
+    // check if the file was already opened
+    // check read-only files first
+    if (stringv_mem(ctx->sv_readonlyfiles, path)) {
+        is_open = true;
+    }
+    // check writable files only if the file was
+    //   - not yet found in the read-only files
+    //   - the file is opened in read-only mode (because otherwise the
+    //     writable files were already searched above without failing)
+    if (!is_open && (file_info->flags & O_ACCMODE) == O_RDONLY
+        && stringv_mem(ctx->sv_writefiles, path)) {
+        is_open = true;
+    }
+
+    fd = folder_tree_open_file(ctx->tree, ctx->conn, path, file_info->flags,
+                               !is_open);
     if (fd < 0) {
         fprintf(stderr, "folder_tree_file_open unsuccessful\n");
         return fd;
@@ -329,8 +362,19 @@ int mediafirefs_open(const char *path, struct fuse_file_info *file_info)
 
     openfile = malloc(sizeof(struct mediafirefs_openfile));
     openfile->fd = fd;
-    openfile->is_readonly = true;
-    openfile->remote_path = NULL;
+    openfile->is_local = false;
+    openfile->path = strdup(path);
+
+    if ((file_info->flags & O_ACCMODE) == O_RDONLY) {
+        openfile->is_readonly = true;
+        // add to readonlyfiles
+        stringv_add(ctx->sv_readonlyfiles, path);
+    } else {
+        openfile->is_readonly = false;
+        // add to writefiles
+        stringv_add(ctx->sv_writefiles, path);
+    }
+
     file_info->fh = (uint64_t) openfile;
     return 0;
 }
@@ -359,14 +403,13 @@ int mediafirefs_create(const char *path, mode_t mode,
 
     openfile = malloc(sizeof(struct mediafirefs_openfile));
     openfile->fd = fd;
+    openfile->is_local = true;
     openfile->is_readonly = false;
-    openfile->remote_path = strdup(path);
+    openfile->path = strdup(path);
     file_info->fh = (uint64_t) openfile;
 
-    // add to tmpfiles
-    ctx->num_tmpfiles++;
-    ctx->tmpfiles = realloc(ctx->tmpfiles, sizeof(char *) * ctx->num_tmpfiles);
-    ctx->tmpfiles[ctx->num_tmpfiles - 1] = openfile->remote_path;
+    // add to writefiles
+    stringv_add(ctx->sv_writefiles, path);
 
     return 0;
 }
@@ -411,19 +454,38 @@ int mediafirefs_release(const char *path, struct fuse_file_info *file_info)
 
     openfile = (struct mediafirefs_openfile *)file_info->fh;
 
-    // if the file was opened readonly, then no new updates have to be
-    // uploaded
+    // if file was opened as readonly then it just has to be closed
     if (openfile->is_readonly) {
+        // remove this entry from readonlyfiles
+        if (stringv_del(ctx->sv_readonlyfiles, openfile->path) != 0) {
+            fprintf(stderr, "FATAL: readonly entry %s not found\n",
+                    openfile->path);
+            exit(1);
+        }
+
         close(openfile->fd);
+        free(openfile->path);
         free(openfile);
         return 0;
     }
+    // if the file is not readonly, its entry in writefiles has to be removed
+    if (stringv_del(ctx->sv_writefiles, openfile->path) != 0) {
+        fprintf(stderr, "FATAL: writefiles entry %s not found\n",
+                openfile->path);
+        exit(1);
+    }
+    if (stringv_mem(ctx->sv_writefiles, openfile->path) != 0) {
+        fprintf(stderr,
+                "FATAL: writefiles entry %s was found more than once\n",
+                openfile->path);
+        exit(1);
+    }
     // if the file only exists locally, an initial upload has to be done
-    if (openfile->remote_path != NULL) {
+    if (openfile->is_local) {
         // pass a copy because dirname and basename may modify their argument
-        temp1 = strdup(openfile->remote_path);
+        temp1 = strdup(openfile->path);
         file_name = basename(temp1);
-        temp2 = strdup(openfile->remote_path);
+        temp2 = strdup(openfile->path);
         dir_name = dirname(temp2);
 
         fh = fdopen(openfile->fd, "r");
@@ -438,7 +500,7 @@ int mediafirefs_release(const char *path, struct fuse_file_info *file_info)
         fclose(fh);
         free(temp1);
         free(temp2);
-        free(openfile->remote_path);
+        free(openfile->path);
         free(openfile);
 
         if (retval != 0 || upload_key == NULL) {
@@ -462,11 +524,6 @@ int mediafirefs_release(const char *path, struct fuse_file_info *file_info)
             sleep(1);
         }
 
-        // remove from tmpfiles
-        ctx->num_tmpfiles--;
-        ctx->tmpfiles = realloc(ctx->tmpfiles,
-                                sizeof(char *) * ctx->num_tmpfiles);
-
         free(upload_key);
 
         folder_tree_update(ctx->tree, ctx->conn, true);
@@ -475,9 +532,18 @@ int mediafirefs_release(const char *path, struct fuse_file_info *file_info)
     // the file was not opened readonly and also existed on the remote
     // thus, we have to check whether any changes were made and if yes, upload
     // a patch
-    // FIXME: not implemented yet
+
     close(openfile->fd);
+
+    retval = folder_tree_upload_patch(ctx->tree, ctx->conn, openfile->path);
+    free(openfile->path);
     free(openfile);
+
+    if (retval != 0) {
+        fprintf(stderr, "folder_tree_upload_patch failed\n");
+        return -EACCES;
+    }
+
     folder_tree_update(ctx->tree, ctx->conn, true);
-    return -ENOSYS;
+    return 0;
 }

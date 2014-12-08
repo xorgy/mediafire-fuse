@@ -289,6 +289,7 @@ http_post_file(mfhttp * conn, const char *url, FILE * fh,
 
     if (custom_headers == NULL) {
         custom_headers = &fallback_headers;
+        *custom_headers = NULL;
     }
     // when using POST, curl implicitly sets
     // Content-Type: application/x-www-form-urlencoded

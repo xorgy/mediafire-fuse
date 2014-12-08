@@ -23,6 +23,11 @@ int             filecache_open_file(const char *quickkey,
                                     uint64_t local_revision,
                                     uint64_t remote_revision, uint64_t fsize,
                                     const unsigned char *fhash,
-                                    const char *filecache, mfconn * conn);
+                                    const char *filecache, mfconn * conn,
+                                    mode_t mode, bool update);
+
+int             filecache_upload_patch(const char *quickkey,
+                                       uint64_t local_revision,
+                                       const char *filecache, mfconn * conn);
 
 #endif
