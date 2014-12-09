@@ -10,6 +10,23 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -Wall -Wextra -Werror")
 # the following is until we learn how to reorder the gcc arguments to correctly link on Ubuntu
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--no-as-needed")
 
+# ensure large file support (also necessary for fuse)
+add_definitions("-D_FILE_OFFSET_BITS=64")
+
+find_package(OpenSSL REQUIRED)
+include_directories(${OPENSSL_INCLUDE_DIR})
+
+find_package(CURL REQUIRED)
+include_directories(${CURL_INCLUDE_DIRS})
+
+set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/3rdparty/cmake)
+
+find_package(FUSE 2.9 REQUIRED)
+include_directories(${FUSE_INCLUDE_DIRS})
+
+find_package(Jansson 2.6 REQUIRED)
+include_directories(${JANSSON_INCLUDE_DIRS})
+
 add_library(mfapi SHARED
 	mfapi/mfconn.c
 	mfapi/file.c
@@ -67,7 +84,7 @@ add_executable(mediafire-shell
 	mfshell/config.c
 	mfshell/options.c
 	mfshell/commands/updates.c)
-target_link_libraries(mediafire-shell curl ssl crypto jansson mfapi mfutils)
+target_link_libraries(mediafire-shell ${CURL_LIBRARIES} ${OPENSSL_LIBRARIES} ${JANSSON_LIBRARIES} mfapi mfutils)
 
 enable_testing()
 
@@ -76,8 +93,7 @@ add_executable(mediafire-fuse
 	fuse/hashtbl.c
 	fuse/filecache.c
 	fuse/operations.c)
-set_target_properties(mediafire-fuse PROPERTIES COMPILE_FLAGS "-D_FILE_OFFSET_BITS=64")
-target_link_libraries(mediafire-fuse curl ssl fuse jansson mfapi mfutils)
+target_link_libraries(mediafire-fuse ${CURL_LIBRARIES} ${OPENSSL_LIBRARIES} ${FUSE_LIBRARIES} ${JANSSON_LIBRARIES} mfapi mfutils)
 
 add_test(iwyu ${CMAKE_SOURCE_DIR}/tests/iwyu.py ${CMAKE_BINARY_DIR})
 add_test(indent ${CMAKE_SOURCE_DIR}/tests/indent.sh ${CMAKE_SOURCE_DIR})

@@ -29,7 +29,9 @@
 #include <string.h>
 #include <errno.h>
 #include <sys/stat.h>
+#ifdef __linux
 #include <bits/fcntl-linux.h>
+#endif
 #include <pwd.h>
 #include <wordexp.h>
 #include <fcntl.h>
@@ -349,10 +351,12 @@ static void setup_conf_and_cache_dir(struct mediafirefs_context_private *ctx)
     /* EEXIST is okay, so only fail if it is something else */
     if (mkdir(configdir, 0755) != 0 && errno != EEXIST) {
         perror("mkdir");
+        fprintf(stderr, "cannot create %s\n", configdir);
         exit(1);
     }
     if (mkdir(cachedir, 0755) != 0 && errno != EEXIST) {
         perror("mkdir");
+        fprintf(stderr, "cannot create %s\n", cachedir);
         exit(1);
     }
 
@@ -371,6 +375,7 @@ static void setup_conf_and_cache_dir(struct mediafirefs_context_private *ctx)
     ctx->filecache = strdup_printf("%s/files", cachedir);
     if (mkdir(ctx->filecache, 0755) != 0 && errno != EEXIST) {
         perror("mkdir");
+        fprintf(stderr, "cannot create %s\n", ctx->filecache);
         exit(1);
     }
 

@@ -17,7 +17,11 @@
  */
 
 #define _POSIX_C_SOURCE 200809L // for strdup and struct timespec (in fuse.h)
-                          // and S_IFDIR and S_IFREG
+#define _XOPEN_SOURCE 700       // for S_IFDIR and S_IFREG (on linux,
+                                // posix_c_source is enough but this is needed
+                                // on freebsd)
+
+#define FUSE_USE_VERSION 30
 
 #include <errno.h>
 #include <stdlib.h>
@@ -32,7 +36,9 @@
 #include <stddef.h>
 #include <pwd.h>
 #include <inttypes.h>
+#ifdef __linux
 #include <bits/fcntl-linux.h>
+#endif
 #include <openssl/sha.h>
 
 #include "hashtbl.h"
