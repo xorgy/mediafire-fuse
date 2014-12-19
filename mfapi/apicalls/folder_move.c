@@ -51,7 +51,7 @@ int mfconn_api_folder_move(mfconn * conn, const char *folder_key_src,
         } else {
             api_call = mfconn_create_signed_get(conn, 0, "folder/move.php",
                                                 "?folder_key_src=%s"
-                                                "&folderkey_dst=%s"
+                                                "&folder_key_dst=%s"
                                                 "&response_format=json",
                                                 folder_key_src,
                                                 folder_key_dst);
