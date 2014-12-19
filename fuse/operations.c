@@ -145,12 +145,12 @@ int mediafirefs_readdir(const char *path, void *buf, fuse_fill_dir_t filldir,
     return folder_tree_readdir(ctx->tree, ctx->conn, path, buf, filldir);
 }
 
-void mediafirefs_destroy()
+void mediafirefs_destroy(void *user_ptr)
 {
     FILE           *fd;
     struct mediafirefs_context_private *ctx;
 
-    ctx = fuse_get_context()->private_data;
+    ctx = (struct mediafirefs_context_private *)user_ptr;
 
     fprintf(stderr, "storing hashtable\n");
 
@@ -546,4 +546,187 @@ int mediafirefs_release(const char *path, struct fuse_file_info *file_info)
 
     folder_tree_update(ctx->tree, ctx->conn, true);
     return 0;
+}
+
+int mediafirefs_readlink(const char *path, char *buf, size_t bufsize)
+{
+    (void)path;
+    (void)buf;
+    (void)bufsize;
+    fprintf(stderr, "readlink not implemented\n");
+    return -ENOENT;
+}
+
+int mediafirefs_mknod(const char *path, mode_t mode, dev_t dev)
+{
+    (void)path;
+    (void)mode;
+    (void)dev;
+    fprintf(stderr, "mknod not implemented\n");
+    return -ENOENT;
+}
+
+int mediafirefs_symlink(const char *target, const char *linkpath)
+{
+    (void)target;
+    (void)linkpath;
+    fprintf(stderr, "symlink not implemented\n");
+    return -ENOENT;
+}
+
+int mediafirefs_rename(const char *oldpath, const char *newpath)
+{
+    (void)oldpath;
+    (void)newpath;
+    fprintf(stderr, "rename not implemented\n");
+    return -ENOENT;
+}
+
+int mediafirefs_link(const char *target, const char *linkpath)
+{
+    (void)target;
+    (void)linkpath;
+    fprintf(stderr, "link not implemented\n");
+    return -ENOENT;
+}
+
+int mediafirefs_chmod(const char *path, mode_t mode)
+{
+    (void)path;
+    (void)mode;
+    fprintf(stderr, "chmod not implemented\n");
+    return -ENOENT;
+}
+
+int mediafirefs_chown(const char *path, uid_t uid, gid_t gid)
+{
+    (void)path;
+    (void)uid;
+    (void)gid;
+    fprintf(stderr, "chown not implemented\n");
+    return -ENOENT;
+}
+
+int mediafirefs_truncate(const char *path, off_t length)
+{
+    (void)path;
+    (void)length;
+    fprintf(stderr, "truncate not implemented\n");
+    return -ENOENT;
+}
+
+int mediafirefs_statfs(const char *path, struct statvfs *buf)
+{
+    (void)path;
+    (void)buf;
+    fprintf(stderr, "statfs not implemented\n");
+    return -ENOENT;
+}
+
+int mediafirefs_flush(const char *path, struct fuse_file_info *file_info)
+{
+    (void)path;
+    (void)file_info;
+    fprintf(stderr, "flush is a no-op\n");
+    return 0;
+}
+
+int mediafirefs_fsync(const char *path, int datasync,
+                      struct fuse_file_info *file_info)
+{
+    (void)path;
+    (void)datasync;
+    (void)file_info;
+    fprintf(stderr, "fsync not implemented\n");
+    return -ENOENT;
+}
+
+int mediafirefs_setxattr(const char *path, const char *name,
+                         const char *value, size_t size, int flags)
+{
+    (void)path;
+    (void)name;
+    (void)value;
+    (void)size;
+    (void)flags;
+    fprintf(stderr, "setxattr not implemented\n");
+    return -ENOENT;
+}
+
+int mediafirefs_getxattr(const char *path, const char *name, char *value,
+                         size_t size)
+{
+    (void)path;
+    (void)name;
+    (void)value;
+    (void)size;
+    fprintf(stderr, "getxattr not implemented\n");
+    return -ENOENT;
+}
+
+int mediafirefs_listxattr(const char *path, char *list, size_t size)
+{
+    (void)path;
+    (void)list;
+    (void)size;
+    fprintf(stderr, "listxattr not implemented\n");
+    return -ENOENT;
+}
+
+int mediafirefs_removexattr(const char *path, const char *list)
+{
+    (void)path;
+    (void)list;
+    fprintf(stderr, "removexattr not implemented\n");
+    return -ENOENT;
+}
+
+int mediafirefs_opendir(const char *path, struct fuse_file_info *file_info)
+{
+    (void)path;
+    (void)file_info;
+    fprintf(stderr, "opendir is a no-op\n");
+    return 0;
+}
+
+int mediafirefs_releasedir(const char *path, struct fuse_file_info *file_info)
+{
+    (void)path;
+    (void)file_info;
+    fprintf(stderr, "releasedir is a no-op\n");
+    return 0;
+}
+
+int mediafirefs_fsyncdir(const char *path, int datasync,
+                         struct fuse_file_info *file_info)
+{
+    (void)path;
+    (void)datasync;
+    (void)file_info;
+    fprintf(stderr, "fsyncdir not implemented\n");
+    return -ENOENT;
+}
+
+/*
+void* mediafirefs_init(struct fuse_conn_info *conn)
+{
+    (void)conn;
+    fprintf(stderr, "init is a no-op");
+}
+*/
+
+int mediafirefs_access(const char *path, int mode)
+{
+    (void)path;
+    (void)mode;
+    fprintf(stderr, "access not implemented\n");
+    return -ENOENT;
+}
+
+int mediafirefs_utimens(const char *path, const struct timespec tv[2])
+{
+    (void)path;
+    (void)tv;
+    fprintf(stderr, "utimens not implemented\n");
+    return -ENOENT;
 }
