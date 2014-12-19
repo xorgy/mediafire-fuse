@@ -75,6 +75,13 @@ long            mfconn_api_folder_get_content(mfconn * conn, const int mode,
 int             mfconn_api_folder_get_info(mfconn * conn, mffolder * folder,
                                            const char *folderkey);
 
+int             mfconn_api_folder_move(mfconn * conn,
+                                       const char *folder_key_src,
+                                       const char *folder_key_dst);
+
+int             mfconn_api_folder_update(mfconn * conn, const char *folder_key,
+                                         const char *foldername);
+
 int             mfconn_api_user_get_info(mfconn * conn);
 
 int             mfconn_api_user_get_session_token(mfconn * conn,

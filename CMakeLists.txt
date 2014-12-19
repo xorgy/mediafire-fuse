@@ -44,6 +44,8 @@ add_library(mfapi SHARED
 	mfapi/apicalls/folder_create.c
 	mfapi/apicalls/folder_get_content.c
 	mfapi/apicalls/folder_delete.c
+	mfapi/apicalls/folder_move.c
+	mfapi/apicalls/folder_update.c
 	mfapi/apicalls/device_get_status.c
 	mfapi/apicalls/device_get_changes.c
 	mfapi/apicalls/device_get_patch.c
