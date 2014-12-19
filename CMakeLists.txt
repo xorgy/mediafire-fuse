@@ -34,6 +34,8 @@ add_library(mfapi SHARED
 	mfapi/patch.c
 	mfapi/apicalls.c
 	mfapi/apicalls/file_get_info.c
+	mfapi/apicalls/file_move.c
+	mfapi/apicalls/file_update.c
 	mfapi/apicalls/user_get_info.c
 	mfapi/apicalls/file_get_links.c
 	mfapi/apicalls/file_delete.c

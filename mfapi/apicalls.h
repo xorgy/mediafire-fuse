@@ -58,6 +58,12 @@ int             mfconn_api_file_get_info(mfconn * conn, mffile * file,
 int             mfconn_api_file_get_links(mfconn * conn, mffile * file,
                                           const char *quickkey);
 
+int             mfconn_api_file_move(mfconn * conn, const char *quickkey,
+                                     const char *folderkey);
+
+int             mfconn_api_file_update(mfconn * conn, const char *quickkey,
+                                       const char *filename);
+
 int             mfconn_api_folder_create(mfconn * conn, const char *parent,
                                          const char *name);
 
