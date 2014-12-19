@@ -576,10 +576,92 @@ int mediafirefs_symlink(const char *target, const char *linkpath)
 
 int mediafirefs_rename(const char *oldpath, const char *newpath)
 {
-    (void)oldpath;
-    (void)newpath;
-    fprintf(stderr, "rename not implemented\n");
-    return -ENOENT;
+    char           *temp1;
+    char           *temp2;
+    char           *olddir;
+    char           *newdir;
+    char           *oldname;
+    char           *newname;
+    int             retval;
+    struct mediafirefs_context_private *ctx;
+    bool            is_file;
+    const char     *key;
+    const char     *folderkey;
+
+    ctx = fuse_get_context()->private_data;
+
+    is_file = folder_tree_path_is_file(ctx->tree, ctx->conn, oldpath);
+
+    key = folder_tree_path_get_key(ctx->tree, ctx->conn, oldpath);
+    if (key == NULL) {
+        fprintf(stderr, "key is NULL\n");
+        return -ENOENT;
+    }
+    // check if the directory changed
+    temp1 = strdup(oldpath);
+    temp2 = strdup(newpath);
+    olddir = dirname(temp1);
+    newdir = dirname(temp2);
+
+    if (strcmp(olddir, newdir) != 0) {
+        folderkey = folder_tree_path_get_key(ctx->tree, ctx->conn, newdir);
+        if (key == NULL) {
+            fprintf(stderr, "key is NULL\n");
+            free(temp1);
+            free(temp2);
+            return -ENOENT;
+        }
+
+        if (is_file) {
+            retval = mfconn_api_file_move(ctx->conn, key, folderkey);
+        } else {
+            retval = mfconn_api_folder_move(ctx->conn, key, folderkey);
+        }
+        if (retval != 0) {
+            if (is_file) {
+                fprintf(stderr, "mfconn_api_file_move failed\n");
+            } else {
+                fprintf(stderr, "mfconn_api_folder_move failed\n");
+            }
+            free(temp1);
+            free(temp2);
+            return -ENOENT;
+        }
+    }
+
+    free(temp1);
+    free(temp2);
+
+    // check if the name changed
+    temp1 = strdup(oldpath);
+    temp2 = strdup(newpath);
+    oldname = basename(temp1);
+    newname = basename(temp2);
+
+    if (strcmp(oldname, newname) != 0) {
+        if (is_file) {
+            retval = mfconn_api_file_update(ctx->conn, key, newname);
+        } else {
+            retval = mfconn_api_folder_update(ctx->conn, key, newname);
+        }
+        if (retval != 0) {
+            if (is_file) {
+                fprintf(stderr, "mfconn_api_file_update failed\n");
+            } else {
+                fprintf(stderr, "mfconn_api_folder_update failed\n");
+            }
+            free(temp1);
+            free(temp2);
+            return -ENOENT;
+        }
+    }
+
+    free(temp1);
+    free(temp2);
+
+    folder_tree_update(ctx->tree, ctx->conn, true);
+
+    return 0;
 }
 
 int mediafirefs_link(const char *target, const char *linkpath)
@@ -609,6 +691,7 @@ int mediafirefs_chown(const char *path, uid_t uid, gid_t gid)
 
 int mediafirefs_truncate(const char *path, off_t length)
 {
+    // FIXME: implement this
     (void)path;
     (void)length;
     fprintf(stderr, "truncate not implemented\n");

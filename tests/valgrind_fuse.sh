@@ -54,8 +54,13 @@ tree /mnt
 # make new directory
 mkdir "/mnt/test"
 
-# create file in new directory
-echo foobar > "/mnt/test/foobar"
+# FIXME: also test for moving and renaming of directories
+
+# create file in the root directory
+echo foobar > "/mnt/foobar2"
+
+# move the file to the new directory
+mv /mnt/foobar2 /mnt/test/foobar
 
 # wait a bit because above operation finishes before the release() call finished
 sleep 5
