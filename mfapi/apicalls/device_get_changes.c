@@ -57,6 +57,10 @@ int mfconn_api_device_get_changes(mfconn * conn, uint64_t revision,
         api_call = mfconn_create_signed_get(conn, 0, "device/get_changes.php",
                                             "?revision=%" PRIu64
                                             "&response_format=json", revision);
+        if (api_call == NULL) {
+            fprintf(stderr, "mfconn_create_signed_get failed\n");
+            return -1;
+        }
 
         http = http_create();
         retval =

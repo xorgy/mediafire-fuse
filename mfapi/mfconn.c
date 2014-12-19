@@ -225,18 +225,24 @@ const char     *mfconn_create_unsigned_get(mfconn * conn, int ssl,
     int             api_len;
     va_list         ap;
 
-    if (conn == NULL)
+    if (conn == NULL) {
+        fprintf(stderr, "conn cannot be NULL\n");
         return NULL;
-    if (conn->server == NULL)
+    }
+    if (conn->server == NULL) {
+        fprintf(stderr, "server cannot be NULL\n");
         return NULL;
-
+    }
     // make sure the api (ex: user/get_info.php) is sane
-    if (api == NULL)
+    if (api == NULL) {
+        fprintf(stderr, "api call cannot be NULL\n");
         return NULL;
+    }
     api_len = strlen(api);
-    if (api_len < 3)
+    if (api_len < 3) {
+        fprintf(stderr, "api call length cannot be less than 3\n");
         return NULL;
-
+    }
     // calculate how big of a buffer we need
     va_start(ap, fmt);
     api_args_len = (vsnprintf(NULL, 0, fmt, ap) + 1);   // + 1 for NULL
@@ -252,8 +258,10 @@ const char     *mfconn_create_unsigned_get(mfconn * conn, int ssl,
     va_end(ap);
 
     // correct user error of trailing slash
-    if (api[api_len - 1] == '/')
+    if (api[api_len - 1] == '/') {
+        fprintf(stderr, "api call must not end with slash\n");
         return NULL;
+    }
 
     api_request = strdup_printf("%s//%s/api/%s",
                                 (ssl ? "https:" : "http:"), conn->server, api);
@@ -290,22 +298,32 @@ const char     *mfconn_create_signed_get(mfconn * conn, int ssl,
     int             api_len;
     va_list         ap;
 
-    if (conn == NULL)
+    if (conn == NULL) {
+        fprintf(stderr, "conn cannot be NULL\n");
         return NULL;
-    if (conn->server == NULL)
+    }
+    if (conn->server == NULL) {
+        fprintf(stderr, "server cannot be NULL\n");
         return NULL;
-    if (conn->secret_time == NULL)
+    }
+    if (conn->secret_time == NULL) {
+        fprintf(stderr, "secret_time cannot be NULL\n");
         return NULL;
-    if (conn->session_token == NULL)
+    }
+    if (conn->session_token == NULL) {
+        fprintf(stderr, "session_token cannot be NULL\n");
         return NULL;
-
+    }
     // make sure the api (ex: user/get_info.php) is sane
-    if (api == NULL)
+    if (api == NULL) {
+        fprintf(stderr, "api name cannot be NULL\n");
         return NULL;
+    }
     api_len = strlen(api);
-    if (api_len < 3)
+    if (api_len < 3) {
+        fprintf(stderr, "api name length cannot be less than 3\n");
         return NULL;
-
+    }
     // calculate how big of a buffer we need
     va_start(ap, fmt);
     api_args_len = (vsnprintf(NULL, 0, fmt, ap) + 1);   // + 1 for NULL
@@ -328,8 +346,10 @@ const char     *mfconn_create_signed_get(mfconn * conn, int ssl,
     free(session_token);
 
     // correct user error of trailing slash
-    if (api[api_len - 1] == '/')
+    if (api[api_len - 1] == '/') {
+        fprintf(stderr, "api name cannot end with slash\n");
         return NULL;
+    }
 
     api_request = strdup_printf("%s//%s/api/%s",
                                 (ssl ? "https:" : "http:"), conn->server, api);

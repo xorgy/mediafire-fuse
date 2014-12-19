@@ -45,6 +45,10 @@ int mfconn_api_file_delete(mfconn * conn, const char *quickkey)
         api_call = mfconn_create_signed_get(conn, 0, "file/delete.php",
                                             "?quick_key=%s"
                                             "&response_format=json", quickkey);
+        if (api_call == NULL) {
+            fprintf(stderr, "mfconn_create_signed_get failed\n");
+            return -1;
+        }
 
         http = http_create();
         retval =

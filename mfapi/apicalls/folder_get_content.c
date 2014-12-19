@@ -99,6 +99,10 @@ mfconn_api_folder_get_content(mfconn * conn, const int mode,
                                                 "&response_format=json",
                                                 folderkey, content_type);
         }
+        if (api_call == NULL) {
+            fprintf(stderr, "mfconn_create_signed_get failed\n");
+            return -1;
+        }
 
         http = http_create();
         if (mode == 0)

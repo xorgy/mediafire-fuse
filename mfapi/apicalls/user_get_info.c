@@ -40,6 +40,10 @@ int mfconn_api_user_get_info(mfconn * conn)
 
     api_call = mfconn_create_signed_get(conn, 0, "user/get_info.php",
                                         "?response_format=json");
+    if (api_call == NULL) {
+        fprintf(stderr, "mfconn_create_signed_get failed\n");
+        return -1;
+    }
 
     http = http_create();
     retval = http_get_buf(http, api_call, _decode_user_get_info, NULL);

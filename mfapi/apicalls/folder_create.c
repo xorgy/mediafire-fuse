@@ -59,6 +59,10 @@ int mfconn_api_folder_create(mfconn * conn, const char *parent,
                                          "?foldername=%s&response_format=json",
                                          name);
         }
+        if (api_call == NULL) {
+            fprintf(stderr, "mfconn_create_signed_get failed\n");
+            return -1;
+        }
 
         http = http_create();
         retval = http_get_buf(http, api_call, mfapi_decode_common,

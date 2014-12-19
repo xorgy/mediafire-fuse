@@ -82,6 +82,11 @@ int mfconn_api_device_get_updates(mfconn * conn, const char *quickkey,
                                                 quickkey, revision,
                                                 target_revision);
         }
+        if (api_call == NULL) {
+            fprintf(stderr, "mfconn_create_signed_get failed\n");
+            return -1;
+        }
+
         http = http_create();
         retval = http_get_buf(http, api_call, _decode_device_get_updates,
                               (void *)patches);

@@ -46,6 +46,10 @@ int mfconn_api_folder_delete(mfconn * conn, const char *folderkey)
                                             "?folder_key=%s"
                                             "&response_format=json",
                                             folderkey);
+        if (api_call == NULL) {
+            fprintf(stderr, "mfconn_create_signed_get failed\n");
+            return -1;
+        }
 
         http = http_create();
         retval = http_get_buf(http, api_call, mfapi_decode_common,

@@ -56,6 +56,10 @@ mfconn_api_upload_poll_upload(mfconn * conn, const char *upload_key,
                                               "upload/poll_upload.php",
                                               "?response_format=json"
                                               "&key=%s", upload_key);
+        if (api_call == NULL) {
+            fprintf(stderr, "mfconn_create_unsigned_get failed\n");
+            return -1;
+        }
 
         http = http_create();
         retval = http_get_buf(http, api_call, _decode_upload_poll_upload,

@@ -56,6 +56,10 @@ int mfconn_api_file_get_links(mfconn * conn, mffile * file,
         api_call = mfconn_create_signed_get(conn, 0, "file/get_links.php",
                                             "?quick_key=%s"
                                             "&response_format=json", quickkey);
+        if (api_call == NULL) {
+            fprintf(stderr, "mfconn_create_signed_get failed\n");
+            return -1;
+        }
 
         http = http_create();
         retval = http_get_buf(http, api_call, _decode_file_get_links, file);

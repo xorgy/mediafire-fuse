@@ -89,6 +89,10 @@ mfconn_api_upload_patch(mfconn * conn, const char *quickkey,
                                             "&quickkey=%s", source_hash,
                                             target_hash, target_size,
                                             quickkey);
+        if (api_call == NULL) {
+            fprintf(stderr, "mfconn_create_signed_get failed\n");
+            return -1;
+        }
 
         custom_headers = curl_slist_append(custom_headers,
                                            "x-filename: dummy.patch");

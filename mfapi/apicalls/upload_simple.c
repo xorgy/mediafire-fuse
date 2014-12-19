@@ -90,7 +90,10 @@ mfconn_api_upload_simple(mfconn * conn, const char *folderkey,
                                                 "?response_format=json"
                                                 "&folder_key=%s", folderkey);
         }
-
+        if (api_call == NULL) {
+            fprintf(stderr, "mfconn_create_signed_get failed\n");
+            return -1;
+        }
         // make sure that we are at the beginning of the file
         rewind(fh);
 

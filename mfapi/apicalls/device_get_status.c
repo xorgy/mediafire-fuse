@@ -41,6 +41,10 @@ int mfconn_api_device_get_status(mfconn * conn, uint64_t * revision)
     for (i = 0; i < mfconn_get_max_num_retries(conn); i++) {
         api_call = mfconn_create_signed_get(conn, 0, "device/get_status.php",
                                             "?response_format=json");
+        if (api_call == NULL) {
+            fprintf(stderr, "mfconn_create_signed_get failed\n");
+            return -1;
+        }
 
         http = http_create();
         retval =
