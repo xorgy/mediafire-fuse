@@ -802,8 +802,8 @@ int mediafirefs_access(const char *path, int mode)
 {
     (void)path;
     (void)mode;
-    fprintf(stderr, "access not implemented\n");
-    return -ENOENT;
+    fprintf(stderr, "access is a no-op\n");
+    return 0;
 }
 
 int mediafirefs_utimens(const char *path, const struct timespec tv[2])
