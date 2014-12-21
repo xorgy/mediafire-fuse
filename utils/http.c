@@ -271,7 +271,7 @@ http_read_file_cb(char *data, size_t size, size_t nmemb, void *user_ptr)
 
     ret = fread(data, size, nmemb, conn->stream);
 
-    fprintf(stderr, "\r   %.0f / %.0f", conn->dl_now, conn->dl_len);
+    fprintf(stderr, "\r   %.0f / %.0f", conn->ul_now, conn->ul_len);
 
     return size * ret;
 }
