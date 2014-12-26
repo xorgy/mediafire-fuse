@@ -163,7 +163,9 @@ int filecache_upload_patch(const char *quickkey, uint64_t local_revision,
             return -1;
         }
         fprintf(stderr, "status: %d, filerror: %d\n", status, fileerror);
-        if (status == 99) {
+
+        // values 98 and 99 are terminal states for a completed upload
+        if (status == 99 || status == 98) {
             fprintf(stderr, "done\n");
             break;
         }

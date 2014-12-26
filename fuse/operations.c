@@ -517,7 +517,9 @@ int mediafirefs_release(const char *path, struct fuse_file_info *file_info)
                 return -1;
             }
             fprintf(stderr, "status: %d, filerror: %d\n", status, fileerror);
-            if (status == 99) {
+
+            // values 98 and 99 are terminal states for a completed upload
+            if (status == 99 || status == 98) {
                 fprintf(stderr, "done\n");
                 break;
             }
