@@ -263,8 +263,10 @@ const char     *mfconn_create_unsigned_get(mfconn * conn, int ssl,
         return NULL;
     }
 
-    api_request = strdup_printf("%s//%s/api/%s",
-                                (ssl ? "https:" : "http:"), conn->server, api);
+    api_request = strdup_printf("%s//%s/api/%s/%s",
+                                (ssl ? "https:" : "http:"),
+                                conn->server,
+                                MFAPI_VERSION, api);
 
     // compute the amount of space requred to realloc() the request
     bytes_to_alloc = api_args_len;
@@ -351,8 +353,10 @@ const char     *mfconn_create_signed_get(mfconn * conn, int ssl,
         return NULL;
     }
 
-    api_request = strdup_printf("%s//%s/api/%s",
-                                (ssl ? "https:" : "http:"), conn->server, api);
+    api_request = strdup_printf("%s//%s/api/%s/%s",
+                                (ssl ? "https:" : "http:"),
+                                conn->server,
+                                MFAPI_VERSION, api);
 
     call_hash = mfconn_create_call_signature(conn, api_request, api_args);
     signature = strdup_printf("&signature=%s", call_hash);

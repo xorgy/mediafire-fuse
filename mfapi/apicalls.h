@@ -33,6 +33,8 @@
 #define MFAPI_MAX_LEN_KEY 15
 #define MFAPI_MAX_LEN_NAME 255
 
+#define MFAPI_VERSION "1.2"
+
 enum mfconn_device_change_type {
     MFCONN_DEVICE_CHANGE_DELETED_FOLDER,
     MFCONN_DEVICE_CHANGE_DELETED_FILE,
