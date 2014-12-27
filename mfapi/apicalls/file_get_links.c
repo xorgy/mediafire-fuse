@@ -55,6 +55,7 @@ int mfconn_api_file_get_links(mfconn * conn, mffile * file,
     for (i = 0; i < mfconn_get_max_num_retries(conn); i++) {
         api_call = mfconn_create_signed_get(conn, 0, "file/get_links.php",
                                             "?quick_key=%s"
+                                            "&link_type=direct_download"
                                             "&response_format=json", quickkey);
         if (api_call == NULL) {
             fprintf(stderr, "mfconn_create_signed_get failed\n");
