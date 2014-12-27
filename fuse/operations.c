@@ -32,7 +32,7 @@
 #include <errno.h>
 #include <sys/stat.h>
 #ifdef __linux
-#include <bits/fcntl-linux.h>
+#include <fcntl.h>
 #endif
 #include <fuse/fuse_common.h>
 #include <stdint.h>
