@@ -6,7 +6,7 @@ project(mediafire-tools)
 # to feed iwyu during tests
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -Wall -Werror")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -Wall -Werror -fms-extensions")
 # the following is until we learn how to reorder the gcc arguments to correctly link on Ubuntu
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--no-as-needed")
 
