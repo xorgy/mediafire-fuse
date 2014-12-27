@@ -32,7 +32,7 @@
 #include <errno.h>
 #include <sys/stat.h>
 #ifdef __linux
-#include <bits/fcntl-linux.h>
+#include <fcntl.h>
 #endif
 #include <pwd.h>
 #include <wordexp.h>
