@@ -150,8 +150,8 @@ static int _decode_file_get_links(mfhttp * conn, void *data)
         file_set_onetime_link(file, (char *)json_string_value(onetime_link));
     }
     // if this is false something went horribly wrong
-    if (share_link == NULL)
-        retval = -1;
+    // if (share_link == NULL)
+    //    retval = -1;
 
     json_decref(root);
 
