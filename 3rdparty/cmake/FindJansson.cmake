@@ -16,8 +16,8 @@ mark_as_advanced(JANSSON_INCLUDE_DIRS JANSSON_LIBRARIES)
 
 if (JANSSON_INCLUDE_DIRS)
 	file(STRINGS "${JANSSON_INCLUDE_DIRS}/jansson.h" jansson_version_str REGEX "^#define[\t ]+JANSSON_VERSION[\t ]+\".*\"")
-	string(REGEX REPLACE "^#define[\t ]+JANSSON_VERSION[\t ]+\"([^\"]*)\".*" "\\1" JANSSON_VERSION_STRING "${jansson_ersion_str}")
-	unset(jansson_ersion_string)
+	string(REGEX REPLACE "^#define[\t ]+JANSSON_VERSION[\t ]+\"([^\"]*)\".*" "\\1" JANSSON_VERSION_STRING "${jansson_version_str}")
+	unset(jansson_version_str)
 endif()
 
 include(FindPackageHandleStandardArgs)
