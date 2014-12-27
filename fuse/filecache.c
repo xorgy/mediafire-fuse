@@ -22,7 +22,7 @@
 #include <string.h>
 #include <openssl/sha.h>
 #ifdef __linux
-#include <bits/fcntl-linux.h>
+#include <fcntl.h>
 #endif
 #include <stdint.h>
 #include <stdlib.h>
