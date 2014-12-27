@@ -18,6 +18,7 @@
  */
 
 #define _POSIX_C_SOURCE 200809L // for strdup
+#define _BSD_SOURCE             // for strdup on old systems
 
 #include <openssl/md5.h>
 #include <openssl/sha.h>
