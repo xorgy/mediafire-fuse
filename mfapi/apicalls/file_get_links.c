@@ -23,20 +23,24 @@
 #include <string.h>
 
 #include "../../utils/http.h"
+#include "../../utils/strings.h"
 #include "../mfconn.h"
 #include "../file.h"
 #include "../apicalls.h"        // IWYU pragma: keep
 
+
 static int      _decode_file_get_links(mfhttp * conn, void *data);
 
 int mfconn_api_file_get_links(mfconn * conn, mffile * file,
-                              const char *quickkey)
+                              const char *quickkey,uint32_t link_mask)
 {
-    const char     *api_call;
-    int             retval;
-    int             len;
-    mfhttp         *http;
-    int             i;
+    const char         *api_call;
+    extern const char  *link_types[];           // declared in apicalls.c
+    char               *link_params = NULL;
+    int                 retval;
+    int                 len;
+    mfhttp             *http;
+    int                 i;
 
     if (conn == NULL)
         return -1;
@@ -52,13 +56,18 @@ int mfconn_api_file_get_links(mfconn * conn, mffile * file,
     if (len != 11 && len != 15)
         return -1;
 
+    link_params = strdup_printf("link_type=%s",
+                                link_types[link_mask]);
+
     for (i = 0; i < mfconn_get_max_num_retries(conn); i++) {
         api_call = mfconn_create_signed_get(conn, 0, "file/get_links.php",
                                             "?quick_key=%s"
-                                            "&link_type=direct_download"
-                                            "&response_format=json", quickkey);
+                                            "&%s"
+                                            "&response_format=json",
+                                            link_params, quickkey);
         if (api_call == NULL) {
             fprintf(stderr, "mfconn_create_signed_get failed\n");
+            if(link_params != NULL) free(link_params);
             return -1;
         }
 
@@ -85,6 +94,8 @@ int mfconn_api_file_get_links(mfconn * conn, mffile * file,
             break;
         }
     }
+
+    if(link_params != NULL) free(link_params);
 
     return retval;
 }

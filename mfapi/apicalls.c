@@ -22,6 +22,14 @@
 
 #include "../utils/http.h"
 
+#define X_LINK_TYPE(a,b,c)  c,
+const char *link_types[]={
+#include "link_type.def"
+NULL
+};
+#undef X_LINK_TYPE
+
+
 int mfapi_check_response(json_t * response, const char *apicall)
 {
     json_t         *j_obj;

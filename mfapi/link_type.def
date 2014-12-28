@@ -1,0 +1,41 @@
+/*
+ * Copyright (C) 2013 Bryan Christ <bryan.christ@mediafire.com>
+ *               2014 Johannes Schauer <j.schauer@email.de>
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2, as published by
+ * the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * this program; if not, write to the Free Software Foundation, Inc., 51
+ * Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ *
+ */
+
+/*
+    x-macro for link type definitions used with the file/get_links as of
+    REST API version 1.2 and higher.
+
+
+    field definitions
+
+    field 1 - enumerated name
+    field 2 - bit value
+    field 3 - REST API paramenter string
+*/
+
+X_LINK_TYPE(LINK_TYPE_SHARING,              (1 << 0),   "normal_download")
+X_LINK_TYPE(LINK_TYPE_DIRECT_DOWNLOAD,      (1 << 1),   "direct_download")
+X_LINK_TYPE(LINK_TYPE_VIEW,                 (1 << 2),   "view")
+X_LINK_TYPE(LINK_TYPE_EDIT,                 (1 << 3),   "edit")
+X_LINK_TYPE(LINK_TYPE_WATCH,                (1 << 4),   "watch")
+X_LINK_TYPE(LINK_TYPE_LISTEN,               (1 << 5),   "listen")
+X_LINK_TYPE(LINK_TYPE_STREAMING,            (1 << 6),   "streaming")
+
+X_LINK_TYPE(LINK_TYPE_ONE_TIME_DOWNLOAD,    (1 << 16),  "one_time_download")
+    

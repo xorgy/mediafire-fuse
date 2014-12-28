@@ -43,6 +43,13 @@ enum mfconn_device_change_type {
     MFCONN_DEVICE_CHANGE_END
 };
 
+#define X_LINK_TYPE(a,b,c)  a,
+enum {
+#include "link_type.def"
+};
+#undef X_LINK_TYPE
+
+
 struct mfconn_device_change {
     enum mfconn_device_change_type change;
     char            key[16];
@@ -58,7 +65,8 @@ int             mfconn_api_file_get_info(mfconn * conn, mffile * file,
                                          const char *quickkey);
 
 int             mfconn_api_file_get_links(mfconn * conn, mffile * file,
-                                          const char *quickkey);
+                                          const char *quickkey,
+                                          uint32_t link_mask);
 
 int             mfconn_api_file_move(mfconn * conn, const char *quickkey,
                                      const char *folderkey);

@@ -59,7 +59,11 @@ int mfshell_cmd_links(mfshell * mfshell, int argc, char *const argv[])
 
     file = file_alloc();
 
-    retval = mfconn_api_file_get_links(mfshell->conn, file, (char *)quickkey);
+    // when the lower-level call gets updated to support multiple link types
+    // this should be updated.
+    retval = mfconn_api_file_get_links(mfshell->conn, file,
+                                        (char *)quickkey,
+                                        LINK_TYPE_DIRECT_DOWNLOAD);
     if (retval != 0) {
         fprintf(stderr, "api call unsuccessful\n");
     }
