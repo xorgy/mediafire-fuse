@@ -70,6 +70,10 @@ static void http_curl_reset(mfhttp * conn)
     curl_easy_setopt(conn->curl_handle, CURLOPT_ERRORBUFFER, conn->error_buf);
     curl_easy_setopt(conn->curl_handle, CURLOPT_PROXY, getenv("http_proxy"));
     curl_easy_setopt(conn->curl_handle, CURLOPT_VERBOSE, 0L);
+
+    // it should never take 5 seconds to establish a connection to the server
+    curl_easy_setopt(conn->curl_handle, CURLOPT_CONNECTTIMEOUT_MS,5000L);
+
     //curl_easy_setopt(conn->curl_handle, CURLOPT_SSL_VERIFYPEER, 0L);
 }
 
