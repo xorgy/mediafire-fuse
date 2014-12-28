@@ -64,7 +64,7 @@ int mfconn_api_file_get_links(mfconn * conn, mffile * file,
                                             "?quick_key=%s"
                                             "&%s"
                                             "&response_format=json",
-                                            link_params, quickkey);
+                                            quickkey,link_params);
         if (api_call == NULL) {
             fprintf(stderr, "mfconn_create_signed_get failed\n");
             if(link_params != NULL) free(link_params);
