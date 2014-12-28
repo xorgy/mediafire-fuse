@@ -47,8 +47,8 @@ enum mfconn_device_change_type {
 enum {
 #include "link_type.def"
 };
-#undef X_LINK_TYPE
 
+#undef X_LINK_TYPE
 
 struct mfconn_device_change {
     enum mfconn_device_change_type change;

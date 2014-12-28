@@ -335,8 +335,8 @@ static int filecache_download_file(const char *filecache_path,
 
     file = file_alloc();
     retval = mfconn_api_file_get_links(conn, file,
-                                        (char *)quickkey,
-                                        LINK_TYPE_DIRECT_DOWNLOAD);
+                                       (char *)quickkey,
+                                       LINK_TYPE_DIRECT_DOWNLOAD);
 
     if (retval != 0) {
         fprintf(stderr, "mfconn_api_file_get_links failed\n");
