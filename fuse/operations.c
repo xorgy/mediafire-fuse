@@ -376,7 +376,7 @@ int mediafirefs_open(const char *path, struct fuse_file_info *file_info)
         stringv_add(ctx->sv_writefiles, path);
     }
 
-    file_info->fh = (uint64_t) openfile;
+    file_info->fh = (uintptr_t) openfile;
     return 0;
 }
 
@@ -407,7 +407,7 @@ int mediafirefs_create(const char *path, mode_t mode,
     openfile->is_local = true;
     openfile->is_readonly = false;
     openfile->path = strdup(path);
-    file_info->fh = (uint64_t) openfile;
+    file_info->fh = (uintptr_t) openfile;
 
     // add to writefiles
     stringv_add(ctx->sv_writefiles, path);
@@ -419,16 +419,18 @@ int mediafirefs_read(const char *path, char *buf, size_t size, off_t offset,
                      struct fuse_file_info *file_info)
 {
     (void)path;
-    return pread(((struct mediafirefs_openfile *)file_info->fh)->fd, buf, size,
-                 offset);
+    return
+        pread(((struct mediafirefs_openfile *)(uintptr_t) file_info->fh)->fd,
+              buf, size, offset);
 }
 
 int mediafirefs_write(const char *path, const char *buf, size_t size,
                       off_t offset, struct fuse_file_info *file_info)
 {
     (void)path;
-    return pwrite(((struct mediafirefs_openfile *)file_info->fh)->fd, buf,
-                  size, offset);
+    return
+        pwrite(((struct mediafirefs_openfile *)(uintptr_t) file_info->fh)->fd,
+               buf, size, offset);
 }
 
 /*
@@ -453,7 +455,7 @@ int mediafirefs_release(const char *path, struct fuse_file_info *file_info)
 
     ctx = fuse_get_context()->private_data;
 
-    openfile = (struct mediafirefs_openfile *)file_info->fh;
+    openfile = (struct mediafirefs_openfile *)(uintptr_t) file_info->fh;
 
     // if file was opened as readonly then it just has to be closed
     if (openfile->is_readonly) {
