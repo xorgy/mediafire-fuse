@@ -37,6 +37,7 @@ struct mfconn {
     uint32_t        secret_key;
     char           *secret_time;
     char           *session_token;
+    char           *ekey;
     char           *username;
     char           *password;
     int             app_id;
@@ -76,12 +77,14 @@ mfconn         *mfconn_create(const char *server, const char *username,
     conn->max_num_retries = max_num_retries;
     conn->secret_time = NULL;
     conn->session_token = NULL;
+    conn->ekey = NULL;
     retval = mfconn_api_user_get_session_token(conn, conn->server,
                                                conn->username, conn->password,
                                                conn->app_id, conn->app_key,
                                                &(conn->secret_key),
                                                &(conn->secret_time),
-                                               &(conn->session_token));
+                                               &(conn->session_token),
+                                               &(conn->ekey));
 
     if (retval != 0) {
         fprintf(stderr, "error: mfconn_api_user_get_session_token\n");
@@ -99,12 +102,15 @@ int mfconn_refresh_token(mfconn * conn)
     conn->secret_time = NULL;
     free(conn->session_token);
     conn->session_token = NULL;
+    free(conn->ekey);
+    conn->ekey = NULL;
     retval = mfconn_api_user_get_session_token(conn, conn->server,
                                                conn->username, conn->password,
                                                conn->app_id, conn->app_key,
                                                &(conn->secret_key),
                                                &(conn->secret_time),
-                                               &(conn->session_token));
+                                               &(conn->session_token),
+                                               &(conn->ekey));
     if (retval != 0) {
         fprintf(stderr, "user/get_session_token failed\n");
         return -1;
@@ -121,6 +127,7 @@ void mfconn_destroy(mfconn * conn)
         free(conn->app_key);
     free(conn->secret_time);
     free(conn->session_token);
+    free(conn->ekey);
     free(conn);
 }
 
@@ -402,6 +409,11 @@ uint32_t mfconn_get_secret_key(mfconn * conn)
 int mfconn_get_max_num_retries(mfconn * conn)
 {
     return conn->max_num_retries;
+}
+
+const char     *mfconn_get_ekey(mfconn * conn)
+{
+    return conn->ekey;
 }
 
 int mfconn_upload_poll_for_completion(mfconn * conn, const char *upload_key)

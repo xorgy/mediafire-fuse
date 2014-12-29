@@ -109,7 +109,8 @@ int             mfconn_api_user_get_session_token(mfconn * conn,
                                                   const char *app_key,
                                                   uint32_t * secret_key,
                                                   char **secret_time,
-                                                  char **session_token);
+                                                  char **session_token,
+                                                  char **ekey);
 
 int             mfconn_api_folder_delete(mfconn * conn, const char *folderkey);
 

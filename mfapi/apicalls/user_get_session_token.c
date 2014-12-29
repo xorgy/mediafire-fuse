@@ -37,6 +37,7 @@ struct user_get_session_token_response {
     uint32_t        secret_key;
     char           *secret_time;
     char           *session_token;
+    char           *ekey;
 };
 
 int
@@ -44,7 +45,8 @@ mfconn_api_user_get_session_token(mfconn * conn, const char *server,
                                   const char *username, const char *password,
                                   int app_id, const char *app_key,
                                   uint32_t * secret_key,
-                                  char **secret_time, char **session_token)
+                                  char **secret_time, char **session_token,
+                                  char **ekey)
 {
     char           *login_url;
     char           *post_args;
@@ -65,6 +67,10 @@ mfconn_api_user_get_session_token(mfconn * conn, const char *server,
         if (*session_token != NULL) {
             free(*session_token);
             *session_token = NULL;
+        }
+        if (*ekey != NULL) {
+            free(*ekey);
+            *ekey = NULL;
         }
         // configure url for operation
         login_url = strdup_printf("https://%s/api/user/get_session_token.php",
@@ -115,6 +121,7 @@ mfconn_api_user_get_session_token(mfconn * conn, const char *server,
     *secret_key = response.secret_key;
     *secret_time = response.secret_time;
     *session_token = response.session_token;
+    *ekey = response.ekey;
 
     return retval;
 }
@@ -124,9 +131,7 @@ static int _decode_get_session_token(mfhttp * conn, void *user_ptr)
     json_error_t    error;
     json_t         *root = NULL;
     json_t         *node;
-    json_t         *session_token;
-    json_t         *secret_key;
-    json_t         *secret_time;
+    json_t         *j_obj;
     struct user_get_session_token_response *response;
     int             retval;
 
@@ -152,29 +157,43 @@ static int _decode_get_session_token(mfhttp * conn, void *user_ptr)
         return retval;
     }
 
-    session_token = json_object_get(node, "session_token");
-    if (session_token == NULL) {
+    j_obj = json_object_get(node, "session_token");
+    if (j_obj == NULL) {
         json_decref(root);
         fprintf(stderr, "json: no /session_token content\n");
         return -1;
     }
+    response->session_token = strdup(json_string_value(j_obj));
 
-    response->session_token = strdup(json_string_value(session_token));
-
-    secret_key = json_object_get(node, "secret_key");
-    if (secret_key != NULL)
-        response->secret_key = atoll(json_string_value(secret_key));
+    j_obj = json_object_get(node, "secret_key");
+    if (j_obj == NULL) {
+        json_decref(root);
+        fprintf(stderr, "json: no /secret_key content\n");
+        return -1;
+    }
+    response->secret_key = atoll(json_string_value(j_obj));
 
     /*
        time looks like a float but we must store it as a string to
        remain congruent with the server on decimal place presentation.
      */
-    secret_time = json_object_get(node, "time");
-    if (secret_time != NULL)
-        response->secret_time = strdup(json_string_value(secret_time));
-
-    if (root != NULL)
+    j_obj = json_object_get(node, "time");
+    if (j_obj == NULL) {
         json_decref(root);
+        fprintf(stderr, "json: no /time content\n");
+        return -1;
+    }
+    response->secret_time = strdup(json_string_value(j_obj));
+
+    j_obj = json_object_get(node, "ekey");
+    if (j_obj == NULL) {
+        json_decref(root);
+        fprintf(stderr, "json: no /ekey content\n");
+        return -1;
+    }
+    response->ekey = strdup(json_string_value(j_obj));
+
+    json_decref(root);
 
     return 0;
 }
