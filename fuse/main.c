@@ -454,6 +454,8 @@ int main(int argc, char *argv[])
 
     ctx->sv_writefiles = stringv_alloc();
     ctx->sv_readonlyfiles = stringv_alloc();
+    ctx->last_status_check = 0;
+    ctx->interval_status_check = 60;
 
     ret = fuse_main(argc, argv, &mediafirefs_oper, ctx);
 

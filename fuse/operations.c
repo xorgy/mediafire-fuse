@@ -109,15 +109,19 @@ int mediafirefs_getattr(const char *path, struct stat *stbuf)
      * since getattr is called before every other call (except for getattr,
      * read and write) wee only call folder_tree_update in the getattr call
      * and not the others
-     *
-     * FIXME: only call folder_tree_update if it has not been called for a set
-     * amount of time
      */
     struct mediafirefs_context_private *ctx;
     int             retval;
+    time_t          now;
 
     ctx = fuse_get_context()->private_data;
-    folder_tree_update(ctx->tree, ctx->conn, false);
+
+    now = time(NULL);
+    if (now - ctx->last_status_check > ctx->interval_status_check) {
+        folder_tree_update(ctx->tree, ctx->conn, false);
+        ctx->last_status_check = now;
+    }
+
     retval = folder_tree_getattr(ctx->tree, ctx->conn, path, stbuf);
 
     if (retval != 0 && stringv_mem(ctx->sv_writefiles, path)) {

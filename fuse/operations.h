@@ -35,6 +35,8 @@ struct timespec;
 struct mediafirefs_context_private {
     mfconn         *conn;
     folder_tree    *tree;
+    time_t          last_status_check;
+    time_t          interval_status_check;
     char           *configfile;
     char           *dircache;
     char           *filecache;
