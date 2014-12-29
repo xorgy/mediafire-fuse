@@ -22,6 +22,8 @@
 #include <fuse/fuse.h>
 #include <stddef.h>
 #include <sys/types.h>
+#include <pthread.h>
+
 #include "../mfapi/mfconn.h"
 #include "hashtbl.h"
 #include "../utils/stringv.h"
@@ -37,6 +39,7 @@ struct mediafirefs_context_private {
     folder_tree    *tree;
     time_t          last_status_check;
     time_t          interval_status_check;
+    pthread_mutex_t mutex;
     char           *configfile;
     char           *dircache;
     char           *filecache;

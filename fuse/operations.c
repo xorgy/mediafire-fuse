@@ -116,6 +116,8 @@ int mediafirefs_getattr(const char *path, struct stat *stbuf)
 
     ctx = fuse_get_context()->private_data;
 
+    pthread_mutex_lock(&(ctx->mutex));
+
     now = time(NULL);
     if (now - ctx->last_status_check > ctx->interval_status_check) {
         folder_tree_update(ctx->tree, ctx->conn, false);
@@ -136,6 +138,8 @@ int mediafirefs_getattr(const char *path, struct stat *stbuf)
         retval = 0;
     }
 
+    pthread_mutex_unlock(&(ctx->mutex));
+
     return retval;
 }
 
@@ -145,9 +149,15 @@ int mediafirefs_readdir(const char *path, void *buf, fuse_fill_dir_t filldir,
     (void)offset;
     (void)info;
     struct mediafirefs_context_private *ctx;
+    int             retval;
 
     ctx = fuse_get_context()->private_data;
-    return folder_tree_readdir(ctx->tree, ctx->conn, path, buf, filldir);
+
+    pthread_mutex_lock(&(ctx->mutex));
+    retval = folder_tree_readdir(ctx->tree, ctx->conn, path, buf, filldir);
+    pthread_mutex_unlock(&(ctx->mutex));
+
+    return retval;
 }
 
 void mediafirefs_destroy(void *user_ptr)
@@ -157,12 +167,15 @@ void mediafirefs_destroy(void *user_ptr)
 
     ctx = (struct mediafirefs_context_private *)user_ptr;
 
+    pthread_mutex_lock(&(ctx->mutex));
+
     fprintf(stderr, "storing hashtable\n");
 
     fd = fopen(ctx->dircache, "w+");
 
     if (fd == NULL) {
         fprintf(stderr, "cannot open %s for writing\n", ctx->dircache);
+        pthread_mutex_unlock(&(ctx->mutex));
         return;
     }
 
@@ -173,6 +186,8 @@ void mediafirefs_destroy(void *user_ptr)
     folder_tree_destroy(ctx->tree);
 
     mfconn_destroy(ctx->conn);
+
+    pthread_mutex_unlock(&(ctx->mutex));
 }
 
 int mediafirefs_mkdir(const char *path, mode_t mode)
@@ -186,6 +201,8 @@ int mediafirefs_mkdir(const char *path, mode_t mode)
     struct mediafirefs_context_private *ctx;
 
     ctx = fuse_get_context()->private_data;
+
+    pthread_mutex_lock(&(ctx->mutex));
 
     /* we don't need to check whether the path already existed because the
      * getattr call made before this one takes care of that
@@ -205,6 +222,7 @@ int mediafirefs_mkdir(const char *path, mode_t mode)
     basename = strrchr(dirname, '/');
     if (basename == NULL) {
         fprintf(stderr, "cannot find slash\n");
+        pthread_mutex_unlock(&(ctx->mutex));
         return -ENOENT;
     }
 
@@ -225,6 +243,7 @@ int mediafirefs_mkdir(const char *path, mode_t mode)
     retval = mfconn_api_folder_create(ctx->conn, key, basename);
     if (retval != 0) {
         fprintf(stderr, "mfconn_api_folder_create unsuccessful\n");
+        pthread_mutex_unlock(&(ctx->mutex));
         // FIXME: find better errno in this case
         return -EAGAIN;
     }
@@ -232,6 +251,8 @@ int mediafirefs_mkdir(const char *path, mode_t mode)
     free(dirname);
 
     folder_tree_update(ctx->tree, ctx->conn, true);
+
+    pthread_mutex_unlock(&(ctx->mutex));
 
     return 0;
 }
@@ -244,6 +265,8 @@ int mediafirefs_rmdir(const char *path)
 
     ctx = fuse_get_context()->private_data;
 
+    pthread_mutex_lock(&(ctx->mutex));
+
     /* no need to check
      *  - if path is directory
      *  - if directory is empty
@@ -255,18 +278,22 @@ int mediafirefs_rmdir(const char *path)
     key = folder_tree_path_get_key(ctx->tree, ctx->conn, path);
     if (key == NULL) {
         fprintf(stderr, "key is NULL\n");
+        pthread_mutex_unlock(&(ctx->mutex));
         return -ENOENT;
     }
 
     retval = mfconn_api_folder_delete(ctx->conn, key);
     if (retval != 0) {
         fprintf(stderr, "mfconn_api_folder_create unsuccessful\n");
+        pthread_mutex_unlock(&(ctx->mutex));
         // FIXME: find better errno in this case
         return -EAGAIN;
     }
 
     /* retrieve remote changes to not get out of sync */
     folder_tree_update(ctx->tree, ctx->conn, true);
+
+    pthread_mutex_unlock(&(ctx->mutex));
 
     return 0;
 }
@@ -279,6 +306,8 @@ int mediafirefs_unlink(const char *path)
 
     ctx = fuse_get_context()->private_data;
 
+    pthread_mutex_lock(&(ctx->mutex));
+
     /* no need to check
      *  - if path is directory
      *  - if directory is empty
@@ -290,18 +319,22 @@ int mediafirefs_unlink(const char *path)
     key = folder_tree_path_get_key(ctx->tree, ctx->conn, path);
     if (key == NULL) {
         fprintf(stderr, "key is NULL\n");
+        pthread_mutex_unlock(&(ctx->mutex));
         return -ENOENT;
     }
 
     retval = mfconn_api_file_delete(ctx->conn, key);
     if (retval != 0) {
         fprintf(stderr, "mfconn_api_file_create unsuccessful\n");
+        pthread_mutex_unlock(&(ctx->mutex));
         // FIXME: find better errno in this case
         return -EAGAIN;
     }
 
     /* retrieve remote changes to not get out of sync */
     folder_tree_update(ctx->tree, ctx->conn, true);
+
+    pthread_mutex_unlock(&(ctx->mutex));
 
     return 0;
 }
@@ -335,11 +368,14 @@ int mediafirefs_open(const char *path, struct fuse_file_info *file_info)
 
     ctx = fuse_get_context()->private_data;
 
+    pthread_mutex_lock(&(ctx->mutex));
+
     /* if file is not opened read-only, check if it was already opened in a
      * not read-only mode and abort if yes */
     if ((file_info->flags & O_ACCMODE) != O_RDONLY
         && stringv_mem(ctx->sv_writefiles, path)) {
         fprintf(stderr, "file %s was already opened for writing\n", path);
+        pthread_mutex_unlock(&(ctx->mutex));
         return -EACCES;
     }
 
@@ -362,6 +398,7 @@ int mediafirefs_open(const char *path, struct fuse_file_info *file_info)
                                !is_open);
     if (fd < 0) {
         fprintf(stderr, "folder_tree_file_open unsuccessful\n");
+        pthread_mutex_unlock(&(ctx->mutex));
         return fd;
     }
 
@@ -381,6 +418,9 @@ int mediafirefs_open(const char *path, struct fuse_file_info *file_info)
     }
 
     file_info->fh = (uintptr_t) openfile;
+
+    pthread_mutex_unlock(&(ctx->mutex));
+
     return 0;
 }
 
@@ -400,9 +440,12 @@ int mediafirefs_create(const char *path, mode_t mode,
 
     ctx = fuse_get_context()->private_data;
 
+    pthread_mutex_lock(&(ctx->mutex));
+
     fd = folder_tree_tmp_open(ctx->tree);
     if (fd < 0) {
         fprintf(stderr, "folder_tree_tmp_open failed\n");
+        pthread_mutex_unlock(&(ctx->mutex));
         return -EACCES;
     }
 
@@ -416,6 +459,8 @@ int mediafirefs_create(const char *path, mode_t mode,
     // add to writefiles
     stringv_add(ctx->sv_writefiles, path);
 
+    pthread_mutex_unlock(&(ctx->mutex));
+
     return 0;
 }
 
@@ -423,22 +468,47 @@ int mediafirefs_read(const char *path, char *buf, size_t size, off_t offset,
                      struct fuse_file_info *file_info)
 {
     (void)path;
-    return
+    ssize_t         retval;
+    struct mediafirefs_context_private *ctx;
+
+    ctx = fuse_get_context()->private_data;
+    pthread_mutex_lock(&(ctx->mutex));
+
+    retval =
         pread(((struct mediafirefs_openfile *)(uintptr_t) file_info->fh)->fd,
               buf, size, offset);
+
+    pthread_mutex_unlock(&(ctx->mutex));
+
+    return retval;
 }
 
 int mediafirefs_write(const char *path, const char *buf, size_t size,
                       off_t offset, struct fuse_file_info *file_info)
 {
     (void)path;
-    return
+    ssize_t         retval;
+    struct mediafirefs_context_private *ctx;
+
+    ctx = fuse_get_context()->private_data;
+    pthread_mutex_lock(&(ctx->mutex));
+
+    retval =
         pwrite(((struct mediafirefs_openfile *)(uintptr_t) file_info->fh)->fd,
                buf, size, offset);
+
+    pthread_mutex_unlock(&(ctx->mutex));
+
+    return retval;
 }
 
 /*
  * note: the return value of release() is ignored by fuse
+ *
+ * also, release() is called asynchronously: the close() call will finish
+ * before this function returns. Thus, the uploading should be done once flush
+ * is called but this becomes tricky because mediafire doesn't like files of
+ * zero length and flush() is often called right after creation.
  */
 int mediafirefs_release(const char *path, struct fuse_file_info *file_info)
 {
@@ -457,6 +527,8 @@ int mediafirefs_release(const char *path, struct fuse_file_info *file_info)
 
     ctx = fuse_get_context()->private_data;
 
+    pthread_mutex_lock(&(ctx->mutex));
+
     openfile = (struct mediafirefs_openfile *)(uintptr_t) file_info->fh;
 
     // if file was opened as readonly then it just has to be closed
@@ -471,6 +543,7 @@ int mediafirefs_release(const char *path, struct fuse_file_info *file_info)
         close(openfile->fd);
         free(openfile->path);
         free(openfile);
+        pthread_mutex_unlock(&(ctx->mutex));
         return 0;
     }
     // if the file is not readonly, its entry in writefiles has to be removed
@@ -510,6 +583,7 @@ int mediafirefs_release(const char *path, struct fuse_file_info *file_info)
 
         if (retval != 0 || upload_key == NULL) {
             fprintf(stderr, "mfconn_api_upload_simple failed\n");
+            pthread_mutex_unlock(&(ctx->mutex));
             return -EACCES;
         }
         // poll for completion
@@ -518,10 +592,12 @@ int mediafirefs_release(const char *path, struct fuse_file_info *file_info)
 
         if (retval != 0) {
             fprintf(stderr, "mfconn_upload_poll_for_completion failed\n");
+            pthread_mutex_unlock(&(ctx->mutex));
             return -1;
         }
 
         folder_tree_update(ctx->tree, ctx->conn, true);
+        pthread_mutex_unlock(&(ctx->mutex));
         return 0;
     }
     // the file was not opened readonly and also existed on the remote
@@ -536,10 +612,14 @@ int mediafirefs_release(const char *path, struct fuse_file_info *file_info)
 
     if (retval != 0) {
         fprintf(stderr, "folder_tree_upload_patch failed\n");
+        pthread_mutex_unlock(&(ctx->mutex));
         return -EACCES;
     }
 
     folder_tree_update(ctx->tree, ctx->conn, true);
+
+    pthread_mutex_unlock(&(ctx->mutex));
+
     return 0;
 }
 
@@ -548,7 +628,16 @@ int mediafirefs_readlink(const char *path, char *buf, size_t bufsize)
     (void)path;
     (void)buf;
     (void)bufsize;
+    struct mediafirefs_context_private *ctx;
+
+    ctx = fuse_get_context()->private_data;
+
+    pthread_mutex_lock(&(ctx->mutex));
+
     fprintf(stderr, "readlink not implemented\n");
+
+    pthread_mutex_unlock(&(ctx->mutex));
+
     return -ENOENT;
 }
 
@@ -557,7 +646,16 @@ int mediafirefs_mknod(const char *path, mode_t mode, dev_t dev)
     (void)path;
     (void)mode;
     (void)dev;
+    struct mediafirefs_context_private *ctx;
+
+    ctx = fuse_get_context()->private_data;
+
+    pthread_mutex_lock(&(ctx->mutex));
+
     fprintf(stderr, "mknod not implemented\n");
+
+    pthread_mutex_unlock(&(ctx->mutex));
+
     return -ENOENT;
 }
 
@@ -565,7 +663,16 @@ int mediafirefs_symlink(const char *target, const char *linkpath)
 {
     (void)target;
     (void)linkpath;
+    struct mediafirefs_context_private *ctx;
+
+    ctx = fuse_get_context()->private_data;
+
+    pthread_mutex_lock(&(ctx->mutex));
+
     fprintf(stderr, "symlink not implemented\n");
+
+    pthread_mutex_unlock(&(ctx->mutex));
+
     return -ENOENT;
 }
 
@@ -585,11 +692,14 @@ int mediafirefs_rename(const char *oldpath, const char *newpath)
 
     ctx = fuse_get_context()->private_data;
 
+    pthread_mutex_lock(&(ctx->mutex));
+
     is_file = folder_tree_path_is_file(ctx->tree, ctx->conn, oldpath);
 
     key = folder_tree_path_get_key(ctx->tree, ctx->conn, oldpath);
     if (key == NULL) {
         fprintf(stderr, "key is NULL\n");
+        pthread_mutex_unlock(&(ctx->mutex));
         return -ENOENT;
     }
     // check if the directory changed
@@ -604,6 +714,7 @@ int mediafirefs_rename(const char *oldpath, const char *newpath)
             fprintf(stderr, "key is NULL\n");
             free(temp1);
             free(temp2);
+            pthread_mutex_unlock(&(ctx->mutex));
             return -ENOENT;
         }
 
@@ -620,6 +731,7 @@ int mediafirefs_rename(const char *oldpath, const char *newpath)
             }
             free(temp1);
             free(temp2);
+            pthread_mutex_unlock(&(ctx->mutex));
             return -ENOENT;
         }
     }
@@ -647,6 +759,7 @@ int mediafirefs_rename(const char *oldpath, const char *newpath)
             }
             free(temp1);
             free(temp2);
+            pthread_mutex_unlock(&(ctx->mutex));
             return -ENOENT;
         }
     }
@@ -656,6 +769,8 @@ int mediafirefs_rename(const char *oldpath, const char *newpath)
 
     folder_tree_update(ctx->tree, ctx->conn, true);
 
+    pthread_mutex_unlock(&(ctx->mutex));
+
     return 0;
 }
 
@@ -663,7 +778,16 @@ int mediafirefs_link(const char *target, const char *linkpath)
 {
     (void)target;
     (void)linkpath;
+    struct mediafirefs_context_private *ctx;
+
+    ctx = fuse_get_context()->private_data;
+
+    pthread_mutex_lock(&(ctx->mutex));
+
     fprintf(stderr, "link not implemented\n");
+
+    pthread_mutex_unlock(&(ctx->mutex));
+
     return -ENOENT;
 }
 
@@ -671,7 +795,16 @@ int mediafirefs_chmod(const char *path, mode_t mode)
 {
     (void)path;
     (void)mode;
+    struct mediafirefs_context_private *ctx;
+
+    ctx = fuse_get_context()->private_data;
+
+    pthread_mutex_lock(&(ctx->mutex));
+
     fprintf(stderr, "chmod not implemented\n");
+
+    pthread_mutex_unlock(&(ctx->mutex));
+
     return -ENOENT;
 }
 
@@ -680,7 +813,16 @@ int mediafirefs_chown(const char *path, uid_t uid, gid_t gid)
     (void)path;
     (void)uid;
     (void)gid;
+    struct mediafirefs_context_private *ctx;
+
+    ctx = fuse_get_context()->private_data;
+
+    pthread_mutex_lock(&(ctx->mutex));
+
     fprintf(stderr, "chown not implemented\n");
+
+    pthread_mutex_unlock(&(ctx->mutex));
+
     return -ENOENT;
 }
 
@@ -689,7 +831,16 @@ int mediafirefs_truncate(const char *path, off_t length)
     // FIXME: implement this
     (void)path;
     (void)length;
+    struct mediafirefs_context_private *ctx;
+
+    ctx = fuse_get_context()->private_data;
+
+    pthread_mutex_lock(&(ctx->mutex));
+
     fprintf(stderr, "truncate not implemented\n");
+
+    pthread_mutex_unlock(&(ctx->mutex));
+
     return -ENOENT;
 }
 
@@ -697,7 +848,16 @@ int mediafirefs_statfs(const char *path, struct statvfs *buf)
 {
     (void)path;
     (void)buf;
+    struct mediafirefs_context_private *ctx;
+
+    ctx = fuse_get_context()->private_data;
+
+    pthread_mutex_lock(&(ctx->mutex));
+
     fprintf(stderr, "statfs not implemented\n");
+
+    pthread_mutex_unlock(&(ctx->mutex));
+
     return -ENOENT;
 }
 
@@ -705,7 +865,16 @@ int mediafirefs_flush(const char *path, struct fuse_file_info *file_info)
 {
     (void)path;
     (void)file_info;
+    struct mediafirefs_context_private *ctx;
+
+    ctx = fuse_get_context()->private_data;
+
+    pthread_mutex_lock(&(ctx->mutex));
+
     fprintf(stderr, "flush is a no-op\n");
+
+    pthread_mutex_unlock(&(ctx->mutex));
+
     return 0;
 }
 
@@ -715,7 +884,16 @@ int mediafirefs_fsync(const char *path, int datasync,
     (void)path;
     (void)datasync;
     (void)file_info;
+    struct mediafirefs_context_private *ctx;
+
+    ctx = fuse_get_context()->private_data;
+
+    pthread_mutex_lock(&(ctx->mutex));
+
     fprintf(stderr, "fsync not implemented\n");
+
+    pthread_mutex_unlock(&(ctx->mutex));
+
     return -ENOENT;
 }
 
@@ -727,7 +905,16 @@ int mediafirefs_setxattr(const char *path, const char *name,
     (void)value;
     (void)size;
     (void)flags;
+    struct mediafirefs_context_private *ctx;
+
+    ctx = fuse_get_context()->private_data;
+
+    pthread_mutex_lock(&(ctx->mutex));
+
     fprintf(stderr, "setxattr not implemented\n");
+
+    pthread_mutex_unlock(&(ctx->mutex));
+
     return -ENOENT;
 }
 
@@ -738,7 +925,16 @@ int mediafirefs_getxattr(const char *path, const char *name, char *value,
     (void)name;
     (void)value;
     (void)size;
+    struct mediafirefs_context_private *ctx;
+
+    ctx = fuse_get_context()->private_data;
+
+    pthread_mutex_lock(&(ctx->mutex));
+
     fprintf(stderr, "getxattr not implemented\n");
+
+    pthread_mutex_unlock(&(ctx->mutex));
+
     return -ENOENT;
 }
 
@@ -747,7 +943,16 @@ int mediafirefs_listxattr(const char *path, char *list, size_t size)
     (void)path;
     (void)list;
     (void)size;
+    struct mediafirefs_context_private *ctx;
+
+    ctx = fuse_get_context()->private_data;
+
+    pthread_mutex_lock(&(ctx->mutex));
+
     fprintf(stderr, "listxattr not implemented\n");
+
+    pthread_mutex_unlock(&(ctx->mutex));
+
     return -ENOENT;
 }
 
@@ -755,7 +960,16 @@ int mediafirefs_removexattr(const char *path, const char *list)
 {
     (void)path;
     (void)list;
+    struct mediafirefs_context_private *ctx;
+
+    ctx = fuse_get_context()->private_data;
+
+    pthread_mutex_lock(&(ctx->mutex));
+
     fprintf(stderr, "removexattr not implemented\n");
+
+    pthread_mutex_unlock(&(ctx->mutex));
+
     return -ENOENT;
 }
 
@@ -763,7 +977,16 @@ int mediafirefs_opendir(const char *path, struct fuse_file_info *file_info)
 {
     (void)path;
     (void)file_info;
+    struct mediafirefs_context_private *ctx;
+
+    ctx = fuse_get_context()->private_data;
+
+    pthread_mutex_lock(&(ctx->mutex));
+
     fprintf(stderr, "opendir is a no-op\n");
+
+    pthread_mutex_unlock(&(ctx->mutex));
+
     return 0;
 }
 
@@ -771,7 +994,16 @@ int mediafirefs_releasedir(const char *path, struct fuse_file_info *file_info)
 {
     (void)path;
     (void)file_info;
+    struct mediafirefs_context_private *ctx;
+
+    ctx = fuse_get_context()->private_data;
+
+    pthread_mutex_lock(&(ctx->mutex));
+
     fprintf(stderr, "releasedir is a no-op\n");
+
+    pthread_mutex_unlock(&(ctx->mutex));
+
     return 0;
 }
 
@@ -781,7 +1013,16 @@ int mediafirefs_fsyncdir(const char *path, int datasync,
     (void)path;
     (void)datasync;
     (void)file_info;
+    struct mediafirefs_context_private *ctx;
+
+    ctx = fuse_get_context()->private_data;
+
+    pthread_mutex_lock(&(ctx->mutex));
+
     fprintf(stderr, "fsyncdir not implemented\n");
+
+    pthread_mutex_unlock(&(ctx->mutex));
+
     return -ENOENT;
 }
 
@@ -797,7 +1038,16 @@ int mediafirefs_access(const char *path, int mode)
 {
     (void)path;
     (void)mode;
+    struct mediafirefs_context_private *ctx;
+
+    ctx = fuse_get_context()->private_data;
+
+    pthread_mutex_lock(&(ctx->mutex));
+
     fprintf(stderr, "access is a no-op\n");
+
+    pthread_mutex_unlock(&(ctx->mutex));
+
     return 0;
 }
 
@@ -805,6 +1055,15 @@ int mediafirefs_utimens(const char *path, const struct timespec tv[2])
 {
     (void)path;
     (void)tv;
+    struct mediafirefs_context_private *ctx;
+
+    ctx = fuse_get_context()->private_data;
+
+    pthread_mutex_lock(&(ctx->mutex));
+
     fprintf(stderr, "utimens not implemented\n");
+
+    pthread_mutex_unlock(&(ctx->mutex));
+
     return -ENOENT;
 }

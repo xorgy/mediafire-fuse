@@ -29,7 +29,7 @@ if [ `mount -t fuse.mediafire-fuse | wc -l` -ne 0 ]; then
 	exit 1
 fi
 
-$cmd "${binary_dir}/mediafire-fuse" -s -f -d /mnt &
+$cmd "${binary_dir}/mediafire-fuse" -f -d /mnt &
 fusepid="$!"
 
 # wait for the file system to be mointed

@@ -35,6 +35,7 @@
 #include <pwd.h>
 #include <wordexp.h>
 #include <stdbool.h>
+#include <pthread.h>
 
 #include "../mfapi/mfconn.h"
 #include "hashtbl.h"
@@ -457,6 +458,8 @@ int main(int argc, char *argv[])
     ctx->last_status_check = 0;
     ctx->interval_status_check = 60;
 
+    pthread_mutex_init(&(ctx->mutex), NULL);
+
     ret = fuse_main(argc, argv, &mediafirefs_oper, ctx);
 
     for (i = 0; i < argc; i++) {
@@ -469,6 +472,7 @@ int main(int argc, char *argv[])
     free(ctx->filecache);
     stringv_free(ctx->sv_writefiles);
     stringv_free(ctx->sv_readonlyfiles);
+    pthread_mutex_destroy(&(ctx->mutex));
     free(ctx);
 
     return ret;
