@@ -450,8 +450,6 @@ int mediafirefs_release(const char *path, struct fuse_file_info *file_info)
     int             retval;
     struct mediafirefs_context_private *ctx;
     struct mediafirefs_openfile *openfile;
-    int             status;
-    int             fileerror;
 
     ctx = fuse_get_context()->private_data;
 
@@ -511,25 +509,13 @@ int mediafirefs_release(const char *path, struct fuse_file_info *file_info)
             return -EACCES;
         }
         // poll for completion
-        for (;;) {
-            // no need to update the secret key after this
-            retval = mfconn_api_upload_poll_upload(ctx->conn, upload_key,
-                                                   &status, &fileerror);
-            if (retval != 0) {
-                fprintf(stderr, "mfconn_api_upload_poll_upload failed\n");
-                return -1;
-            }
-            fprintf(stderr, "status: %d, filerror: %d\n", status, fileerror);
-
-            // values 98 and 99 are terminal states for a completed upload
-            if (status == 99 || status == 98) {
-                fprintf(stderr, "done\n");
-                break;
-            }
-            sleep(1);
-        }
-
+        retval = mfconn_upload_poll_for_completion(ctx->conn, upload_key);
         free(upload_key);
+
+        if (retval != 0) {
+            fprintf(stderr, "mfconn_upload_poll_for_completion failed\n");
+            return -1;
+        }
 
         folder_tree_update(ctx->tree, ctx->conn, true);
         return 0;

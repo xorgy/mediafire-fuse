@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "../utils/strings.h"
 #include "apicalls.h"
@@ -401,4 +402,30 @@ uint32_t mfconn_get_secret_key(mfconn * conn)
 int mfconn_get_max_num_retries(mfconn * conn)
 {
     return conn->max_num_retries;
+}
+
+int mfconn_upload_poll_for_completion(mfconn * conn, const char *upload_key)
+{
+    int             status;
+    int             fileerror;
+    int             retval;
+
+    for (;;) {
+        // no need to update the secret key after this
+        retval = mfconn_api_upload_poll_upload(conn, upload_key, &status,
+                                               &fileerror);
+        if (retval != 0) {
+            fprintf(stderr, "mfconn_api_upload_poll_upload failed\n");
+            return -1;
+        }
+        fprintf(stderr, "status: %d, filerror: %d\n", status, fileerror);
+
+        // values 98 and 99 are terminal states for a completed upload
+        if (status == 99 || status == 98) {
+            fprintf(stderr, "done\n");
+            break;
+        }
+        sleep(1);
+    }
+    return 0;
 }

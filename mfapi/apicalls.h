@@ -54,7 +54,7 @@ enum mfconn_file_link_type {
     MFCONN_FILE_LINK_TYPE_ONE_TIME_DOWNLOAD
 };
 
-extern const char *mfconn_file_link_types[]; // declared in apicalls.c
+extern const char *mfconn_file_link_types[];    // declared in apicalls.c
 
 struct mfconn_device_change {
     enum mfconn_device_change_type change;
@@ -72,7 +72,8 @@ int             mfconn_api_file_get_info(mfconn * conn, mffile * file,
 
 int             mfconn_api_file_get_links(mfconn * conn, mffile * file,
                                           const char *quickkey,
-                                          enum mfconn_file_link_type link_mask);
+                                          enum mfconn_file_link_type
+                                          link_mask);
 
 int             mfconn_api_file_move(mfconn * conn, const char *quickkey,
                                      const char *folderkey);

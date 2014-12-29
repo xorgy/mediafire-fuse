@@ -59,4 +59,7 @@ uint32_t        mfconn_get_secret_key(mfconn * conn);
 
 int             mfconn_get_max_num_retries(mfconn * conn);
 
+int             mfconn_upload_poll_for_completion(mfconn * conn,
+                                                  const char *upload_key);
+
 #endif

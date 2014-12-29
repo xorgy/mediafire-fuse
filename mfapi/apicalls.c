@@ -22,7 +22,7 @@
 
 #include "../utils/http.h"
 
-const char *mfconn_file_link_types[] = {
+const char     *mfconn_file_link_types[] = {
     "normal_download",
     "direct_download",
     "view",

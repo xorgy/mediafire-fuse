@@ -21,10 +21,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <libgen.h>
 
 #include "../../mfapi/apicalls.h"
+#include "../../mfapi/mfconn.h"
 #include "../mfshell.h"
 #include "../../mfapi/folder.h"
 #include "../commands.h"        // IWYU pragma: keep
@@ -36,8 +36,6 @@ int mfshell_cmd_put(mfshell * mfshell, int argc, char *const argv[])
     char           *temp;
     char           *file_name;
     char           *upload_key;
-    int             status;
-    int             fileerror;
     FILE           *fh;
 
     if (mfshell == NULL)
@@ -83,23 +81,13 @@ int mfshell_cmd_put(mfshell * mfshell, int argc, char *const argv[])
     fprintf(stderr, "upload_key: %s\n", upload_key);
 
     // poll for completion
-    for (;;) {
-        // no need to update the secret key after this
-        retval = mfconn_api_upload_poll_upload(mfshell->conn, upload_key,
-                                               &status, &fileerror);
-        if (retval != 0) {
-            fprintf(stderr, "mfconn_api_upload_poll_upload failed\n");
-            return -1;
-        }
-        fprintf(stderr, "status: %d, filerror: %d\n", status, fileerror);
-        if (status == 99) {
-            fprintf(stderr, "done\n");
-            break;
-        }
-        sleep(1);
-    }
-
+    retval = mfconn_upload_poll_for_completion(mfshell->conn, upload_key);
     free(upload_key);
+
+    if (retval != 0) {
+        fprintf(stderr, "mfconn_upload_poll_for_completion failed\n");
+        return -1;
+    }
 
     return 0;
 }

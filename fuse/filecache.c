@@ -69,8 +69,6 @@ int filecache_upload_patch(const char *quickkey, uint64_t local_revision,
     char           *patch_file;
     int             retval;
     char           *upload_key;
-    int             status;
-    int             fileerror;
 
     cachefile = strdup_printf("%s/%s_%d", filecache_path, quickkey,
                               local_revision);
@@ -151,25 +149,13 @@ int filecache_upload_patch(const char *quickkey, uint64_t local_revision,
         return -1;
     }
     // poll for completion
-    for (;;) {
-        // no need to update the secret key after this
-        retval = mfconn_api_upload_poll_upload(conn, upload_key,
-                                               &status, &fileerror);
-        if (retval != 0) {
-            fprintf(stderr, "mfconn_api_upload_poll_upload failed\n");
-            return -1;
-        }
-        fprintf(stderr, "status: %d, filerror: %d\n", status, fileerror);
-
-        // values 98 and 99 are terminal states for a completed upload
-        if (status == 99 || status == 98) {
-            fprintf(stderr, "done\n");
-            break;
-        }
-        sleep(1);
-    }
-
+    retval = mfconn_upload_poll_for_completion(conn, upload_key);
     free(upload_key);
+
+    if (retval != 0) {
+        fprintf(stderr, "mfconn_upload_poll_for_completion failed\n");
+        return -1;
+    }
 
     return 0;
 }
