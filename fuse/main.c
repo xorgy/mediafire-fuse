@@ -279,10 +279,8 @@ static void parse_arguments(int *argc, char ***argv,
 }
 
 static void connect_mf(struct mediafirefs_user_options *options,
-                       struct mediafirefs_context_private *ctx)
+                       mfconn ** conn)
 {
-    FILE           *fp;
-
     if (options->app_id == -1) {
         options->app_id = 42709;
     }
@@ -291,49 +289,54 @@ static void connect_mf(struct mediafirefs_user_options *options,
         options->server = "www.mediafire.com";
     }
 
-    ctx->conn = mfconn_create(options->server, options->username,
-                              options->password, options->app_id,
-                              options->api_key, 3);
+    *conn = mfconn_create(options->server, options->username,
+                          options->password, options->app_id,
+                          options->api_key, 3);
 
-    if (ctx->conn == NULL) {
+    if (*conn == NULL) {
         fprintf(stderr, "Cannot establish connection\n");
         exit(1);
     }
+}
 
-    fp = fopen(ctx->dircache, "r");
+static void open_hashtbl(const char *dircache, const char *filecache,
+                         mfconn * conn, folder_tree ** tree)
+{
+    FILE           *fp;
+
+    fp = fopen(dircache, "r");
     if (fp != NULL) {
         // file exists
-        fprintf(stderr, "loading hashtable from %s\n", ctx->dircache);
+        fprintf(stderr, "loading hashtable from %s\n", dircache);
 
-        ctx->tree = folder_tree_load(fp, ctx->filecache);
+        *tree = folder_tree_load(fp, filecache);
 
-        if (ctx->tree == NULL) {
+        if (*tree == NULL) {
             fprintf(stderr, "cannot load directory hashtable\n");
             exit(1);
         }
 
         fclose(fp);
 
-        folder_tree_update(ctx->tree, ctx->conn, false);
+        folder_tree_update(*tree, conn, false);
     } else {
         // file doesn't exist
         fprintf(stderr, "creating new hashtable\n");
-        ctx->tree = folder_tree_create(ctx->filecache);
+        *tree = folder_tree_create(filecache);
 
-        folder_tree_rebuild(ctx->tree, ctx->conn);
+        folder_tree_rebuild(*tree, conn);
     }
 
     //folder_tree_housekeep(tree);
 
     fprintf(stderr, "tree before starting fuse:\n");
-    folder_tree_debug(ctx->tree);
+    folder_tree_debug(*tree);
 }
 
-static void setup_conf_and_cache_dir(struct mediafirefs_context_private *ctx)
+static void setup_conf_dir(char **configfile)
 {
     const char     *homedir;
     const char     *configdir;
-    const char     *cachedir;
     int             fd;
 
     homedir = getenv("HOME");
@@ -349,6 +352,37 @@ static void setup_conf_and_cache_dir(struct mediafirefs_context_private *ctx)
         // $XDG_CONFIG_HOME/mediafire-tools
         configdir = strdup_printf("%s/mediafire-tools", configdir);
     }
+    /* EEXIST is okay, so only fail if it is something else */
+    if (mkdir(configdir, 0755) != 0 && errno != EEXIST) {
+        perror("mkdir");
+        fprintf(stderr, "cannot create %s\n", configdir);
+        exit(1);
+    }
+
+    *configfile = strdup_printf("%s/config", configdir);
+    /* test if the configuration file can be opened */
+    fd = open(*configfile, O_RDONLY);
+    if (fd < 0) {
+        free(*configfile);
+        *configfile = NULL;
+    } else {
+        close(fd);
+    }
+
+    free((void *)configdir);
+}
+
+static void setup_cache_dir(const char *ekey, char **dircache,
+                            char **filecache)
+{
+    const char     *homedir;
+    const char     *cachedir;
+    const char     *usercachedir;
+
+    homedir = getenv("HOME");
+    if (homedir == NULL) {
+        homedir = getpwuid(getuid())->pw_dir;
+    }
 
     cachedir = getenv("XDG_CACHE_HOME");
     if (cachedir == NULL) {
@@ -358,40 +392,32 @@ static void setup_conf_and_cache_dir(struct mediafirefs_context_private *ctx)
         // $XDG_CONFIG_HOME/mediafire-tools
         cachedir = strdup_printf("%s/mediafire-tools", cachedir);
     }
-
     /* EEXIST is okay, so only fail if it is something else */
-    if (mkdir(configdir, 0755) != 0 && errno != EEXIST) {
-        perror("mkdir");
-        fprintf(stderr, "cannot create %s\n", configdir);
-        exit(1);
-    }
     if (mkdir(cachedir, 0755) != 0 && errno != EEXIST) {
         perror("mkdir");
         fprintf(stderr, "cannot create %s\n", cachedir);
         exit(1);
     }
-
-    ctx->configfile = strdup_printf("%s/config", configdir);
-    /* test if the configuration file can be opened */
-    fd = open(ctx->configfile, O_RDONLY);
-    if (fd < 0) {
-        free(ctx->configfile);
-        ctx->configfile = NULL;
-    } else {
-        close(fd);
-    }
-
-    ctx->dircache = strdup_printf("%s/directorytree", cachedir);
-
-    ctx->filecache = strdup_printf("%s/files", cachedir);
-    if (mkdir(ctx->filecache, 0755) != 0 && errno != EEXIST) {
+    /* now create the subdirectory for the current ekey */
+    usercachedir = strdup_printf("%s/%s", cachedir, ekey);
+    /* EEXIST is okay, so only fail if it is something else */
+    if (mkdir(usercachedir, 0755) != 0 && errno != EEXIST) {
         perror("mkdir");
-        fprintf(stderr, "cannot create %s\n", ctx->filecache);
+        fprintf(stderr, "cannot create %s\n", usercachedir);
         exit(1);
     }
 
-    free((void *)configdir);
+    *dircache = strdup_printf("%s/directorytree", usercachedir);
+
+    *filecache = strdup_printf("%s/files", usercachedir);
+    if (mkdir(*filecache, 0755) != 0 && errno != EEXIST) {
+        perror("mkdir");
+        fprintf(stderr, "cannot create %s\n", *filecache);
+        exit(1);
+    }
+
     free((void *)cachedir);
+    free((void *)usercachedir);
 }
 
 int main(int argc, char *argv[])
@@ -406,7 +432,7 @@ int main(int argc, char *argv[])
 
     ctx = calloc(1, sizeof(struct mediafirefs_context_private));
 
-    setup_conf_and_cache_dir(ctx);
+    setup_conf_dir(&(ctx->configfile));
 
     parse_arguments(&argc, &argv, &options, ctx->configfile);
 
@@ -419,7 +445,12 @@ int main(int argc, char *argv[])
         options.password = string_line_from_stdin(true);
     }
 
-    connect_mf(&options, ctx);
+    connect_mf(&options, &(ctx->conn));
+
+    setup_cache_dir(mfconn_get_ekey(ctx->conn), &(ctx->dircache),
+                    &(ctx->filecache));
+
+    open_hashtbl(ctx->dircache, ctx->filecache, ctx->conn, &(ctx->tree));
 
     ctx->sv_writefiles = stringv_alloc();
     ctx->sv_readonlyfiles = stringv_alloc();

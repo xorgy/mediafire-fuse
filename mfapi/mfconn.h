@@ -57,6 +57,8 @@ const char     *mfconn_get_secret_time(mfconn * conn);
 
 uint32_t        mfconn_get_secret_key(mfconn * conn);
 
+const char     *mfconn_get_ekey(mfconn * conn);
+
 int             mfconn_get_max_num_retries(mfconn * conn);
 
 int             mfconn_upload_poll_for_completion(mfconn * conn,

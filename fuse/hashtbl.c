@@ -291,7 +291,7 @@ int folder_tree_store(folder_tree * tree, FILE * stream)
     return 0;
 }
 
-folder_tree    *folder_tree_load(FILE * stream, char *filecache)
+folder_tree    *folder_tree_load(FILE * stream, const char *filecache)
 {
     folder_tree    *tree;
     unsigned char   tmp_buffer[4];
@@ -411,7 +411,7 @@ folder_tree    *folder_tree_load(FILE * stream, char *filecache)
     return tree;
 }
 
-folder_tree    *folder_tree_create(char *filecache)
+folder_tree    *folder_tree_create(const char *filecache)
 {
     folder_tree    *tree;
 
