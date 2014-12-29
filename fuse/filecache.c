@@ -21,9 +21,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <openssl/sha.h>
-#ifdef __linux
-#include <fcntl.h>
-#endif
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -336,7 +333,7 @@ static int filecache_download_file(const char *filecache_path,
     file = file_alloc();
     retval = mfconn_api_file_get_links(conn, file,
                                        (char *)quickkey,
-                                       LINK_TYPE_DIRECT_DOWNLOAD);
+                                       MFCONN_FILE_LINK_TYPE_DIRECT_DOWNLOAD);
 
     if (retval != 0) {
         fprintf(stderr, "mfconn_api_file_get_links failed\n");

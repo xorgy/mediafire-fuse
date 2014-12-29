@@ -23,7 +23,6 @@
 #include <string.h>
 
 #include "../../utils/http.h"
-#include "../../utils/strings.h"
 #include "../mfconn.h"
 #include "../file.h"
 #include "../apicalls.h"        // IWYU pragma: keep
@@ -31,10 +30,10 @@
 static int      _decode_file_get_links(mfhttp * conn, void *data);
 
 int mfconn_api_file_get_links(mfconn * conn, mffile * file,
-                              const char *quickkey, uint32_t link_mask)
+                              const char *quickkey,
+                              enum mfconn_file_link_type link_mask)
 {
     const char     *api_call;
-    extern const char *link_types[];    // declared in apicalls.c
     int             retval;
     int             len;
     mfhttp         *http;
@@ -59,7 +58,8 @@ int mfconn_api_file_get_links(mfconn * conn, mffile * file,
                                             "?quick_key=%s"
                                             "&link_type=%s"
                                             "&response_format=json",
-                                            quickkey, link_types[link_mask]);
+                                            quickkey,
+                                            mfconn_file_link_types[link_mask]);
         if (api_call == NULL) {
             fprintf(stderr, "mfconn_create_signed_get failed\n");
             return -1;

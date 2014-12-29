@@ -43,12 +43,18 @@ enum mfconn_device_change_type {
     MFCONN_DEVICE_CHANGE_END
 };
 
-#define X_LINK_TYPE(a,b,c)  a,
-enum {
-#include "link_type.def"
+enum mfconn_file_link_type {
+    MFCONN_FILE_LINK_TYPE_NORMAL_DOWNLOAD,
+    MFCONN_FILE_LINK_TYPE_DIRECT_DOWNLOAD,
+    MFCONN_FILE_LINK_TYPE_VIEW,
+    MFCONN_FILE_LINK_TYPE_EDIT,
+    MFCONN_FILE_LINK_TYPE_WATCH,
+    MFCONN_FILE_LINK_TYPE_LISTEN,
+    MFCONN_FILE_LINK_TYPE_STREAMING,
+    MFCONN_FILE_LINK_TYPE_ONE_TIME_DOWNLOAD
 };
 
-#undef X_LINK_TYPE
+extern const char *mfconn_file_link_types[]; // declared in apicalls.c
 
 struct mfconn_device_change {
     enum mfconn_device_change_type change;
@@ -66,7 +72,7 @@ int             mfconn_api_file_get_info(mfconn * conn, mffile * file,
 
 int             mfconn_api_file_get_links(mfconn * conn, mffile * file,
                                           const char *quickkey,
-                                          uint32_t link_mask);
+                                          enum mfconn_file_link_type link_mask);
 
 int             mfconn_api_file_move(mfconn * conn, const char *quickkey,
                                      const char *folderkey);

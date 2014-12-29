@@ -22,13 +22,16 @@
 
 #include "../utils/http.h"
 
-#define X_LINK_TYPE(a,b,c)  c,
-const char     *link_types[] = {
-#include "link_type.def"
-    NULL
+const char *mfconn_file_link_types[] = {
+    "normal_download",
+    "direct_download",
+    "view",
+    "edit",
+    "watch",
+    "listen",
+    "streaming",
+    "one_time_download"
 };
-
-#undef X_LINK_TYPE
 
 int mfapi_check_response(json_t * response, const char *apicall)
 {

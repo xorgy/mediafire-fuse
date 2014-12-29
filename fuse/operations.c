@@ -31,15 +31,16 @@
 #include <string.h>
 #include <errno.h>
 #include <sys/stat.h>
-#ifdef __linux
 #include <fcntl.h>
-#endif
 #include <fuse/fuse_common.h>
 #include <stdint.h>
 #include <libgen.h>
+#include <stdbool.h>
+#include <time.h>
 
 #include "../mfapi/mfconn.h"
 #include "../mfapi/apicalls.h"
+#include "../utils/stringv.h"
 #include "hashtbl.h"
 #include "operations.h"
 

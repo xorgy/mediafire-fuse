@@ -31,12 +31,9 @@
 #include <string.h>
 #include <errno.h>
 #include <sys/stat.h>
-#ifdef __linux
 #include <fcntl.h>
-#endif
 #include <pwd.h>
 #include <wordexp.h>
-#include <fcntl.h>
 #include <stdbool.h>
 
 #include "../mfapi/mfconn.h"

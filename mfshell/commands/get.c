@@ -80,7 +80,7 @@ int mfshell_cmd_get(mfshell * mfshell, int argc, char *const argv[])
     // request a direct download (streaming) link
     retval = mfconn_api_file_get_links(mfshell->conn, file,
                                        (char *)quickkey,
-                                       LINK_TYPE_DIRECT_DOWNLOAD);
+                                       MFCONN_FILE_LINK_TYPE_DIRECT_DOWNLOAD);
 
     if (retval != 0) {
         file_free(file);
