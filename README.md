@@ -30,6 +30,7 @@ This project is using cmake, so you can build the software out-of-tree:
 	cd build
 	cmake ..
 	make
+	make install
 
 Runtime Configuration
 =====================

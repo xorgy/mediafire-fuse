@@ -114,3 +114,5 @@ add_test(iwyu ${CMAKE_SOURCE_DIR}/tests/iwyu.py ${CMAKE_BINARY_DIR})
 add_test(indent ${CMAKE_SOURCE_DIR}/tests/indent.sh ${CMAKE_SOURCE_DIR})
 add_test(valgrind_fuse ${CMAKE_SOURCE_DIR}/tests/valgrind_fuse.sh ${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR})
 add_test(valgrind_shell ${CMAKE_SOURCE_DIR}/tests/valgrind_shell.sh ${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR})
+
+install (TARGETS mediafire-fuse mediafire-shell DESTINATION bin)
