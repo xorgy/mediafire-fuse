@@ -53,6 +53,9 @@ int             folder_tree_store(folder_tree * tree, FILE * stream);
 
 folder_tree    *folder_tree_load(FILE * stream, const char *filecache);
 
+void            folder_tree_cleanup_filecache(folder_tree *tree,
+                                              uint64_t allowed_size);
+
 bool            folder_tree_path_exists(folder_tree * tree, mfconn * conn,
                                         const char *path);
 

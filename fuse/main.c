@@ -319,6 +319,10 @@ static void open_hashtbl(const char *dircache, const char *filecache,
 
         fclose(fp);
 
+        // TODO: make the maximum cache size configurable
+        // size is given in bytes and current default is 1 GiB
+        folder_tree_cleanup_filecache(*tree, 1073741824);
+
         folder_tree_update(*tree, conn, false);
     } else {
         // file doesn't exist
@@ -456,7 +460,7 @@ int main(int argc, char *argv[])
     ctx->sv_writefiles = stringv_alloc();
     ctx->sv_readonlyfiles = stringv_alloc();
     ctx->last_status_check = 0;
-    ctx->interval_status_check = 60;
+    ctx->interval_status_check = 60; // TODO: make this configurable
 
     pthread_mutex_init(&(ctx->mutex), NULL);
 

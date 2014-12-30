@@ -36,6 +36,8 @@
 #include <stddef.h>
 #include <inttypes.h>
 #include <openssl/sha.h>
+#include <dirent.h>
+#include <ctype.h>
 
 #include "hashtbl.h"
 #include "filecache.h"
@@ -147,6 +149,9 @@ static struct h_entry *folder_tree_add_folder(folder_tree * tree,
 static void     folder_tree_remove(folder_tree * tree, const char *key);
 static bool     folder_tree_is_parent_of(struct h_entry *parent,
                                          struct h_entry *child);
+static bool     is_valid_cache_filename(const char *name, char key[],
+                                        uint64_t *revision);
+static int      atime_compare(const void *a, const void *b);
 
 /* functions with remote access */
 static struct h_entry *folder_tree_lookup_path(folder_tree * tree,
@@ -792,6 +797,9 @@ int folder_tree_open_file(folder_tree * tree, mfconn * conn, const char *path,
          * was necessary */
         entry->local_revision = entry->remote_revision;
     }
+
+    // however the file was opened, its access time has to be updated
+    entry->atime = time(NULL);
 
     return retval;
 }
@@ -1745,4 +1753,224 @@ void folder_tree_debug_helper(folder_tree * tree, struct h_entry *ent,
 void folder_tree_debug(folder_tree * tree)
 {
     folder_tree_debug_helper(tree, NULL, 0);
+}
+
+static int atime_compare(const void *a, const void *b)
+{
+    return ((struct h_entry *)a)->atime - ((struct h_entry *)b)->atime;
+}
+
+/*
+ * to be a valid cache file, the first 15 bytes have to be letters
+ * from a-z and numbers from 0-9, the 16th has to be an underscore,
+ * the 17th has to be a number from 1-9 and the remaining characters
+ * (if any) be a number from 0-9
+ */
+static bool is_valid_cache_filename(const char *name, char key[],
+                                    uint64_t *revision)
+{
+    int             i;
+
+    for (i = 0; i < 15; i++) {
+        if (!islower(name[i]) && !isdigit(name[i]))
+            return false;
+    }
+    if (name[i] != '_')
+        return false;
+    i++;
+    if (name[i] < 49 || name[i] > 57)
+        return false;
+    for (; name[i] != '\0'; i++) {
+        if (!isdigit(name[i]))
+            return false;
+    }
+
+    // now copy the first 15 bytes from the name to the key
+    memcpy(key, name, 15);
+    key[15] = '\0';
+
+    *revision = atoll(name+16);
+
+    return true;
+}
+
+/* go through all files in the filecache and check:
+ *
+ *  - does the filename match the known pattern?
+ *      (do not act on other files to avoid accidentally touching user
+ *      files)
+ *  - is the quickkey known by the hashtable?
+ *      - if no, delete
+ *  - check if its revision is equal the remote revision
+ *      - if no, delete
+ *  - check if its size and hash verifies
+ *      - if no, delete
+ *  - once all files in the cache have been processed this way, check if
+ *    the sum of their sizes is greater than X and delete the oldest
+ */
+void folder_tree_cleanup_filecache(folder_tree *tree, uint64_t allowed_size)
+{
+    struct dirent  *endp;
+    struct dirent  *entryp;
+    DIR            *dirp;
+    int             retval;
+    long            name_max;
+    char           *filepath;
+    char            key[MFAPI_MAX_LEN_KEY + 1];
+    uint64_t        revision;
+    struct h_entry *entry;
+    size_t          num_cachefiles;
+    size_t          i;
+    uint64_t        sum_size;
+    struct h_entry **cachefiles;
+
+    // from the readdir_r man page
+    name_max = pathconf(tree->filecache, _PC_NAME_MAX);
+    if (name_max == -1)         /* Limit not defined, or error */
+        name_max = 255;         /* Take a guess */
+    entryp = malloc(offsetof(struct dirent, d_name) + name_max + 1);
+
+    dirp = opendir(tree->filecache);
+    if (dirp == NULL) {
+        fprintf(stderr, "cannot open filecache\n");
+        return;
+    }
+
+    num_cachefiles = 0;
+    cachefiles = NULL;
+
+    for (;;) {
+        endp = NULL;
+        retval = readdir_r(dirp, entryp, &endp);
+        if (retval != 0) {
+            fprintf(stderr, "readdir_r failed\n");
+            free(entryp);
+            closedir(dirp);
+            if (cachefiles != NULL)
+                free(cachefiles);
+            return;
+        }
+        if (endp == NULL) {
+            break;
+        }
+        if (strcmp(entryp->d_name, ".") == 0 ||
+                strcmp(entryp->d_name, "..") == 0)
+            continue;
+
+        if (!is_valid_cache_filename(entryp->d_name, key, &revision)) {
+            fprintf(stderr, "not a valid cachefile: %s (ignoring)\n",
+                    entryp->d_name);
+            continue;
+        }
+
+        filepath = strdup_printf("%s/%s", tree->filecache, entryp->d_name);
+
+        entry = folder_tree_lookup_key(tree, key);
+        if (entry == NULL) {
+            fprintf(stderr, "delete file not in hashtable: %s\n",
+                    entryp->d_name);
+            retval = unlink(filepath);
+            if (retval != 0) {
+                fprintf(stderr, "unlink failed\n");
+            }
+            free(filepath);
+            continue;
+        }
+
+        if (revision != entry->remote_revision) {
+            fprintf(stderr, "delete file with revision %" PRIu64
+                    " different from remote %" PRIu64 ": %s\n", revision,
+                    entry->remote_revision, entryp->d_name);
+            retval = unlink(filepath);
+            if (retval != 0) {
+                fprintf(stderr, "unlink failed\n");
+            }
+            entry->local_revision = 0;
+            free(filepath);
+            continue;
+        }
+
+        if (revision != entry->local_revision) {
+            fprintf(stderr, "delete file with revision %" PRIu64
+                    " different from local %" PRIu64 ": %s\n", revision,
+                    entry->local_revision, entryp->d_name);
+            retval = unlink(filepath);
+            if (retval != 0) {
+                fprintf(stderr, "unlink failed\n");
+            }
+            entry->local_revision = 0;
+            free(filepath);
+            continue;
+        }
+
+        retval = file_check_integrity(filepath, entry->fsize, entry->hash);
+        if (retval != 0) {
+            fprintf(stderr, "delete file with invalid content: %s\n",
+                    entryp->d_name);
+            retval = unlink(filepath);
+            if (retval != 0) {
+                fprintf(stderr, "unlink failed\n");
+            }
+            entry->local_revision = 0;
+            free(filepath);
+            continue;
+        }
+        free(filepath);
+
+        // everything is okay with this one, so append it to the list of files
+        // in the cache
+        num_cachefiles++;
+        cachefiles =
+            (struct h_entry **)realloc(cachefiles,
+                                       num_cachefiles *
+                                       sizeof(struct h_entry *));
+        if (cachefiles == NULL) {
+            fprintf(stderr, "realloc failed\n");
+            free(entryp);
+            closedir(dirp);
+            return;
+        }
+        cachefiles[num_cachefiles - 1] = entry;
+    }
+
+    free(entryp);
+    closedir(dirp);
+
+    // return if there are no files in the cache
+    if (num_cachefiles == 0)
+        return;
+
+    // now calculate the sum of valid files in the cache and check whether it
+    // is larger than allowed
+    sum_size = 0;
+    for (i = 0; i < num_cachefiles; i++) {
+        sum_size += cachefiles[i]->fsize;
+    }
+
+    // if the summed size is below the allowed, return
+    if (sum_size <= allowed_size) {
+        free(cachefiles);
+        return;
+    }
+
+    // sort the files in the cache by their access time
+    qsort(cachefiles, num_cachefiles, sizeof(struct h_entry *), atime_compare);
+
+    // delete the oldest file until sum is below allowed size
+    for (i = 0; i < num_cachefiles && sum_size > allowed_size; i++) {
+        entry = cachefiles[i];
+        fprintf(stderr, "delete file to free space: %s_%" PRIu64 "\n",
+                entry->key, entry->remote_revision);
+        filepath = strdup_printf("%s/%s_%" PRIu64, tree->filecache, entry->key,
+                                 entry->remote_revision);
+        retval = unlink(filepath);
+        if (retval != 0) {
+            fprintf(stderr, "unlink failed\n");
+        }
+        entry->local_revision = 0;
+        free(filepath);
+        sum_size -= entry->fsize;
+    }
+
+    free(cachefiles);
 }

@@ -15,9 +15,7 @@
  - make h_entry more efficient in memory (for example by making filenames zero terminated)
  - when handling device/get_changes, make sure to only use the latest revision of the same file-/folderkey
  - allow different cache directory (useful for running test suite)
- - delete old files in cache that have been updated
  - delete patches in cache that have been applied
- - check the hash of all files in the cache on startup
  - after uploading a file it is immediately downloaded - instead, the existing local file should be used by checking the remote hash
  - add an option to only call device/get_status in configurable intervals
  - write man pages
