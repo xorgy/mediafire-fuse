@@ -351,10 +351,22 @@ static void setup_conf_dir(char **configfile)
 
     configdir = getenv("XDG_CONFIG_HOME");
     if (configdir == NULL) {
-        // $HOME/.config/mediafire-tools
+        configdir = strdup_printf("%s/.config", homedir);
+        /* EEXIST is okay, so only fail if it is something else */
+        if (mkdir(configdir, 0755) != 0 && errno != EEXIST) {
+            perror("mkdir");
+            fprintf(stderr, "cannot create %s\n", configdir);
+            exit(1);
+        }
+        free((void *)configdir);
         configdir = strdup_printf("%s/.config/mediafire-tools", homedir);
     } else {
         // $XDG_CONFIG_HOME/mediafire-tools
+        if (mkdir(configdir, 0755) != 0 && errno != EEXIST) {
+            perror("mkdir");
+            fprintf(stderr, "cannot create %s\n", configdir);
+            exit(1);
+        }
         configdir = strdup_printf("%s/mediafire-tools", configdir);
     }
     /* EEXIST is okay, so only fail if it is something else */
@@ -392,9 +404,21 @@ static void setup_cache_dir(const char *ekey, char **dircache,
     cachedir = getenv("XDG_CACHE_HOME");
     if (cachedir == NULL) {
         // $HOME/.cache/mediafire-tools
+        cachedir = strdup_printf("%s/.cache", homedir);
+        if (mkdir(cachedir, 0755) != 0 && errno != EEXIST) {
+            perror("mkdir");
+            fprintf(stderr, "cannot create %s\n", cachedir);
+            exit(1);
+        }
+        free((void *)cachedir);
         cachedir = strdup_printf("%s/.cache/mediafire-tools", homedir);
     } else {
         // $XDG_CONFIG_HOME/mediafire-tools
+        if (mkdir(cachedir, 0755) != 0 && errno != EEXIST) {
+            perror("mkdir");
+            fprintf(stderr, "cannot create %s\n", cachedir);
+            exit(1);
+        }
         cachedir = strdup_printf("%s/mediafire-tools", cachedir);
     }
     /* EEXIST is okay, so only fail if it is something else */
