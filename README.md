@@ -24,6 +24,10 @@ this software:
 
 	apt-get install cmake build-essential libjansson-dev libcurl4-openssl-dev libfuse-dev libssl-dev
 
+On FreeBSD you need:
+
+	pkg install jansson cmake curl fuse fusefs-libs
+
 This project is using cmake, so you can build the software out-of-tree:
 
 	mkdir build
