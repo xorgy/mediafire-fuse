@@ -38,12 +38,19 @@ To fix all includes:
 
 To fix indentation (the file `.indent.pro` will be used):
 
-    indent **/*.c **/*.h
-    rm **/*\~
+	indent **/*.c **/*.h
+	rm **/*\~
 
 to compile verbosely:
 
-    cmake -DCMAKE_VERBOSE_MAKEFILE=true
+	cmake -DCMAKE_VERBOSE_MAKEFILE=true
+
+Debug Build
+===========
+
+To make a debug build with debug symbols, run cmake like this:
+
+	cmake -DCMAKE_BUILD_TYPE=Debug ..
 
 Misc
 ====
