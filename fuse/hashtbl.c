@@ -38,6 +38,7 @@
 #include <openssl/sha.h>
 #include <dirent.h>
 #include <ctype.h>
+#include <time.h>
 
 #include "hashtbl.h"
 #include "filecache.h"
