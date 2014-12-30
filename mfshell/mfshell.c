@@ -23,6 +23,7 @@
 #else
 #define _WITH_GETLINE           // on freebsd for getline
 #endif
+#define _GNU_SOURCE             // for strdup on old systems
 
 #include <stdio.h>
 #include <stdlib.h>
