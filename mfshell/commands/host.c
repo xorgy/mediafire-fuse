@@ -18,6 +18,7 @@
  */
 
 #define _POSIX_C_SOURCE 200809L // for strdup and getline
+#define _GNU_SOURCE             // for strdup on old systems
 
 #include <stddef.h>
 #include <stdio.h>
