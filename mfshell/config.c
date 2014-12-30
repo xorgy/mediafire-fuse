@@ -17,6 +17,7 @@
  */
 
 #define _POSIX_C_SOURCE 200809L // for getline
+#define _GNU_SOURCE             // for getline on old systems
 
 #include <stdio.h>
 #include <stdlib.h>
