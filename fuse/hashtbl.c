@@ -151,7 +151,7 @@ static void     folder_tree_remove(folder_tree * tree, const char *key);
 static bool     folder_tree_is_parent_of(struct h_entry *parent,
                                          struct h_entry *child);
 static bool     is_valid_cache_filename(const char *name, char key[],
-                                        uint64_t *revision);
+                                        uint64_t * revision);
 static int      atime_compare(const void *a, const void *b);
 
 /* functions with remote access */
@@ -798,7 +798,6 @@ int folder_tree_open_file(folder_tree * tree, mfconn * conn, const char *path,
          * was necessary */
         entry->local_revision = entry->remote_revision;
     }
-
     // however the file was opened, its access time has to be updated
     entry->atime = time(NULL);
 
@@ -1762,7 +1761,7 @@ static int atime_compare(const void *a, const void *b)
  * (if any) be a number from 0-9
  */
 static bool is_valid_cache_filename(const char *name, char key[],
-                                    uint64_t *revision)
+                                    uint64_t * revision)
 {
     int             i;
 
@@ -1784,7 +1783,7 @@ static bool is_valid_cache_filename(const char *name, char key[],
     memcpy(key, name, 15);
     key[15] = '\0';
 
-    *revision = atoll(name+16);
+    *revision = atoll(name + 16);
 
     return true;
 }
@@ -1803,7 +1802,7 @@ static bool is_valid_cache_filename(const char *name, char key[],
  *  - once all files in the cache have been processed this way, check if
  *    the sum of their sizes is greater than X and delete the oldest
  */
-void folder_tree_cleanup_filecache(folder_tree *tree, uint64_t allowed_size)
+void folder_tree_cleanup_filecache(folder_tree * tree, uint64_t allowed_size)
 {
     struct dirent  *endp;
     struct dirent  *entryp;
@@ -1849,7 +1848,7 @@ void folder_tree_cleanup_filecache(folder_tree *tree, uint64_t allowed_size)
             break;
         }
         if (strcmp(entryp->d_name, ".") == 0 ||
-                strcmp(entryp->d_name, "..") == 0)
+            strcmp(entryp->d_name, "..") == 0)
             continue;
 
         if (!is_valid_cache_filename(entryp->d_name, key, &revision)) {
@@ -1947,7 +1946,6 @@ void folder_tree_cleanup_filecache(folder_tree *tree, uint64_t allowed_size)
         free(cachefiles);
         return;
     }
-
     // sort the files in the cache by their access time
     qsort(cachefiles, num_cachefiles, sizeof(struct h_entry *), atime_compare);
 

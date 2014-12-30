@@ -484,7 +484,7 @@ int main(int argc, char *argv[])
     ctx->sv_writefiles = stringv_alloc();
     ctx->sv_readonlyfiles = stringv_alloc();
     ctx->last_status_check = 0;
-    ctx->interval_status_check = 60; // TODO: make this configurable
+    ctx->interval_status_check = 60;    // TODO: make this configurable
 
     pthread_mutex_init(&(ctx->mutex), NULL);
 
