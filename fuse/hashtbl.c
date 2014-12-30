@@ -1715,14 +1715,8 @@ void folder_tree_housekeep(folder_tree * tree, mfconn * conn)
         }
     }
 
-    /* TODO: remove unreferenced cached files */
-
-    /*
-     * for file in cache directory:
-     *     e = folder_tree_lookup_key(file.key)
-     *     if e == None:
-     *         delete(file)
-     */
+    /* TODO: should this routine call folder_tree_cleanup_filecache to remove
+     * unreferenced or outdated files in the cache? */
 }
 
 void folder_tree_debug_helper(folder_tree * tree, struct h_entry *ent,

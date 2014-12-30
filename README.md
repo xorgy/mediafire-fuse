@@ -95,3 +95,9 @@ the `-d` option and send in the generated output on the terminal.
 
 While the fuse filesystem is not mounted, it is always safe to remove your
 local cache as it will be retrieved again from the remote.
+
+TODO
+====
+
+For missing features that could be implemented in the future, have a look at
+the file `TODO`.
