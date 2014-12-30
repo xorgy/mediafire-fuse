@@ -34,7 +34,7 @@ include_directories(${FUSE_INCLUDE_DIRS})
 find_package(Jansson 2.5 REQUIRED)
 include_directories(${JANSSON_INCLUDE_DIRS})
 
-add_library(mfapi SHARED
+add_library(mfapi OBJECT
 	mfapi/mfconn.c
 	mfapi/file.c
 	mfapi/folder.c
@@ -62,7 +62,7 @@ add_library(mfapi SHARED
 	mfapi/apicalls/upload_poll_upload.c
 	)
 
-add_library(mfutils SHARED
+add_library(mfutils OBJECT
 	utils/http.c
 	utils/strings.c
 	utils/stringv.c
@@ -70,6 +70,8 @@ add_library(mfutils SHARED
 	utils/hash.c)
 
 add_executable(mediafire-shell
+	$<TARGET_OBJECTS:mfapi>
+	$<TARGET_OBJECTS:mfutils>
 	mfshell/main.c
 	mfshell/mfshell.c
 	mfshell/commands/folder.c
@@ -95,16 +97,18 @@ add_executable(mediafire-shell
 	mfshell/config.c
 	mfshell/options.c
 	mfshell/commands/updates.c)
-target_link_libraries(mediafire-shell ${CURL_LIBRARIES} ${OPENSSL_LIBRARIES} ${JANSSON_LIBRARIES} mfapi mfutils)
+target_link_libraries(mediafire-shell ${CURL_LIBRARIES} ${OPENSSL_LIBRARIES} ${JANSSON_LIBRARIES})
 
 enable_testing()
 
 add_executable(mediafire-fuse
+	$<TARGET_OBJECTS:mfapi>
+	$<TARGET_OBJECTS:mfutils>
 	fuse/main.c
 	fuse/hashtbl.c
 	fuse/filecache.c
 	fuse/operations.c)
-target_link_libraries(mediafire-fuse ${CURL_LIBRARIES} ${OPENSSL_LIBRARIES} ${FUSE_LIBRARIES} ${JANSSON_LIBRARIES} mfapi mfutils)
+target_link_libraries(mediafire-fuse ${CURL_LIBRARIES} ${OPENSSL_LIBRARIES} ${FUSE_LIBRARIES} ${JANSSON_LIBRARIES})
 
 add_test(iwyu ${CMAKE_SOURCE_DIR}/tests/iwyu.py ${CMAKE_BINARY_DIR})
 add_test(indent ${CMAKE_SOURCE_DIR}/tests/indent.sh ${CMAKE_SOURCE_DIR})
