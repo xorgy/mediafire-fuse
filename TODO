@@ -1,5 +1,5 @@
  - add an --insecure option as by default, SSL should always be used
- - add debug printing using better means that stderr printfs
+ - add debug printing using better means than stderr printfs
  - fuse can log to syslog
  - write documentation
  - create read-only offline mode
