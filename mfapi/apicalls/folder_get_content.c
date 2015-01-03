@@ -89,6 +89,7 @@ mfconn_api_folder_get_content(mfconn * conn, const int mode,
             api_call = mfconn_create_signed_get(conn, 0,
                                                 "folder/get_content.php",
                                                 "?content_type=%s"
+                                                "&chunk_size=1000"
                                                 "&response_format=json",
                                                 content_type);
         } else {
@@ -96,6 +97,7 @@ mfconn_api_folder_get_content(mfconn * conn, const int mode,
                                                 "folder/get_content.php",
                                                 "?folder_key=%s"
                                                 "&content_type=%s"
+                                                "&chunk_size=1000"
                                                 "&response_format=json",
                                                 folderkey, content_type);
         }
