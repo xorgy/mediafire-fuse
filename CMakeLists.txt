@@ -57,6 +57,8 @@ add_library(mfapi OBJECT
 	mfapi/apicalls/device_get_changes.c
 	mfapi/apicalls/device_get_patch.c
 	mfapi/apicalls/device_get_updates.c
+	mfapi/apicalls/upload_check.c
+	mfapi/apicalls/upload_instant.c
 	mfapi/apicalls/upload_simple.c
 	mfapi/apicalls/upload_patch.c
 	mfapi/apicalls/upload_poll_upload.c

@@ -23,6 +23,7 @@
 #include <jansson.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdbool.h>
 
 #include "file.h"
 #include "folder.h"
@@ -61,6 +62,14 @@ struct mfconn_device_change {
     char            key[16];
     uint64_t        revision;
     char            parent[16];
+};
+
+struct mfconn_upload_check_result {
+    bool            hash_exists;
+    bool            in_account;
+    bool            file_exists;
+    bool            different_hash;
+    /* TODO: add resumable_upload */
 };
 
 int             mfapi_check_response(json_t * response, const char *apicall);
@@ -132,6 +141,15 @@ int             mfconn_api_device_get_patch(mfconn * conn, mfpatch * patch,
                                             const char *quickkey,
                                             uint64_t source_revision,
                                             uint64_t target_revision);
+
+int             mfconn_api_upload_check(mfconn * conn, const char *filename,
+                                        const char *hash,
+                                        uint64_t size, const char *folder_key,
+                                        struct mfconn_upload_check_result *result);
+
+int             mfconn_api_upload_instant(mfconn * conn, const char *quick_key,
+                                          const char *filename, const char *hash,
+                                          uint64_t size, const char *folder_key);
 
 int             mfconn_api_upload_simple(mfconn * conn, const char *folderkey,
                                          FILE * fh, const char *file_name,

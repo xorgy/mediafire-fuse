@@ -37,10 +37,12 @@
 #include <libgen.h>
 #include <stdbool.h>
 #include <time.h>
+#include <openssl/sha.h>
 
 #include "../mfapi/mfconn.h"
 #include "../mfapi/apicalls.h"
 #include "../utils/stringv.h"
+#include "../utils/hash.h"
 #include "hashtbl.h"
 #include "operations.h"
 
@@ -524,6 +526,10 @@ int mediafirefs_release(const char *path, struct fuse_file_info *file_info)
     int             retval;
     struct mediafirefs_context_private *ctx;
     struct mediafirefs_openfile *openfile;
+    struct mfconn_upload_check_result check_result;
+    unsigned char   bhash[SHA256_DIGEST_LENGTH];
+    char           *hash;
+    uint64_t        size;
 
     ctx = fuse_get_context()->private_data;
 
@@ -571,29 +577,82 @@ int mediafirefs_release(const char *path, struct fuse_file_info *file_info)
 
         folder_key = folder_tree_path_get_key(ctx->tree, ctx->conn, dir_name);
 
-        upload_key = NULL;
-        retval = mfconn_api_upload_simple(ctx->conn, folder_key,
-                                          fh, file_name, &upload_key);
+        retval = calc_sha256(fh, bhash, &size);
+        rewind(fh);
 
-        fclose(fh);
-        free(temp1);
-        free(temp2);
-        free(openfile->path);
-        free(openfile);
-
-        if (retval != 0 || upload_key == NULL) {
-            fprintf(stderr, "mfconn_api_upload_simple failed\n");
+        if (retval != 0) {
+            fprintf(stderr, "failed to calculate hash\n");
+            fclose(fh);
+            free(temp1);
+            free(temp2);
+            free(openfile->path);
+            free(openfile);
             pthread_mutex_unlock(&(ctx->mutex));
             return -EACCES;
         }
-        // poll for completion
-        retval = mfconn_upload_poll_for_completion(ctx->conn, upload_key);
-        free(upload_key);
+
+        hash = binary2hex(bhash, SHA256_DIGEST_LENGTH);
+
+        retval = mfconn_api_upload_check(ctx->conn, file_name, hash, size,
+                                         folder_key, &check_result);
 
         if (retval != 0) {
-            fprintf(stderr, "mfconn_upload_poll_for_completion failed\n");
+            fclose(fh);
+            free(temp1);
+            free(temp2);
+            free(openfile->path);
+            free(openfile);
+            free(hash);
+            fprintf(stderr, "mfconn_api_upload_check failed\n");
             pthread_mutex_unlock(&(ctx->mutex));
-            return -1;
+            return -EACCES;
+        }
+
+        if (check_result.hash_exists) {
+            // hash exists, so use upload/instant
+
+            retval = mfconn_api_upload_instant(ctx->conn, NULL,
+                    file_name, hash, size, folder_key);
+
+            fclose(fh);
+            free(temp1);
+            free(temp2);
+            free(openfile->path);
+            free(openfile);
+            free(hash);
+
+            if (retval != 0) {
+                fprintf(stderr, "mfconn_api_upload_instant failed\n");
+                pthread_mutex_unlock(&(ctx->mutex));
+                return -EACCES;
+            }
+        } else {
+            // hash does not exist, so do full upload
+            upload_key = NULL;
+            retval = mfconn_api_upload_simple(ctx->conn, folder_key,
+                    fh, file_name, &upload_key);
+
+            fclose(fh);
+            free(temp1);
+            free(temp2);
+            free(openfile->path);
+            free(openfile);
+            free(hash);
+
+            if (retval != 0 || upload_key == NULL) {
+                fprintf(stderr, "mfconn_api_upload_simple failed\n");
+                pthread_mutex_unlock(&(ctx->mutex));
+                return -EACCES;
+            }
+            // poll for completion
+            retval = mfconn_upload_poll_for_completion(ctx->conn, upload_key);
+            free(upload_key);
+
+            if (retval != 0) {
+                fprintf(stderr, "mfconn_upload_poll_for_completion failed\n");
+                pthread_mutex_unlock(&(ctx->mutex));
+                return -1;
+            }
         }
 
         folder_tree_update(ctx->tree, ctx->conn, true);
