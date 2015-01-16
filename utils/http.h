@@ -46,4 +46,6 @@ int             http_post_file(mfhttp * conn, const char *url, FILE * fh,
                                int (*data_handler) (mfhttp * conn, void *data),
                                void *data);
 
+char           *urlencode(const char *input);
+
 #endif

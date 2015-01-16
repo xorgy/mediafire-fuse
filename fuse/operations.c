@@ -612,7 +612,8 @@ int mediafirefs_release(const char *path, struct fuse_file_info *file_info)
             // hash exists, so use upload/instant
 
             retval = mfconn_api_upload_instant(ctx->conn, NULL,
-                    file_name, hash, size, folder_key);
+                                               file_name, hash, size,
+                                               folder_key);
 
             fclose(fh);
             free(temp1);
@@ -630,7 +631,7 @@ int mediafirefs_release(const char *path, struct fuse_file_info *file_info)
             // hash does not exist, so do full upload
             upload_key = NULL;
             retval = mfconn_api_upload_simple(ctx->conn, folder_key,
-                    fh, file_name, &upload_key);
+                                              fh, file_name, &upload_key);
 
             fclose(fh);
             free(temp1);

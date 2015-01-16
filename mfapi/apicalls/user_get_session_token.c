@@ -55,6 +55,8 @@ mfconn_api_user_get_session_token(mfconn * conn, const char *server,
     struct user_get_session_token_response response;
     mfhttp         *http;
     int             i;
+    char           *username_urlenc;
+    char           *password_urlenc;
 
     if (conn == NULL)
         return -1;
@@ -81,15 +83,26 @@ mfconn_api_user_get_session_token(mfconn * conn, const char *server,
             mfconn_create_user_signature(conn, username, password, app_id,
                                          app_key);
 
-        // FIXME: username and password have to be urlencoded (maybe using
-        // curl_easy_escape)
+        username_urlenc = urlencode(username);
+        if (username_urlenc == NULL) {
+            fprintf(stderr, "urlencode failed\n");
+            return -1;
+        }
+        password_urlenc = urlencode(password);
+        if (password_urlenc == NULL) {
+            fprintf(stderr, "urlencode failed\n");
+            return -1;
+        }
         post_args = strdup_printf("email=%s"
                                   "&password=%s"
                                   "&application_id=%d"
                                   "&signature=%s"
                                   "&token_version=2"
                                   "&response_format=json",
-                                  username, password, app_id, user_signature);
+                                  username_urlenc, password_urlenc, app_id,
+                                  user_signature);
+        free(username_urlenc);
+        free(password_urlenc);
         free((void *)user_signature);
 
         http = http_create();

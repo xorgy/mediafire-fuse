@@ -18,8 +18,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <inttypes.h>
+#include <stdint.h>
 
 #include "../../utils/http.h"
 #include "../mfconn.h"
@@ -33,6 +33,7 @@ int mfconn_api_upload_instant(mfconn * conn, const char *quick_key,
     int             retval;
     mfhttp         *http;
     int             i;
+    char           *filename_urlenc;
 
     if (conn == NULL)
         return -1;
@@ -51,17 +52,22 @@ int mfconn_api_upload_instant(mfconn * conn, const char *quick_key,
                                                 "&hash=%s"
                                                 "&response_format=json",
                                                 quick_key, size, hash);
-        } else if (filename != NULL && filename[0] != '\0'
-                && folder_key != 0) {
+        } else if (filename != NULL && filename[0] != '\0' && folder_key != 0) {
             // upload a new file
+            filename_urlenc = urlencode(filename);
+            if (filename_urlenc == NULL) {
+                fprintf(stderr, "urlencode failed\n");
+                return -1;
+            }
             api_call = mfconn_create_signed_get(conn, 0, "upload/instant.php",
                                                 "?folder_key=%s"
                                                 "&filename=%s"
                                                 "&size=%" PRIu64
                                                 "&hash=%s"
                                                 "&response_format=json",
-                                                folder_key, filename, size,
-                                                hash);
+                                                folder_key, filename_urlenc,
+                                                size, hash);
+            free(filename_urlenc);
         } else {
             fprintf(stderr, "you must either pass a quick_key or a filename "
                     "and folder_key\n");
@@ -75,7 +81,8 @@ int mfconn_api_upload_instant(mfconn * conn, const char *quick_key,
 
         http = http_create();
         retval =
-            http_get_buf(http, api_call, mfapi_decode_common, "upload/instant");
+            http_get_buf(http, api_call, mfapi_decode_common,
+                         "upload/instant");
         http_destroy(http);
         mfconn_update_secret_key(conn);
 

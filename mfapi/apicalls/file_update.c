@@ -32,6 +32,7 @@ int mfconn_api_file_update(mfconn * conn, const char *quickkey,
     int             retval;
     mfhttp         *http;
     int             i;
+    char           *filename_urlenc;
 
     if (conn == NULL)
         return -1;
@@ -49,11 +50,17 @@ int mfconn_api_file_update(mfconn * conn, const char *quickkey,
         return -1;
 
     for (i = 0; i < mfconn_get_max_num_retries(conn); i++) {
+        filename_urlenc = urlencode(filename);
+        if (filename_urlenc == NULL) {
+            fprintf(stderr, "urlencode failed\n");
+            return -1;
+        }
         api_call = mfconn_create_signed_get(conn, 0, "file/update.php",
                                             "?quick_key=%s"
                                             "&filename=%s"
                                             "&response_format=json", quickkey,
-                                            filename);
+                                            filename_urlenc);
+        free(filename_urlenc);
         if (api_call == NULL) {
             fprintf(stderr, "mfconn_create_signed_get failed\n");
             return -1;

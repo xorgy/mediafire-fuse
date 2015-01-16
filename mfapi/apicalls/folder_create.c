@@ -32,6 +32,7 @@ int mfconn_api_folder_create(mfconn * conn, const char *parent,
     int             retval;
     mfhttp         *http;
     int             i;
+    char           *name_urlenc;
 
     if (conn == NULL)
         return -1;
@@ -47,18 +48,24 @@ int mfconn_api_folder_create(mfconn * conn, const char *parent,
     }
 
     for (i = 0; i < mfconn_get_max_num_retries(conn); i++) {
+        name_urlenc = urlencode(name);
+        if (name_urlenc == NULL) {
+            fprintf(stderr, "urlencode failed\n");
+            return -1;
+        }
         if (parent != NULL) {
             api_call =
                 mfconn_create_signed_get(conn, 0, "folder/create.php",
                                          "?parent_key=%s&foldername=%s"
                                          "&response_format=json", parent,
-                                         name);
+                                         name_urlenc);
         } else {
             api_call =
                 mfconn_create_signed_get(conn, 0, "folder/create.php",
                                          "?foldername=%s&response_format=json",
-                                         name);
+                                         name_urlenc);
         }
+        free(name_urlenc);
         if (api_call == NULL) {
             fprintf(stderr, "mfconn_create_signed_get failed\n");
             return -1;

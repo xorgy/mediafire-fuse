@@ -145,11 +145,13 @@ int             mfconn_api_device_get_patch(mfconn * conn, mfpatch * patch,
 int             mfconn_api_upload_check(mfconn * conn, const char *filename,
                                         const char *hash,
                                         uint64_t size, const char *folder_key,
-                                        struct mfconn_upload_check_result *result);
+                                        struct mfconn_upload_check_result
+                                        *result);
 
 int             mfconn_api_upload_instant(mfconn * conn, const char *quick_key,
-                                          const char *filename, const char *hash,
-                                          uint64_t size, const char *folder_key);
+                                          const char *filename,
+                                          const char *hash, uint64_t size,
+                                          const char *folder_key);
 
 int             mfconn_api_upload_simple(mfconn * conn, const char *folderkey,
                                          FILE * fh, const char *file_name,

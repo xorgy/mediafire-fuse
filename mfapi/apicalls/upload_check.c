@@ -22,22 +22,24 @@
 #include <string.h>
 #include <inttypes.h>
 #include <stdio.h>
+#include <stdbool.h>
 
 #include "../../utils/http.h"
 #include "../mfconn.h"
-#include "../patch.h"
 #include "../apicalls.h"        // IWYU pragma: keep
 
 static int      _decode_upload_check(mfhttp * conn, void *data);
 
-int mfconn_api_upload_check(mfconn * conn, const char *filename, const char *hash,
-                            uint64_t size, const char *folder_key,
+int mfconn_api_upload_check(mfconn * conn, const char *filename,
+                            const char *hash, uint64_t size,
+                            const char *folder_key,
                             struct mfconn_upload_check_result *result)
 {
     const char     *api_call;
     int             retval;
     mfhttp         *http;
     int             i;
+    char           *filename_urlenc;
 
     if (conn == NULL)
         return -1;
@@ -58,13 +60,19 @@ int mfconn_api_upload_check(mfconn * conn, const char *filename, const char *has
     }
 
     for (i = 0; i < mfconn_get_max_num_retries(conn); i++) {
+        filename_urlenc = urlencode(filename);
+        if (filename_urlenc == NULL) {
+            fprintf(stderr, "urlencode failed\n");
+            return -1;
+        }
         api_call = mfconn_create_signed_get(conn, 0, "upload/check.php",
                                             "?response_format=json"
                                             "&filename=%s"
                                             "&size=%" PRIu64
                                             "&hash=%s"
-                                            "&folder_key=%s", filename,
+                                            "&folder_key=%s", filename_urlenc,
                                             size, hash, folder_key);
+        free(filename_urlenc);
         if (api_call == NULL) {
             fprintf(stderr, "mfconn_create_signed_get failed\n");
             return -1;
@@ -98,7 +106,7 @@ int mfconn_api_upload_check(mfconn * conn, const char *filename, const char *has
     return retval;
 }
 
-static int      _decode_upload_check(mfhttp * conn, void *data)
+static int _decode_upload_check(mfhttp * conn, void *data)
 {
     json_error_t    error;
     json_t         *obj;
@@ -160,7 +168,8 @@ static int      _decode_upload_check(mfhttp * conn, void *data)
             return -1;
         }
         if (!json_is_string(obj)) {
-            fprintf(stderr, "response/in_account is not expected type string\n");
+            fprintf(stderr,
+                    "response/in_account is not expected type string\n");
             json_decref(root);
             return -1;
         }
@@ -206,7 +215,8 @@ static int      _decode_upload_check(mfhttp * conn, void *data)
             return -1;
         }
         if (!json_is_string(obj)) {
-            fprintf(stderr, "response/different_hash is not expected type string\n");
+            fprintf(stderr,
+                    "response/different_hash is not expected type string\n");
             json_decref(root);
             return -1;
         }

@@ -328,3 +328,39 @@ http_post_file(mfhttp * conn, const char *url, FILE * fh,
         retval = data_handler(conn, data);
     return retval;
 }
+
+// we roll our own urlencode function because curl_easy_escape requires a curl
+// handle
+char           *urlencode(const char *inp)
+{
+    char           *buf;
+    char           *bufp;
+    char            hex[] = "0123456789abcdef";
+
+    // allocating three times the length of the input because in the worst
+    // case each character must be urlencoded and add a byte for the
+    // terminating zero
+    bufp = buf = (char *)malloc(strlen(inp) * 3 + 1);
+
+    if (buf == NULL) {
+        fprintf(stderr, "malloc failed\n");
+        return NULL;
+    }
+
+    while (*inp) {
+        if ((*inp >= '0' && *inp <= '9')
+            || (*inp >= 'A' && *inp <= 'Z')
+            || (*inp >= 'a' && *inp <= 'z')
+            || *inp == '-' || *inp == '_' || *inp == '.' || *inp == '~') {
+            *bufp++ = *inp;
+        } else {
+            *bufp++ = '%';
+            *bufp++ = hex[(*inp >> 4) & 0xf];
+            *bufp++ = hex[*inp & 0xf];
+        }
+        inp++;
+    }
+    *bufp = '\0';
+
+    return buf;
+}
