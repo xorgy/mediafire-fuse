@@ -157,7 +157,7 @@ int file_set_name(mffile * file, const char *name)
     if (name == NULL)
         return -1;
 
-    if (strlen(name) > 255)
+    if (strlen(name) > MFAPI_MAX_LEN_NAME)
         return -1;
 
     memset(file->name, 0, sizeof(file->name));

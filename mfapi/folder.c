@@ -115,7 +115,7 @@ int folder_set_name(mffolder * folder, const char *name)
     if (name == NULL)
         return -1;
 
-    if (strlen(name) > 40)
+    if (strlen(name) > MFAPI_MAX_LEN_NAME)
         return -1;
 
     memset(folder->name, 0, sizeof(folder->name));
