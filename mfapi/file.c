@@ -56,8 +56,10 @@ mffile         *file_alloc(void)
 
 void file_free(mffile * file)
 {
-    if (file == NULL)
+    if (file == NULL) {
+        fprintf(stderr, "file cannot be NULL\n");
         return;
+    }
 
     if (file->share_link != NULL)
         free(file->share_link);
@@ -75,14 +77,20 @@ int file_set_key(mffile * file, const char *key)
 {
     int             len;
 
-    if (file == NULL)
+    if (file == NULL) {
+        fprintf(stderr, "file cannot be NULL\n");
         return -1;
-    if (key == NULL)
+    }
+    if (key == NULL) {
+        fprintf(stderr, "key cannot be NULL\n");
         return -1;
+    }
 
     len = strlen(key);
-    if (len != 11 && len != 15)
+    if (len != 11 && len != 15) {
+        fprintf(stderr, "key must be 11 or 15 chars long\n");
         return -1;
+    }
 
     memset(file->quickkey, 0, sizeof(file->quickkey));
     strncpy(file->quickkey, key, sizeof(file->quickkey));
@@ -92,16 +100,20 @@ int file_set_key(mffile * file, const char *key)
 
 const char     *file_get_key(mffile * file)
 {
-    if (file == NULL)
+    if (file == NULL) {
+        fprintf(stderr, "file must not be NULL\n");
         return NULL;
+    }
 
     return file->quickkey;
 }
 
 int file_set_parent(mffile * file, const char *parent_key)
 {
-    if (file == NULL)
+    if (file == NULL) {
+        fprintf(stderr, "file must not be NULL\n");
         return -1;
+    }
 
     if (parent_key == NULL) {
         memset(file->parent, 0, sizeof(file->parent));
@@ -115,8 +127,10 @@ int file_set_parent(mffile * file, const char *parent_key)
 
 const char     *file_get_parent(mffile * file)
 {
-    if (file == NULL)
+    if (file == NULL) {
+        fprintf(stderr, "file must not be NULL\n");
         return NULL;
+    }
 
     if (file->parent[0] == '\0') {
         return NULL;
@@ -127,14 +141,19 @@ const char     *file_get_parent(mffile * file)
 
 int file_set_hash(mffile * file, const char *hash)
 {
-    if (file == NULL)
+    if (file == NULL) {
+        fprintf(stderr, "file must not be NULL\n");
         return -1;
-    if (hash == NULL)
+    }
+    if (hash == NULL) {
+        fprintf(stderr, "hash cannot be NULL\n");
         return -1;
-
+    }
     // system supports SHA256 (current) and MD5 (legacy)
-    if (strlen(hash) < 32)
+    if (strlen(hash) < 32) {
+        fprintf(stderr, "hash must not be shorter than 32\n");
         return -1;
+    }
 
     memset(file->hash, 0, sizeof(file->hash));
     strncpy(file->hash, hash, sizeof(file->hash) - 1);
@@ -144,21 +163,30 @@ int file_set_hash(mffile * file, const char *hash)
 
 const char     *file_get_hash(mffile * file)
 {
-    if (file == NULL)
+    if (file == NULL) {
+        fprintf(stderr, "file must not be NULL\n");
         return NULL;
+    }
 
     return file->hash;
 }
 
 int file_set_name(mffile * file, const char *name)
 {
-    if (file == NULL)
+    if (file == NULL) {
+        fprintf(stderr, "file must not be NULL\n");
         return -1;
-    if (name == NULL)
+    }
+    if (name == NULL) {
+        fprintf(stderr, "name must not be NULL\n");
         return -1;
+    }
 
-    if (strlen(name) > MFAPI_MAX_LEN_NAME)
+    if (strlen(name) > MFAPI_MAX_LEN_NAME) {
+        fprintf(stderr, "name must not be longer than %d\n",
+                MFAPI_MAX_LEN_NAME);
         return -1;
+    }
 
     memset(file->name, 0, sizeof(file->name));
     strncpy(file->name, name, sizeof(file->name));
@@ -168,16 +196,20 @@ int file_set_name(mffile * file, const char *name)
 
 const char     *file_get_name(mffile * file)
 {
-    if (file == NULL)
+    if (file == NULL) {
+        fprintf(stderr, "file must not be NULL\n");
         return NULL;
+    }
 
     return file->name;
 }
 
 int file_set_size(mffile * file, uint64_t size)
 {
-    if (file == NULL)
+    if (file == NULL) {
+        fprintf(stderr, "file must not be NULL\n");
         return -1;
+    }
 
     file->size = size;
 
@@ -186,16 +218,20 @@ int file_set_size(mffile * file, uint64_t size)
 
 uint64_t file_get_size(mffile * file)
 {
-    if (file == NULL)
+    if (file == NULL) {
+        fprintf(stderr, "file must not be NULL\n");
         return -1;
+    }
 
     return file->size;
 }
 
 int file_set_revision(mffile * file, uint64_t revision)
 {
-    if (file == NULL)
+    if (file == NULL) {
+        fprintf(stderr, "file must not be NULL\n");
         return -1;
+    }
 
     file->revision = revision;
 
@@ -204,16 +240,20 @@ int file_set_revision(mffile * file, uint64_t revision)
 
 uint64_t file_get_revision(mffile * file)
 {
-    if (file == NULL)
+    if (file == NULL) {
+        fprintf(stderr, "file must not be NULL\n");
         return -1;
+    }
 
     return file->revision;
 }
 
 int file_set_created(mffile * file, time_t created)
 {
-    if (file == NULL)
+    if (file == NULL) {
+        fprintf(stderr, "file must not be NULL\n");
         return -1;
+    }
 
     file->created = created;
 
@@ -222,18 +262,24 @@ int file_set_created(mffile * file, time_t created)
 
 time_t file_get_created(mffile * file)
 {
-    if (file == NULL)
+    if (file == NULL) {
+        fprintf(stderr, "file must not be NULL\n");
         return -1;
+    }
 
     return file->created;
 }
 
 int file_set_share_link(mffile * file, const char *share_link)
 {
-    if (file == NULL)
+    if (file == NULL) {
+        fprintf(stderr, "file must not be NULL\n");
         return -1;
-    if (share_link == NULL)
+    }
+    if (share_link == NULL) {
+        fprintf(stderr, "share_link must not be NULL\n");
         return -1;
+    }
 
     if (file->share_link != NULL) {
         free(file->share_link);
@@ -247,18 +293,24 @@ int file_set_share_link(mffile * file, const char *share_link)
 
 const char     *file_get_share_link(mffile * file)
 {
-    if (file == NULL)
+    if (file == NULL) {
+        fprintf(stderr, "file must not be NULL\n");
         return NULL;
+    }
 
     return file->share_link;
 }
 
 int file_set_direct_link(mffile * file, const char *direct_link)
 {
-    if (file == NULL)
+    if (file == NULL) {
+        fprintf(stderr, "file must not be NULL\n");
         return -1;
-    if (direct_link == NULL)
+    }
+    if (direct_link == NULL) {
+        fprintf(stderr, "direct_link must not be NULL\n");
         return -1;
+    }
 
     if (file->direct_link != NULL) {
         free(file->direct_link);
@@ -272,18 +324,24 @@ int file_set_direct_link(mffile * file, const char *direct_link)
 
 const char     *file_get_direct_link(mffile * file)
 {
-    if (file == NULL)
+    if (file == NULL) {
+        fprintf(stderr, "file must not be NULL\n");
         return NULL;
+    }
 
     return file->direct_link;
 }
 
 int file_set_onetime_link(mffile * file, const char *onetime_link)
 {
-    if (file == NULL)
+    if (file == NULL) {
+        fprintf(stderr, "file must not be NULL\n");
         return -1;
-    if (onetime_link == NULL)
+    }
+    if (onetime_link == NULL) {
+        fprintf(stderr, "onetime_link must not be NULL\n");
         return -1;
+    }
 
     if (file->onetime_link != NULL) {
         free(file->onetime_link);
@@ -297,8 +355,10 @@ int file_set_onetime_link(mffile * file, const char *onetime_link)
 
 const char     *file_get_onetime_link(mffile * file)
 {
-    if (file == NULL)
+    if (file == NULL) {
+        fprintf(stderr, "file must not be NULL\n");
         return NULL;
+    }
 
     return file->onetime_link;
 }

@@ -43,8 +43,10 @@ mffolder       *folder_alloc(void)
 
 void folder_free(mffolder * folder)
 {
-    if (folder == NULL)
+    if (folder == NULL) {
+        fprintf(stderr, "folder must not be NULL\n");
         return;
+    }
 
     free(folder);
 
@@ -53,14 +55,18 @@ void folder_free(mffolder * folder)
 
 int folder_set_key(mffolder * folder, const char *key)
 {
-    if (folder == NULL)
+    if (folder == NULL) {
+        fprintf(stderr, "folder must not be NULL\n");
         return -1;
+    }
 
     if (key == NULL) {
         memset(folder->folderkey, 0, sizeof(folder->folderkey));
     } else {
-        if (strlen(key) != 13)
+        if (strlen(key) != 13) {
+            fprintf(stderr, "key length must be 13\n");
             return -1;
+        }
 
         memset(folder->folderkey, 0, sizeof(folder->folderkey));
         strncpy(folder->folderkey, key, sizeof(folder->folderkey));
@@ -71,8 +77,10 @@ int folder_set_key(mffolder * folder, const char *key)
 
 const char     *folder_get_key(mffolder * folder)
 {
-    if (folder == NULL)
+    if (folder == NULL) {
+        fprintf(stderr, "folder must not be NULL\n");
         return NULL;
+    }
 
     if (folder->folderkey[0] == '\0') {
         return NULL;
@@ -83,8 +91,10 @@ const char     *folder_get_key(mffolder * folder)
 
 int folder_set_parent(mffolder * folder, const char *parent_key)
 {
-    if (folder == NULL)
+    if (folder == NULL) {
+        fprintf(stderr, "folder must not be NULL\n");
         return -1;
+    }
 
     if (parent_key == NULL) {
         memset(folder->parent, 0, sizeof(folder->parent));
@@ -98,8 +108,10 @@ int folder_set_parent(mffolder * folder, const char *parent_key)
 
 const char     *folder_get_parent(mffolder * folder)
 {
-    if (folder == NULL)
+    if (folder == NULL) {
+        fprintf(stderr, "folder must not be NULL\n");
         return NULL;
+    }
 
     if (folder->parent[0] == '\0') {
         return NULL;
@@ -110,13 +122,20 @@ const char     *folder_get_parent(mffolder * folder)
 
 int folder_set_name(mffolder * folder, const char *name)
 {
-    if (folder == NULL)
+    if (folder == NULL) {
+        fprintf(stderr, "folder must not be NULL\n");
         return -1;
-    if (name == NULL)
+    }
+    if (name == NULL) {
+        fprintf(stderr, "name must not be NULL\n");
         return -1;
+    }
 
-    if (strlen(name) > MFAPI_MAX_LEN_NAME)
+    if (strlen(name) > MFAPI_MAX_LEN_NAME) {
+        fprintf(stderr, "name must not be longer than %d\n",
+                MFAPI_MAX_LEN_NAME);
         return -1;
+    }
 
     memset(folder->name, 0, sizeof(folder->name));
     strncpy(folder->name, name, sizeof(folder->name));
@@ -126,16 +145,20 @@ int folder_set_name(mffolder * folder, const char *name)
 
 const char     *folder_get_name(mffolder * folder)
 {
-    if (folder == NULL)
+    if (folder == NULL) {
+        fprintf(stderr, "folder must not be NULL\n");
         return NULL;
+    }
 
     return folder->name;
 }
 
 int folder_set_revision(mffolder * folder, uint64_t revision)
 {
-    if (folder == NULL)
+    if (folder == NULL) {
+        fprintf(stderr, "folder must not be NULL\n");
         return -1;
+    }
 
     folder->revision = revision;
     return 0;
@@ -143,16 +166,20 @@ int folder_set_revision(mffolder * folder, uint64_t revision)
 
 uint64_t folder_get_revision(mffolder * folder)
 {
-    if (folder == NULL)
+    if (folder == NULL) {
+        fprintf(stderr, "folder must not be NULL\n");
         return -1;
+    }
 
     return folder->revision;
 }
 
 int folder_set_created(mffolder * folder, time_t created)
 {
-    if (folder == NULL)
+    if (folder == NULL) {
+        fprintf(stderr, "folder must not be NULL\n");
         return -1;
+    }
 
     folder->created = created;
     return 0;
@@ -160,8 +187,10 @@ int folder_set_created(mffolder * folder, time_t created)
 
 time_t folder_get_created(mffolder * folder)
 {
-    if (folder == NULL)
+    if (folder == NULL) {
+        fprintf(stderr, "folder must not be NULL\n");
         return -1;
+    }
 
     return folder->created;
 }

@@ -23,6 +23,7 @@
 #include <openssl/sha.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "patch.h"
 
@@ -52,8 +53,10 @@ mfpatch        *patch_alloc(void)
 
 void patch_free(mfpatch * patch)
 {
-    if (patch == NULL)
+    if (patch == NULL) {
+        fprintf(stderr, "patch must not be NULL\n");
         return;
+    }
 
     if (patch->link != NULL)
         free(patch->link);
@@ -65,16 +68,20 @@ void patch_free(mfpatch * patch)
 
 uint64_t patch_get_source_revision(mfpatch * patch)
 {
-    if (patch == NULL)
+    if (patch == NULL) {
+        fprintf(stderr, "patch must not be NULL\n");
         return -1;
+    }
 
     return patch->source_revision;
 }
 
 int patch_set_source_revision(mfpatch * patch, uint64_t revision)
 {
-    if (patch == NULL)
+    if (patch == NULL) {
+        fprintf(stderr, "patch must not be NULL\n");
         return -1;
+    }
 
     patch->source_revision = revision;
 
@@ -83,16 +90,20 @@ int patch_set_source_revision(mfpatch * patch, uint64_t revision)
 
 uint64_t patch_get_target_revision(mfpatch * patch)
 {
-    if (patch == NULL)
+    if (patch == NULL) {
+        fprintf(stderr, "patch must not be NULL\n");
         return -1;
+    }
 
     return patch->target_revision;
 }
 
 int patch_set_target_revision(mfpatch * patch, uint64_t revision)
 {
-    if (patch == NULL)
+    if (patch == NULL) {
+        fprintf(stderr, "patch must not be NULL\n");
         return -1;
+    }
 
     patch->target_revision = revision;
 
@@ -101,21 +112,29 @@ int patch_set_target_revision(mfpatch * patch, uint64_t revision)
 
 const char     *patch_get_hash(mfpatch * patch)
 {
-    if (patch == NULL)
+    if (patch == NULL) {
+        fprintf(stderr, "patch must not be NULL\n");
         return NULL;
+    }
 
     return patch->hash;
 }
 
 int patch_set_hash(mfpatch * patch, const char *hash)
 {
-    if (patch == NULL)
+    if (patch == NULL) {
+        fprintf(stderr, "patch must not be NULL\n");
         return -1;
-    if (hash == NULL)
+    }
+    if (hash == NULL) {
+        fprintf(stderr, "hash must not be NULL\n");
         return -1;
+    }
 
-    if (strlen(hash) < 32)
+    if (strlen(hash) < 32) {
+        fprintf(stderr, "hash must not be shorter than 32\n");
         return -1;
+    }
 
     memset(patch->hash, 0, sizeof(patch->hash));
     strncpy(patch->hash, hash, sizeof(patch->hash) - 1);
@@ -125,21 +144,29 @@ int patch_set_hash(mfpatch * patch, const char *hash)
 
 const char     *patch_get_source_hash(mfpatch * patch)
 {
-    if (patch == NULL)
+    if (patch == NULL) {
+        fprintf(stderr, "patch must not be NULL\n");
         return NULL;
+    }
 
     return patch->source_hash;
 }
 
 int patch_set_source_hash(mfpatch * patch, const char *hash)
 {
-    if (patch == NULL)
+    if (patch == NULL) {
+        fprintf(stderr, "patch must not be NULL\n");
         return -1;
-    if (hash == NULL)
+    }
+    if (hash == NULL) {
+        fprintf(stderr, "hash must not be NULL\n");
         return -1;
+    }
 
-    if (strlen(hash) < 32)
+    if (strlen(hash) < 32) {
+        fprintf(stderr, "hash must not be shorter than 32\n");
         return -1;
+    }
 
     memset(patch->source_hash, 0, sizeof(patch->source_hash));
     strncpy(patch->source_hash, hash, sizeof(patch->source_hash) - 1);
@@ -149,21 +176,29 @@ int patch_set_source_hash(mfpatch * patch, const char *hash)
 
 const char     *patch_get_target_hash(mfpatch * patch)
 {
-    if (patch == NULL)
+    if (patch == NULL) {
+        fprintf(stderr, "patch must not be NULL\n");
         return NULL;
+    }
 
     return patch->target_hash;
 }
 
 int patch_set_target_hash(mfpatch * patch, const char *hash)
 {
-    if (patch == NULL)
+    if (patch == NULL) {
+        fprintf(stderr, "patch must not be NULL\n");
         return -1;
-    if (hash == NULL)
+    }
+    if (hash == NULL) {
+        fprintf(stderr, "hash must not be NULL\n");
         return -1;
+    }
 
-    if (strlen(hash) < 32)
+    if (strlen(hash) < 32) {
+        fprintf(stderr, "hash must not be shorter than 32\n");
         return -1;
+    }
 
     memset(patch->target_hash, 0, sizeof(patch->target_hash));
     strncpy(patch->target_hash, hash, sizeof(patch->target_hash) - 1);
@@ -173,16 +208,20 @@ int patch_set_target_hash(mfpatch * patch, const char *hash)
 
 uint64_t patch_get_target_size(mfpatch * patch)
 {
-    if (patch == NULL)
+    if (patch == NULL) {
+        fprintf(stderr, "patch must not be NULL\n");
         return -1;
+    }
 
     return patch->target_size;
 }
 
 int patch_set_target_size(mfpatch * patch, uint64_t size)
 {
-    if (patch == NULL)
+    if (patch == NULL) {
+        fprintf(stderr, "patch must not be NULL\n");
         return -1;
+    }
 
     patch->target_size = size;
 
@@ -191,18 +230,24 @@ int patch_set_target_size(mfpatch * patch, uint64_t size)
 
 const char     *patch_get_link(mfpatch * patch)
 {
-    if (patch == NULL)
+    if (patch == NULL) {
+        fprintf(stderr, "patch must not be NULL\n");
         return NULL;
+    }
 
     return patch->link;
 }
 
 int patch_set_link(mfpatch * patch, const char *link)
 {
-    if (patch == NULL)
+    if (patch == NULL) {
+        fprintf(stderr, "patch must not be NULL\n");
         return -1;
-    if (link == NULL)
+    }
+    if (link == NULL) {
+        fprintf(stderr, "link must not be NULL\n");
         return -1;
+    }
 
     if (patch->link != NULL) {
         free(patch->link);
