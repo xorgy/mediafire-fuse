@@ -55,6 +55,8 @@ tree /mnt
 mkdir "/mnt/test"
 
 # FIXME: also test for moving and renaming of directories
+# FIXME: also test for creating files and folder with special characters
+# FIXME: also test for creating files and folder with name longer than 255
 
 # create file in the root directory
 echo foobar > "/mnt/foobar2"
