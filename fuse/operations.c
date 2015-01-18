@@ -698,7 +698,7 @@ int mediafirefs_readlink(const char *path, char *buf, size_t bufsize)
 
     pthread_mutex_unlock(&(ctx->mutex));
 
-    return -ENOENT;
+    return -ENOSYS;
 }
 
 int mediafirefs_mknod(const char *path, mode_t mode, dev_t dev)
@@ -716,7 +716,7 @@ int mediafirefs_mknod(const char *path, mode_t mode, dev_t dev)
 
     pthread_mutex_unlock(&(ctx->mutex));
 
-    return -ENOENT;
+    return -ENOSYS;
 }
 
 int mediafirefs_symlink(const char *target, const char *linkpath)
@@ -733,7 +733,7 @@ int mediafirefs_symlink(const char *target, const char *linkpath)
 
     pthread_mutex_unlock(&(ctx->mutex));
 
-    return -ENOENT;
+    return -ENOSYS;
 }
 
 int mediafirefs_rename(const char *oldpath, const char *newpath)
@@ -848,7 +848,7 @@ int mediafirefs_link(const char *target, const char *linkpath)
 
     pthread_mutex_unlock(&(ctx->mutex));
 
-    return -ENOENT;
+    return -ENOSYS;
 }
 
 int mediafirefs_chmod(const char *path, mode_t mode)
@@ -865,7 +865,7 @@ int mediafirefs_chmod(const char *path, mode_t mode)
 
     pthread_mutex_unlock(&(ctx->mutex));
 
-    return -ENOENT;
+    return -ENOSYS;
 }
 
 int mediafirefs_chown(const char *path, uid_t uid, gid_t gid)
@@ -883,7 +883,7 @@ int mediafirefs_chown(const char *path, uid_t uid, gid_t gid)
 
     pthread_mutex_unlock(&(ctx->mutex));
 
-    return -ENOENT;
+    return -ENOSYS;
 }
 
 int mediafirefs_truncate(const char *path, off_t length)
@@ -901,7 +901,7 @@ int mediafirefs_truncate(const char *path, off_t length)
 
     pthread_mutex_unlock(&(ctx->mutex));
 
-    return -ENOENT;
+    return -ENOSYS;
 }
 
 int mediafirefs_statfs(const char *path, struct statvfs *buf)
@@ -918,7 +918,7 @@ int mediafirefs_statfs(const char *path, struct statvfs *buf)
 
     pthread_mutex_unlock(&(ctx->mutex));
 
-    return -ENOENT;
+    return -ENOSYS;
 }
 
 int mediafirefs_flush(const char *path, struct fuse_file_info *file_info)
@@ -954,7 +954,7 @@ int mediafirefs_fsync(const char *path, int datasync,
 
     pthread_mutex_unlock(&(ctx->mutex));
 
-    return -ENOENT;
+    return -ENOSYS;
 }
 
 int mediafirefs_setxattr(const char *path, const char *name,
@@ -975,7 +975,7 @@ int mediafirefs_setxattr(const char *path, const char *name,
 
     pthread_mutex_unlock(&(ctx->mutex));
 
-    return -ENOENT;
+    return -ENOSYS;
 }
 
 int mediafirefs_getxattr(const char *path, const char *name, char *value,
@@ -995,7 +995,7 @@ int mediafirefs_getxattr(const char *path, const char *name, char *value,
 
     pthread_mutex_unlock(&(ctx->mutex));
 
-    return -ENOENT;
+    return -ENOSYS;
 }
 
 int mediafirefs_listxattr(const char *path, char *list, size_t size)
@@ -1013,7 +1013,7 @@ int mediafirefs_listxattr(const char *path, char *list, size_t size)
 
     pthread_mutex_unlock(&(ctx->mutex));
 
-    return -ENOENT;
+    return -ENOSYS;
 }
 
 int mediafirefs_removexattr(const char *path, const char *list)
@@ -1030,7 +1030,7 @@ int mediafirefs_removexattr(const char *path, const char *list)
 
     pthread_mutex_unlock(&(ctx->mutex));
 
-    return -ENOENT;
+    return -ENOSYS;
 }
 
 int mediafirefs_opendir(const char *path, struct fuse_file_info *file_info)
@@ -1083,7 +1083,7 @@ int mediafirefs_fsyncdir(const char *path, int datasync,
 
     pthread_mutex_unlock(&(ctx->mutex));
 
-    return -ENOENT;
+    return -ENOSYS;
 }
 
 /*
@@ -1125,5 +1125,5 @@ int mediafirefs_utimens(const char *path, const struct timespec tv[2])
 
     pthread_mutex_unlock(&(ctx->mutex));
 
-    return -ENOENT;
+    return -ENOSYS;
 }
