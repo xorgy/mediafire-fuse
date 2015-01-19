@@ -21,3 +21,4 @@ Test Cases
 * Browse the fs with Thunar (Thunar 1.6.3)
 * Mount to two different MediaFire Acounts simultaneously
 * Copy a file to FUSE fs causing "instant upload" to be invoked 
+* View a PDF file in the FUSE fs with Evince (evince 3.10.3)
