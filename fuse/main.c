@@ -312,25 +312,27 @@ static void open_hashtbl(const char *dircache, const char *filecache,
 
         *tree = folder_tree_load(fp, filecache);
 
-        if (*tree == NULL) {
-            fprintf(stderr, "cannot load directory hashtable\n");
-            exit(1);
-        }
-
         fclose(fp);
 
-        // TODO: make the maximum cache size configurable
-        // size is given in bytes and current default is 1 GiB
-        folder_tree_cleanup_filecache(*tree, 1073741824);
+        if (*tree != NULL) {
 
-        folder_tree_update(*tree, conn, false);
-    } else {
-        // file doesn't exist
-        fprintf(stderr, "creating new hashtable\n");
-        *tree = folder_tree_create(filecache);
+            // TODO: make the maximum cache size configurable
+            // size is given in bytes and current default is 1 GiB
+            folder_tree_cleanup_filecache(*tree, 1073741824);
 
-        folder_tree_rebuild(*tree, conn);
+            folder_tree_update(*tree, conn, false);
+
+            return;
+        }
+
+        fprintf(stderr, "cannot load directory hashtable - starting"
+                " a new one\n");
     }
+    // file doesn't exist or is corrupt
+    fprintf(stderr, "creating new hashtable\n");
+    *tree = folder_tree_create(filecache);
+
+    folder_tree_rebuild(*tree, conn);
 
     //folder_tree_housekeep(tree);
 
