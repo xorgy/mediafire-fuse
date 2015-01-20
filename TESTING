@@ -5,9 +5,20 @@ various platforms and scenarios that have been tested.
 Platforms
 ---------
 
-* Xubuntu 14.04.1 LTS (64-bit)
+* Xubuntu 14.04.1 LTS (amd64)
+* FreeBSD 10.0 (amd64)
+* Debian 8 Jessie (amd64, i386)
 
+Automated Test Cases
+--------------------
 
+The following tests are run when executing `make test`:
+
+* create a new directory (mkdir)
+* pipe content into a file (echo foo > file)
+* obtaining a directory tree (tree)
+* show difference between files (diff)
+* recursively delete a directory and its contents (rm -rf dir)
 
 Test Cases
 ----------
