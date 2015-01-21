@@ -19,7 +19,7 @@
 
 #ifdef __linux
 #define _POSIX_C_SOURCE 200809L // for strdup and getline
-#define _BSD_SOURCE             // for strsep
+#define _DEFAULT_SOURCE         // for strsep
 #else
 #define _WITH_GETLINE           // on freebsd for getline
 #endif

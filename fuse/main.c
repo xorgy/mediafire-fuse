@@ -17,7 +17,7 @@
  */
 
 #define _POSIX_C_SOURCE 200809L // for strdup and struct timespec
-#define _BSD_SOURCE             // for strdup on old systems
+#define _DEFAULT_SOURCE         // for strdup on old systems
 #define _GNU_SOURCE             // for getline on old systems
 
 #define FUSE_USE_VERSION 30
